@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "מנהל לקוחות",
   "native_select_role_placeholder": "בחר תפקיד",
   "native_select_role_admin": "מנהל",
-  "native_select_role_editor": "עורך"
+  "native_select_role_editor": "עורך",
+  "input_otp_heading": "קלט OTP",
+  "input_otp_basic_label": "OTP בסיסי",
+  "input_otp_separator_label": "עם מפריד",
+  "input_otp_controlled_label": "מבוקר",
+  "input_otp_enter_code": "הזן את הסיסמה החד-פעמית שלך",
+  "input_otp_entered": "הזנת"
 }

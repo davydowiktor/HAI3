@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Meneja wa Akaunti",
   "native_select_role_placeholder": "Chagua jukumu",
   "native_select_role_admin": "Admin",
-  "native_select_role_editor": "Mhariri"
+  "native_select_role_editor": "Mhariri",
+  "input_otp_heading": "Ingizo la OTP",
+  "input_otp_basic_label": "OTP ya msingi",
+  "input_otp_separator_label": "Na kitenganishi",
+  "input_otp_controlled_label": "Imeendeshwa",
+  "input_otp_enter_code": "Ingiza nenosiri lako la wakati mmoja",
+  "input_otp_entered": "Uliingiza"
 }

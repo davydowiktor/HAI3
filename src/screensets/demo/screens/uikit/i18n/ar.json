@@ -469,5 +469,11 @@
   "native_select_dept_account_manager": "مدير حساب",
   "native_select_role_placeholder": "اختر الدور",
   "native_select_role_admin": "مسؤول",
-  "native_select_role_editor": "محرر"
+  "native_select_role_editor": "محرر",
+  "input_otp_heading": "إدخال OTP",
+  "input_otp_basic_label": "OTP أساسي",
+  "input_otp_separator_label": "مع فاصل",
+  "input_otp_controlled_label": "متحكم به",
+  "input_otp_enter_code": "أدخل كلمة المرور لمرة واحدة",
+  "input_otp_entered": "لقد أدخلت"
 }

@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "客戶經理",
   "native_select_role_placeholder": "選擇角色",
   "native_select_role_admin": "管理員",
-  "native_select_role_editor": "編輯"
+  "native_select_role_editor": "編輯",
+  "input_otp_heading": "輸入驗證碼",
+  "input_otp_basic_label": "基本驗證碼",
+  "input_otp_separator_label": "帶分隔符",
+  "input_otp_controlled_label": "受控",
+  "input_otp_enter_code": "請輸入一次性密碼",
+  "input_otp_entered": "您輸入了"
 }

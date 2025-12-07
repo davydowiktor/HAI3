@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "مدیر حساب",
   "native_select_role_placeholder": "انتخاب نقش",
   "native_select_role_admin": "مدیر",
-  "native_select_role_editor": "ویرایشگر"
+  "native_select_role_editor": "ویرایشگر",
+  "input_otp_heading": "ورودی OTP",
+  "input_otp_basic_label": "OTP پایه",
+  "input_otp_separator_label": "با جداکننده",
+  "input_otp_controlled_label": "کنترل‌شده",
+  "input_otp_enter_code": "رمز یکبار مصرف خود را وارد کنید",
+  "input_otp_entered": "شما وارد کردید"
 }

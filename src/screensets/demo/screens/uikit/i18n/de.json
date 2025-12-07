@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Account Manager",
   "native_select_role_placeholder": "Rolle auswählen",
   "native_select_role_admin": "Admin",
-  "native_select_role_editor": "Redakteur"
+  "native_select_role_editor": "Redakteur",
+  "input_otp_heading": "Eingabe OTP",
+  "input_otp_basic_label": "Einfaches OTP",
+  "input_otp_separator_label": "Mit Trennzeichen",
+  "input_otp_controlled_label": "Kontrolliert",
+  "input_otp_enter_code": "Geben Sie Ihr Einmalpasswort ein",
+  "input_otp_entered": "Sie haben eingegeben"
 }

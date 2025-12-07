@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Account Manager",
   "native_select_role_placeholder": "Chọn vai trò",
   "native_select_role_admin": "Admin",
-  "native_select_role_editor": "Biên tập viên"
+  "native_select_role_editor": "Biên tập viên",
+  "input_otp_heading": "Nhập OTP",
+  "input_otp_basic_label": "OTP cơ bản",
+  "input_otp_separator_label": "Có dấu phân cách",
+  "input_otp_controlled_label": "Được kiểm soát",
+  "input_otp_enter_code": "Nhập mật khẩu dùng một lần của bạn",
+  "input_otp_entered": "Bạn đã nhập"
 }

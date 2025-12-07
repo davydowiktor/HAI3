@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "अकाउंट मैनेजर",
   "native_select_role_placeholder": "भूमिका चुनें",
   "native_select_role_admin": "एडमिन",
-  "native_select_role_editor": "संपादक"
+  "native_select_role_editor": "संपादक",
+  "input_otp_heading": "इनपुट OTP",
+  "input_otp_basic_label": "बेसिक OTP",
+  "input_otp_separator_label": "सेपरेटर के साथ",
+  "input_otp_controlled_label": "नियंत्रित",
+  "input_otp_enter_code": "अपना वन-टाइम पासवर्ड दर्ज करें",
+  "input_otp_entered": "आपने दर्ज किया"
 }

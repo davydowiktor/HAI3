@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Checkbox, RadioGroup, RadioGroupItem, Switch, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, NativeSelect, NativeSelectOption, NativeSelectOptGroup, Textarea } from '@hai3/uikit';
+import { Checkbox, RadioGroup, RadioGroupItem, Switch, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, NativeSelect, NativeSelectOption, NativeSelectOptGroup, InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator, Textarea } from '@hai3/uikit';
+import { REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
 import { useTranslation, TextLoader } from '@hai3/uicore';
 import { DEMO_SCREENSET_ID } from "../ids";
 import { UI_KIT_ELEMENTS_SCREEN_ID } from "../ids";
@@ -18,6 +19,7 @@ export const FormElements: React.FC = () => {
   const tk = (key: string) => t(`screen.${DEMO_SCREENSET_ID}.${UI_KIT_ELEMENTS_SCREEN_ID}:${key}`);
   
   const [airplaneMode, setAirplaneMode] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
 
   return (
     <>
@@ -190,6 +192,92 @@ export const FormElements: React.FC = () => {
                 </div>
               </label>
             </RadioGroup>
+          </div>
+        </div>
+      </div>
+
+      {/* Input OTP Element Block */}
+      <div data-element-id="element-input-otp" className="flex flex-col gap-4">
+        <TextLoader skeletonClassName="h-8 w-28">
+          <h2 className="text-2xl font-semibold">
+            {tk('input_otp_heading')}
+          </h2>
+        </TextLoader>
+        <div className="flex flex-col gap-6 p-6 border border-border rounded-lg bg-background overflow-hidden">
+          {/* Basic Input OTP */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-24" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('input_otp_basic_label')}
+              </label>
+            </TextLoader>
+            <InputOTP maxLength={6} pattern={REGEXP_ONLY_DIGITS_AND_CHARS}>
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+
+          {/* Input OTP with Separator */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-32" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('input_otp_separator_label')}
+              </label>
+            </TextLoader>
+            <InputOTP maxLength={6}>
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+              </InputOTPGroup>
+              <InputOTPSeparator />
+              <InputOTPGroup>
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+              </InputOTPGroup>
+              <InputOTPSeparator />
+              <InputOTPGroup>
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+
+          {/* Controlled Input OTP */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-28" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('input_otp_controlled_label')}
+              </label>
+            </TextLoader>
+            <div className="space-y-2">
+              <InputOTP
+                maxLength={6}
+                value={otpValue}
+                onChange={(value) => setOtpValue(value)}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+              <div className="text-center text-sm">
+                {otpValue === "" ? (
+                  <span>{tk('input_otp_enter_code')}</span>
+                ) : (
+                  <span>{tk('input_otp_entered')}: {otpValue}</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

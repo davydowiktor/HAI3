@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Account Manager",
   "native_select_role_placeholder": "เลือกบทบาท",
   "native_select_role_admin": "แอดมิน",
-  "native_select_role_editor": "บรรณาธิการ"
+  "native_select_role_editor": "บรรณาธิการ",
+  "input_otp_heading": "ป้อน OTP",
+  "input_otp_basic_label": "OTP พื้นฐาน",
+  "input_otp_separator_label": "มีตัวคั่น",
+  "input_otp_controlled_label": "ควบคุม",
+  "input_otp_enter_code": "ป้อนรหัสผ่านแบบใช้ครั้งเดียว",
+  "input_otp_entered": "คุณป้อน"
 }

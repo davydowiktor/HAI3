@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Account Manager",
   "native_select_role_placeholder": "Pilih peran",
   "native_select_role_admin": "Admin",
-  "native_select_role_editor": "Editor"
+  "native_select_role_editor": "Editor",
+  "input_otp_heading": "Input OTP",
+  "input_otp_basic_label": "OTP Dasar",
+  "input_otp_separator_label": "Dengan Pemisah",
+  "input_otp_controlled_label": "Terkontrol",
+  "input_otp_enter_code": "Masukkan kata sandi sekali pakai Anda",
+  "input_otp_entered": "Anda memasukkan"
 }

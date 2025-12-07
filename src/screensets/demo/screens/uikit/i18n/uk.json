@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Account Manager",
   "native_select_role_placeholder": "Виберіть роль",
   "native_select_role_admin": "Адмін",
-  "native_select_role_editor": "Редактор"
+  "native_select_role_editor": "Редактор",
+  "input_otp_heading": "Введення OTP",
+  "input_otp_basic_label": "Базовий OTP",
+  "input_otp_separator_label": "З роздільником",
+  "input_otp_controlled_label": "Керований",
+  "input_otp_enter_code": "Введіть одноразовий пароль",
+  "input_otp_entered": "Ви ввели"
 }

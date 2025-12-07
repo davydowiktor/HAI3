@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Account Manager",
   "native_select_role_placeholder": "Välj roll",
   "native_select_role_admin": "Admin",
-  "native_select_role_editor": "Redaktör"
+  "native_select_role_editor": "Redaktör",
+  "input_otp_heading": "OTP-inmatning",
+  "input_otp_basic_label": "Grundläggande OTP",
+  "input_otp_separator_label": "Med separator",
+  "input_otp_controlled_label": "Kontrollerad",
+  "input_otp_enter_code": "Ange ditt engångslösenord",
+  "input_otp_entered": "Du angav"
 }

@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "اکاؤنٹ مینیجر",
   "native_select_role_placeholder": "کردار منتخب کریں",
   "native_select_role_admin": "ایڈمن",
-  "native_select_role_editor": "ایڈیٹر"
+  "native_select_role_editor": "ایڈیٹر",
+  "input_otp_heading": "OTP ان پٹ",
+  "input_otp_basic_label": "بنیادی OTP",
+  "input_otp_separator_label": "الگ کرنے والے کے ساتھ",
+  "input_otp_controlled_label": "کنٹرولڈ",
+  "input_otp_enter_code": "اپنا ون ٹائم پاس ورڈ درج کریں",
+  "input_otp_entered": "آپ نے درج کیا"
 }

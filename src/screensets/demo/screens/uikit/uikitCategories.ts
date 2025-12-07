@@ -182,6 +182,7 @@ export const IMPLEMENTED_ELEMENTS = [
   'Dropdown Menu',
   'Hover Card',
   'Input',
+  'Input OTP',
   'Menubar',
   'Native Select',
   'Navigation Menu',

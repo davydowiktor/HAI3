@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Account Manager",
   "native_select_role_placeholder": "Pumili ng role",
   "native_select_role_admin": "Admin",
-  "native_select_role_editor": "Editor"
+  "native_select_role_editor": "Editor",
+  "input_otp_heading": "Input OTP",
+  "input_otp_basic_label": "Pangunahing OTP",
+  "input_otp_separator_label": "May Separator",
+  "input_otp_controlled_label": "Kinokontrol",
+  "input_otp_enter_code": "Ilagay ang iyong one-time password",
+  "input_otp_entered": "Inilagay mo"
 }

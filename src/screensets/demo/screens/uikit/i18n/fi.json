@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Asiakkuuspäällikkö",
   "native_select_role_placeholder": "Valitse rooli",
   "native_select_role_admin": "Admin",
-  "native_select_role_editor": "Muokkaaja"
+  "native_select_role_editor": "Muokkaaja",
+  "input_otp_heading": "OTP-syöte",
+  "input_otp_basic_label": "Perus OTP",
+  "input_otp_separator_label": "Erottimella",
+  "input_otp_controlled_label": "Hallittu",
+  "input_otp_enter_code": "Syötä kertakäyttösalasanasi",
+  "input_otp_entered": "Syötit"
 }

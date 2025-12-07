@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Account Manager",
   "native_select_role_placeholder": "Selecteer rol",
   "native_select_role_admin": "Admin",
-  "native_select_role_editor": "Redacteur"
+  "native_select_role_editor": "Redacteur",
+  "input_otp_heading": "Invoer OTP",
+  "input_otp_basic_label": "Basis OTP",
+  "input_otp_separator_label": "Met scheidingsteken",
+  "input_otp_controlled_label": "Gecontroleerd",
+  "input_otp_enter_code": "Voer uw eenmalig wachtwoord in",
+  "input_otp_entered": "U heeft ingevoerd"
 }

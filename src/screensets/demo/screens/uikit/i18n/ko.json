@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "어카운트 매니저",
   "native_select_role_placeholder": "역할 선택",
   "native_select_role_admin": "관리자",
-  "native_select_role_editor": "편집자"
+  "native_select_role_editor": "편집자",
+  "input_otp_heading": "OTP 입력",
+  "input_otp_basic_label": "기본 OTP",
+  "input_otp_separator_label": "구분자 포함",
+  "input_otp_controlled_label": "제어됨",
+  "input_otp_enter_code": "일회용 비밀번호를 입력하세요",
+  "input_otp_entered": "입력한 값"
 }

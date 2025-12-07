@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "கணக்கு மேலாளர்",
   "native_select_role_placeholder": "பங்கைத் தேர்ந்தெடுக்கவும்",
   "native_select_role_admin": "நிர்வாகி",
-  "native_select_role_editor": "தொகுப்பாளர்"
+  "native_select_role_editor": "தொகுப்பாளர்",
+  "input_otp_heading": "OTP உள்ளீடு",
+  "input_otp_basic_label": "அடிப்படை OTP",
+  "input_otp_separator_label": "பிரிப்பானுடன்",
+  "input_otp_controlled_label": "கட்டுப்படுத்தப்பட்ட",
+  "input_otp_enter_code": "உங்கள் ஒரு முறை கடவுச்சொல்லை உள்ளிடவும்",
+  "input_otp_entered": "நீங்கள் உள்ளிட்டது"
 }

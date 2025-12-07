@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Account Manager",
   "native_select_role_placeholder": "Επιλέξτε ρόλο",
   "native_select_role_admin": "Διαχειριστής",
-  "native_select_role_editor": "Συντάκτης"
+  "native_select_role_editor": "Συντάκτης",
+  "input_otp_heading": "Εισαγωγή OTP",
+  "input_otp_basic_label": "Βασικό OTP",
+  "input_otp_separator_label": "Με διαχωριστικό",
+  "input_otp_controlled_label": "Ελεγχόμενο",
+  "input_otp_enter_code": "Εισάγετε τον κωδικό μιας χρήσης",
+  "input_otp_entered": "Εισάγατε"
 }

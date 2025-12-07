@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "অ্যাকাউন্ট ম্যানেজার",
   "native_select_role_placeholder": "ভূমিকা নির্বাচন করুন",
   "native_select_role_admin": "অ্যাডমিন",
-  "native_select_role_editor": "সম্পাদক"
+  "native_select_role_editor": "সম্পাদক",
+  "input_otp_heading": "ইনপুট OTP",
+  "input_otp_basic_label": "বেসিক OTP",
+  "input_otp_separator_label": "সেপারেটর সহ",
+  "input_otp_controlled_label": "নিয়ন্ত্রিত",
+  "input_otp_enter_code": "আপনার ওয়ান-টাইম পাসওয়ার্ড লিখুন",
+  "input_otp_entered": "আপনি লিখেছেন"
 }

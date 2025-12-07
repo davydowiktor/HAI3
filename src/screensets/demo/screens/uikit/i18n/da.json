@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Account Manager",
   "native_select_role_placeholder": "Vælg rolle",
   "native_select_role_admin": "Admin",
-  "native_select_role_editor": "Redaktør"
+  "native_select_role_editor": "Redaktør",
+  "input_otp_heading": "Input OTP",
+  "input_otp_basic_label": "Grundlæggende OTP",
+  "input_otp_separator_label": "Med separator",
+  "input_otp_controlled_label": "Kontrolleret",
+  "input_otp_enter_code": "Indtast din engangskode",
+  "input_otp_entered": "Du indtastede"
 }

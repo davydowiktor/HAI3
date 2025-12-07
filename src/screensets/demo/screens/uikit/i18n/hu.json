@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Ügyfélmenedzser",
   "native_select_role_placeholder": "Válasszon szerepkört",
   "native_select_role_admin": "Admin",
-  "native_select_role_editor": "Szerkesztő"
+  "native_select_role_editor": "Szerkesztő",
+  "input_otp_heading": "OTP bevitel",
+  "input_otp_basic_label": "Alap OTP",
+  "input_otp_separator_label": "Elválasztóval",
+  "input_otp_controlled_label": "Vezérelt",
+  "input_otp_enter_code": "Adja meg az egyszer használatos jelszavát",
+  "input_otp_entered": "Beírt"
 }

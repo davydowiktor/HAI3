@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "アカウントマネージャー",
   "native_select_role_placeholder": "役割を選択",
   "native_select_role_admin": "管理者",
-  "native_select_role_editor": "編集者"
+  "native_select_role_editor": "編集者",
+  "input_otp_heading": "OTP入力",
+  "input_otp_basic_label": "基本OTP",
+  "input_otp_separator_label": "セパレーター付き",
+  "input_otp_controlled_label": "制御",
+  "input_otp_enter_code": "ワンタイムパスワードを入力してください",
+  "input_otp_entered": "入力した値"
 }

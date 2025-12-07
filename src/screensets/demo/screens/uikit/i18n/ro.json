@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Account Manager",
   "native_select_role_placeholder": "Selectați rolul",
   "native_select_role_admin": "Admin",
-  "native_select_role_editor": "Editor"
+  "native_select_role_editor": "Editor",
+  "input_otp_heading": "Intrare OTP",
+  "input_otp_basic_label": "OTP de bază",
+  "input_otp_separator_label": "Cu separator",
+  "input_otp_controlled_label": "Controlat",
+  "input_otp_enter_code": "Introduceți parola de unică folosință",
+  "input_otp_entered": "Ați introdus"
 }

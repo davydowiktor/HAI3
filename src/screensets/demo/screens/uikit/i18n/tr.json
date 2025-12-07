@@ -473,5 +473,11 @@
   "native_select_dept_account_manager": "Hesap Yöneticisi",
   "native_select_role_placeholder": "Rol seçin",
   "native_select_role_admin": "Admin",
-  "native_select_role_editor": "Editör"
+  "native_select_role_editor": "Editör",
+  "input_otp_heading": "OTP Girişi",
+  "input_otp_basic_label": "Temel OTP",
+  "input_otp_separator_label": "Ayırıcılı",
+  "input_otp_controlled_label": "Kontrollü",
+  "input_otp_enter_code": "Tek kullanımlık şifrenizi girin",
+  "input_otp_entered": "Girdiğiniz"
 }
