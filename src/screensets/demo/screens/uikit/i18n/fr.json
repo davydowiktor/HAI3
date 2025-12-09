@@ -486,5 +486,14 @@
   "calendar_month_year_label": "Sélecteur de Mois et Année",
   "calendar_datetime_label": "Sélecteur de Date et Heure",
   "calendar_selected": "Sélectionné",
-  "calendar_at": "à"
+  "calendar_at": "à",
+  "input_name_label": "Nom",
+  "label_heading": "Étiquette",
+  "label_default_label": "Par défaut",
+  "label_required_label": "Avec Indicateur Requis",
+  "label_with_description_label": "Avec Description",
+  "label_disabled_label": "Avec Contrôle de Formulaire Désactivé",
+  "label_error_label": "Avec État d'Erreur",
+  "label_description_text": "Votre mot de passe doit contenir au moins 8 caractères.",
+  "label_error_message": "Veuillez entrer une adresse e-mail valide."
 }

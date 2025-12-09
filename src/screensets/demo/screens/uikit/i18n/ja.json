@@ -486,5 +486,14 @@
   "calendar_month_year_label": "月と年セレクター",
   "calendar_datetime_label": "日時ピッカー",
   "calendar_selected": "選択済み",
-  "calendar_at": ""
+  "calendar_at": "",
+  "input_name_label": "名前",
+  "label_heading": "ラベル",
+  "label_default_label": "デフォルト",
+  "label_required_label": "必須インジケーター付き",
+  "label_with_description_label": "説明付き",
+  "label_disabled_label": "無効なフォームコントロール付き",
+  "label_error_label": "エラー状態付き",
+  "label_description_text": "パスワードは8文字以上である必要があります。",
+  "label_error_message": "有効なメールアドレスを入力してください。"
 }

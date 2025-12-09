@@ -16,6 +16,7 @@ export { RadioGroup, RadioGroupItem } from './base/radio-group';
 export { NativeSelect, NativeSelectOption, NativeSelectOptGroup } from './base/native-select';
 export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from './base/input-otp';
 export { Input } from './base/input';
+export { Label } from './base/label';
 export { Textarea } from './base/textarea';
 export { Switch } from './base/switch';
 export { Skeleton } from './base/skeleton';
@@ -222,7 +223,7 @@ export {
   Brush,
   
   // Labels
-  Label,
+  Label as ChartLabel,
   LabelList,
   ChartTooltip,
   ChartLegend,

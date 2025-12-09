@@ -486,5 +486,14 @@
   "calendar_month_year_label": "Month and Year Selector",
   "calendar_datetime_label": "Date and Time Picker",
   "calendar_selected": "Selected",
-  "calendar_at": "at"
+  "calendar_at": "at",
+  "input_name_label": "Name",
+  "label_heading": "लेबल",
+  "label_default_label": "डिफ़ॉल्ट",
+  "label_required_label": "आवश्यक संकेतक के साथ",
+  "label_with_description_label": "विवरण के साथ",
+  "label_disabled_label": "अक्षम फॉर्म नियंत्रण के साथ",
+  "label_error_label": "त्रुटि स्थिति के साथ",
+  "label_description_text": "आपका पासवर्ड कम से कम 8 वर्ण लंबा होना चाहिए।",
+  "label_error_message": "कृपया एक वैध ईमेल पता दर्ज करें।"
 }

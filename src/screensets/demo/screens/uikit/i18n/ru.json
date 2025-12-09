@@ -486,5 +486,14 @@
   "calendar_month_year_label": "Выбор месяца и года",
   "calendar_datetime_label": "Выбор даты и времени",
   "calendar_selected": "Выбрано",
-  "calendar_at": "в"
+  "calendar_at": "в",
+  "input_name_label": "Имя",
+  "label_heading": "Метка",
+  "label_default_label": "По умолчанию",
+  "label_required_label": "С Индикатором Обязательного Поля",
+  "label_with_description_label": "С Описанием",
+  "label_disabled_label": "С Отключенным Элементом Формы",
+  "label_error_label": "С Состоянием Ошибки",
+  "label_description_text": "Ваш пароль должен содержать не менее 8 символов.",
+  "label_error_message": "Пожалуйста, введите действительный адрес электронной почты."
 }

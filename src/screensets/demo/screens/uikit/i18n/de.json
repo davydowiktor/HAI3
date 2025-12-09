@@ -486,5 +486,14 @@
   "calendar_month_year_label": "Monats- und Jahresauswahl",
   "calendar_datetime_label": "Datums- und Zeitauswahl",
   "calendar_selected": "Ausgewählt",
-  "calendar_at": "um"
+  "calendar_at": "um",
+  "input_name_label": "Name",
+  "label_heading": "Beschriftung",
+  "label_default_label": "Standard",
+  "label_required_label": "Mit Pflichtfeld-Indikator",
+  "label_with_description_label": "Mit Beschreibung",
+  "label_disabled_label": "Mit Deaktiviertem Formularsteuerelement",
+  "label_error_label": "Mit Fehlerstatus",
+  "label_description_text": "Ihr Passwort muss mindestens 8 Zeichen lang sein.",
+  "label_error_message": "Bitte geben Sie eine gültige E-Mail-Adresse ein."
 }

@@ -482,5 +482,14 @@
   "calendar_month_year_label": "Selector de Mes y Año",
   "calendar_datetime_label": "Selector de Fecha y Hora",
   "calendar_selected": "Seleccionado",
-  "calendar_at": "a las"
+  "calendar_at": "a las",
+  "input_name_label": "Nombre",
+  "label_heading": "Etiqueta",
+  "label_default_label": "Predeterminado",
+  "label_required_label": "Con Indicador Requerido",
+  "label_with_description_label": "Con Descripción",
+  "label_disabled_label": "Con Control de Formulario Deshabilitado",
+  "label_error_label": "Con Estado de Error",
+  "label_description_text": "Su contraseña debe tener al menos 8 caracteres.",
+  "label_error_message": "Por favor ingrese una dirección de correo electrónico válida."
 }

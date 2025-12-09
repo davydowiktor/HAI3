@@ -486,5 +486,14 @@
   "calendar_month_year_label": "Selettore Mese e Anno",
   "calendar_datetime_label": "Selettore Data e Ora",
   "calendar_selected": "Selezionato",
-  "calendar_at": "alle"
+  "calendar_at": "alle",
+  "input_name_label": "Nome",
+  "label_heading": "Etichetta",
+  "label_default_label": "Predefinito",
+  "label_required_label": "Con Indicatore Obbligatorio",
+  "label_with_description_label": "Con Descrizione",
+  "label_disabled_label": "Con Controllo Modulo Disabilitato",
+  "label_error_label": "Con Stato di Errore",
+  "label_description_text": "La password deve essere di almeno 8 caratteri.",
+  "label_error_message": "Inserisci un indirizzo email valido."
 }

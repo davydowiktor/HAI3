@@ -426,6 +426,7 @@
   "input_with_label_label": "With Label",
   "input_email_placeholder": "Email",
   "input_email_label": "Email",
+  "input_name_label": "Name",
   "input_name_placeholder": "Name",
   "input_password_label": "Password",
   "input_password_placeholder": "Password",
@@ -486,5 +487,13 @@
   "calendar_month_year_label": "Month and Year Selector",
   "calendar_datetime_label": "Date and Time Picker",
   "calendar_selected": "Selected",
-  "calendar_at": "at"
+  "calendar_at": "at",
+  "label_heading": "Label",
+  "label_default_label": "Default",
+  "label_required_label": "With Required Indicator",
+  "label_with_description_label": "With Description",
+  "label_disabled_label": "With Disabled Form Control",
+  "label_error_label": "With Error State",
+  "label_description_text": "Your password must be at least 8 characters long.",
+  "label_error_message": "Please enter a valid email address."
 }

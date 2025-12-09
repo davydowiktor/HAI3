@@ -422,6 +422,7 @@
   "input_with_label_label": "مع تسمية",
   "input_email_placeholder": "البريد الإلكتروني",
   "input_email_label": "البريد الإلكتروني",
+  "input_name_label": "الاسم",
   "input_name_placeholder": "الاسم",
   "input_password_label": "كلمة المرور",
   "input_password_placeholder": "كلمة المرور",
@@ -482,5 +483,13 @@
   "calendar_month_year_label": "محدد الشهر والسنة",
   "calendar_datetime_label": "محدد التاريخ والوقت",
   "calendar_selected": "محدد",
-  "calendar_at": "في"
+  "calendar_at": "في",
+  "label_heading": "Label",
+  "label_default_label": "Default",
+  "label_required_label": "With Required Indicator",
+  "label_with_description_label": "With Description",
+  "label_disabled_label": "With Disabled Form Control",
+  "label_error_label": "With Error State",
+  "label_description_text": "Your password must be at least 8 characters long.",
+  "label_error_message": "Please enter a valid email address."
 }

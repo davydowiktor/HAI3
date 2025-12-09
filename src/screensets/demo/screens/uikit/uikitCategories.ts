@@ -184,6 +184,7 @@ export const IMPLEMENTED_ELEMENTS = [
   'Hover Card',
   'Input',
   'Input OTP',
+  'Label',
   'Menubar',
   'Native Select',
   'Navigation Menu',

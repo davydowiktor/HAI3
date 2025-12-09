@@ -486,5 +486,14 @@
   "calendar_month_year_label": "Seletor de Mês e Ano",
   "calendar_datetime_label": "Seletor de Data e Hora",
   "calendar_selected": "Selecionado",
-  "calendar_at": "às"
+  "calendar_at": "às",
+  "input_name_label": "Nome",
+  "label_heading": "Rótulo",
+  "label_default_label": "Padrão",
+  "label_required_label": "Com Indicador Obrigatório",
+  "label_with_description_label": "Com Descrição",
+  "label_disabled_label": "Com Controle de Formulário Desabilitado",
+  "label_error_label": "Com Estado de Erro",
+  "label_description_text": "Sua senha deve ter pelo menos 8 caracteres.",
+  "label_error_message": "Por favor, insira um endereço de e-mail válido."
 }

@@ -486,5 +486,14 @@
   "calendar_month_year_label": "월 및 연도 선택기",
   "calendar_datetime_label": "날짜 및 시간 선택기",
   "calendar_selected": "선택됨",
-  "calendar_at": ""
+  "calendar_at": "",
+  "input_name_label": "이름",
+  "label_heading": "라벨",
+  "label_default_label": "기본",
+  "label_required_label": "필수 표시 포함",
+  "label_with_description_label": "설명 포함",
+  "label_disabled_label": "비활성화된 양식 컨트롤 포함",
+  "label_error_label": "오류 상태 포함",
+  "label_description_text": "비밀번호는 최소 8자 이상이어야 합니다.",
+  "label_error_message": "유효한 이메일 주소를 입력하세요."
 }

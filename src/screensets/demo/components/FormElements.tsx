@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Checkbox, RadioGroup, RadioGroupItem, Switch, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, NativeSelect, NativeSelectOption, NativeSelectOptGroup, InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator, Textarea, Input, Button, Popover, PopoverContent, PopoverTrigger, ChevronDownIcon } from '@hai3/uikit';
+import { Calendar, Checkbox, RadioGroup, RadioGroupItem, Switch, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, NativeSelect, NativeSelectOption, NativeSelectOptGroup, InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator, Textarea, Input, Label, Button, Popover, PopoverContent, PopoverTrigger, ChevronDownIcon } from '@hai3/uikit';
 import { ButtonVariant } from '@hai3/uikit-contracts';
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
 import { format } from 'date-fns';
@@ -429,6 +429,44 @@ export const FormElements: React.FC = () => {
                   <span>{tk('input_otp_entered')}: {otpValue}</span>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Label Element Block */}
+      <div data-element-id="element-label" className="flex flex-col gap-4">
+        <TextLoader skeletonClassName="h-8 w-24">
+          <h2 className="text-2xl font-semibold">
+            {tk('label_heading')}
+          </h2>
+        </TextLoader>
+        <div className="flex flex-col gap-6 p-6 border border-border rounded-lg bg-background overflow-hidden">
+          {/* Default Label with Input */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-32" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('label_default_label')}
+              </label>
+            </TextLoader>
+            <div className="grid w-full max-w-sm items-center gap-2">
+              <Label htmlFor="email-default">{tk('input_email_label')}</Label>
+              <Input type="email" id="email-default" placeholder={tk('input_email_placeholder')} />
+            </div>
+          </div>
+
+          {/* Label with Required Indicator */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-40" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('label_required_label')}
+              </label>
+            </TextLoader>
+            <div className="grid w-full max-w-sm items-center gap-2">
+              <Label htmlFor="name-required">
+                {tk('input_name_label')} <span className="text-destructive">*</span>
+              </Label>
+              <Input type="text" id="name-required" placeholder={tk('input_name_placeholder')} required />
             </div>
           </div>
         </div>
