@@ -523,5 +523,19 @@
   "field_last_name_label": "Nom de Famille",
   "field_contact_info_legend": "Informations de Contact",
   "field_phone_label": "Téléphone",
-  "field_address_label": "Adresse"
+  "field_address_label": "Adresse",
+  "input_group_heading": "Groupe de Saisie",
+  "input_group_button_label": "Saisie avec Bouton Additionnel",
+  "input_group_icon_label": "Saisie avec Icône de Bouton",
+  "input_group_label_label": "Saisie avec Étiquette Additionnelle",
+  "input_group_textarea_label": "Zone de Texte avec Suppléments",
+  "input_group_url_placeholder": "https://exemple.com",
+  "input_group_copy_label": "Copier",
+  "input_group_copy_button": "Copier",
+  "input_group_search_placeholder": "Tapez pour rechercher...",
+  "input_group_search_button": "Rechercher",
+  "input_group_username_placeholder": "nomutilisateur",
+  "input_group_code_placeholder": "console.log('Bonjour, monde !');",
+  "input_group_line_info": "Ligne 1, Colonne 1",
+  "input_group_run_button": "Exécuter"
 }

@@ -523,5 +523,19 @@
   "field_last_name_label": "Nazwisko",
   "field_contact_info_legend": "Informacje Kontaktowe",
   "field_phone_label": "Telefon",
-  "field_address_label": "Adres"
+  "field_address_label": "Adres",
+  "input_group_heading": "Grupa Wejściowa",
+  "input_group_button_label": "Wejście z Przyciskiem Dodatkowym",
+  "input_group_icon_label": "Wejście z Przyciskiem Ikony",
+  "input_group_label_label": "Wejście z Dodatkową Etykietą",
+  "input_group_textarea_label": "Obszar Tekstu z Dodatkami",
+  "input_group_url_placeholder": "https://przykład.com",
+  "input_group_copy_label": "Kopiuj",
+  "input_group_copy_button": "Kopiuj",
+  "input_group_search_placeholder": "Wpisz, aby wyszukać...",
+  "input_group_search_button": "Szukaj",
+  "input_group_username_placeholder": "nazwauzytkownika",
+  "input_group_code_placeholder": "console.log('Witaj, świecie!');",
+  "input_group_line_info": "Wiersz 1, Kolumna 1",
+  "input_group_run_button": "Uruchom"
 }

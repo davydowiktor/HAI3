@@ -523,5 +523,19 @@
   "field_last_name_label": "Επώνυμο",
   "field_contact_info_legend": "Στοιχεία Επικοινωνίας",
   "field_phone_label": "Τηλέφωνο",
-  "field_address_label": "Διεύθυνση"
+  "field_address_label": "Διεύθυνση",
+  "input_group_heading": "Ομάδα Εισαγωγής",
+  "input_group_button_label": "Εισαγωγή με Επιπλέον Κουμπί",
+  "input_group_icon_label": "Εισαγωγή με Κουμπί Εικονιδίου",
+  "input_group_label_label": "Εισαγωγή με Επιπλέον Ετικέτα",
+  "input_group_textarea_label": "Περιοχή Κειμένου με Προσθήκες",
+  "input_group_url_placeholder": "https://παράδειγμα.com",
+  "input_group_copy_label": "Αντιγραφή",
+  "input_group_copy_button": "Αντιγραφή",
+  "input_group_search_placeholder": "Πληκτρολογήστε για αναζήτηση...",
+  "input_group_search_button": "Αναζήτηση",
+  "input_group_username_placeholder": "όνομαχρήστη",
+  "input_group_code_placeholder": "console.log('Γεια σου, κόσμε!');",
+  "input_group_line_info": "Γραμμή 1, Στήλη 1",
+  "input_group_run_button": "Εκτέλεση"
 }

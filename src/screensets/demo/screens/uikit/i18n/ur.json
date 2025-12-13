@@ -523,5 +523,19 @@
   "field_last_name_label": "آخری نام",
   "field_contact_info_legend": "رابطے کی معلومات",
   "field_phone_label": "فون",
-  "field_address_label": "پتہ"
+  "field_address_label": "پتہ",
+  "input_group_heading": "ان پٹ گروپ",
+  "input_group_button_label": "اضافی بٹن کے ساتھ ان پٹ",
+  "input_group_icon_label": "آئیکن بٹن کے ساتھ ان پٹ",
+  "input_group_label_label": "اضافی لیبل کے ساتھ ان پٹ",
+  "input_group_textarea_label": "اضافیات کے ساتھ ٹیکسٹ ایریا",
+  "input_group_url_placeholder": "https://مثال.com",
+  "input_group_copy_label": "کاپی",
+  "input_group_copy_button": "کاپی",
+  "input_group_search_placeholder": "تلاش کرنے کے لیے ٹائپ کریں...",
+  "input_group_search_button": "تلاش",
+  "input_group_username_placeholder": "صارفنام",
+  "input_group_code_placeholder": "console.log('ہیلو، دنیا!');",
+  "input_group_line_info": "قطار 1، کالم 1",
+  "input_group_run_button": "چلائیں"
 }

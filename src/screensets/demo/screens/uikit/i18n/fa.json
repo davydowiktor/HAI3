@@ -523,5 +523,19 @@
   "field_last_name_label": "نام خانوادگی",
   "field_contact_info_legend": "اطلاعات تماس",
   "field_phone_label": "تلفن",
-  "field_address_label": "آدرس"
+  "field_address_label": "آدرس",
+  "input_group_heading": "گروه ورودی",
+  "input_group_button_label": "ورودی با دکمه اضافی",
+  "input_group_icon_label": "ورودی با دکمه آیکون",
+  "input_group_label_label": "ورودی با برچسب اضافی",
+  "input_group_textarea_label": "ناحیه متن با افزودنی‌ها",
+  "input_group_url_placeholder": "https://مثال.com",
+  "input_group_copy_label": "کپی",
+  "input_group_copy_button": "کپی",
+  "input_group_search_placeholder": "برای جستجو تایپ کنید...",
+  "input_group_search_button": "جستجو",
+  "input_group_username_placeholder": "نامکاربری",
+  "input_group_code_placeholder": "console.log('سلام، جهان!');",
+  "input_group_line_info": "خط 1، ستون 1",
+  "input_group_run_button": "اجرا"
 }

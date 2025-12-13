@@ -523,5 +523,19 @@
   "field_last_name_label": "Soyadı",
   "field_contact_info_legend": "İletişim Bilgileri",
   "field_phone_label": "Telefon",
-  "field_address_label": "Adres"
+  "field_address_label": "Adres",
+  "input_group_heading": "Giriş Grubu",
+  "input_group_button_label": "Ek Butonlu Giriş",
+  "input_group_icon_label": "İkon Butonlu Giriş",
+  "input_group_label_label": "Etiketli Giriş",
+  "input_group_textarea_label": "Ekstralı Metin Alanı",
+  "input_group_url_placeholder": "https://örnek.com",
+  "input_group_copy_label": "Kopyala",
+  "input_group_copy_button": "Kopyala",
+  "input_group_search_placeholder": "Aramak için yazın...",
+  "input_group_search_button": "Ara",
+  "input_group_username_placeholder": "kullaniciadi",
+  "input_group_code_placeholder": "console.log('Merhaba, dünya!');",
+  "input_group_line_info": "Satır 1, Sütun 1",
+  "input_group_run_button": "Çalıştır"
 }

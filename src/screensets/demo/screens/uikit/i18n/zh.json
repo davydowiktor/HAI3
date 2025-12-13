@@ -523,5 +523,19 @@
   "field_last_name_label": "姓氏",
   "field_contact_info_legend": "联系信息",
   "field_phone_label": "电话",
-  "field_address_label": "地址"
+  "field_address_label": "地址",
+  "input_group_heading": "输入组",
+  "input_group_button_label": "带按钮的输入",
+  "input_group_icon_label": "带图标按钮的输入",
+  "input_group_label_label": "带标签的输入",
+  "input_group_textarea_label": "带附加功能的文本区域",
+  "input_group_url_placeholder": "https://示例.com",
+  "input_group_copy_label": "复制",
+  "input_group_copy_button": "复制",
+  "input_group_search_placeholder": "输入以搜索...",
+  "input_group_search_button": "搜索",
+  "input_group_username_placeholder": "用户名",
+  "input_group_code_placeholder": "console.log('你好，世界！');",
+  "input_group_line_info": "第 1 行，第 1 列",
+  "input_group_run_button": "运行"
 }

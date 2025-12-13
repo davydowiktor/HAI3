@@ -523,5 +523,19 @@
   "field_last_name_label": "姓氏",
   "field_contact_info_legend": "聯絡資訊",
   "field_phone_label": "電話",
-  "field_address_label": "地址"
+  "field_address_label": "地址",
+  "input_group_heading": "輸入群組",
+  "input_group_button_label": "帶按鈕的輸入",
+  "input_group_icon_label": "帶圖示按鈕的輸入",
+  "input_group_label_label": "帶標籤的輸入",
+  "input_group_textarea_label": "帶附加功能的文字區域",
+  "input_group_url_placeholder": "https://範例.com",
+  "input_group_copy_label": "複製",
+  "input_group_copy_button": "複製",
+  "input_group_search_placeholder": "輸入以搜尋...",
+  "input_group_search_button": "搜尋",
+  "input_group_username_placeholder": "使用者名稱",
+  "input_group_code_placeholder": "console.log('你好，世界！');",
+  "input_group_line_info": "第 1 行，第 1 列",
+  "input_group_run_button": "執行"
 }

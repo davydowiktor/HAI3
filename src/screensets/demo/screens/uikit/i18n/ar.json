@@ -519,5 +519,19 @@
   "field_last_name_label": "اسم العائلة",
   "field_contact_info_legend": "معلومات الاتصال",
   "field_phone_label": "الهاتف",
-  "field_address_label": "العنوان"
+  "field_address_label": "العنوان",
+  "input_group_heading": "مجموعة الإدخال",
+  "input_group_button_label": "إدخال مع زر إضافي",
+  "input_group_icon_label": "إدخال مع أيقونة زر",
+  "input_group_label_label": "إدخال مع تسمية إضافية",
+  "input_group_textarea_label": "منطقة نصية مع إضافات",
+  "input_group_url_placeholder": "https://مثال.com",
+  "input_group_copy_label": "نسخ",
+  "input_group_copy_button": "نسخ",
+  "input_group_search_placeholder": "اكتب للبحث...",
+  "input_group_search_button": "بحث",
+  "input_group_username_placeholder": "اسمالمستخدم",
+  "input_group_code_placeholder": "console.log('مرحبا، العالم!');",
+  "input_group_line_info": "السطر 1، العمود 1",
+  "input_group_run_button": "تشغيل"
 }

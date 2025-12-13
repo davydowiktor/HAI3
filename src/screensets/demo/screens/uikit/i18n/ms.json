@@ -523,5 +523,19 @@
   "field_last_name_label": "Nama Akhir",
   "field_contact_info_legend": "Maklumat Hubungan",
   "field_phone_label": "Telefon",
-  "field_address_label": "Alamat"
+  "field_address_label": "Alamat",
+  "input_group_heading": "Kumpulan Input",
+  "input_group_button_label": "Input dengan Butang Tambahan",
+  "input_group_icon_label": "Input dengan Butang Ikon",
+  "input_group_label_label": "Input dengan Label Tambahan",
+  "input_group_textarea_label": "Kawasan Teks dengan Tambahan",
+  "input_group_url_placeholder": "https://contoh.com",
+  "input_group_copy_label": "Salin",
+  "input_group_copy_button": "Salin",
+  "input_group_search_placeholder": "Taip untuk mencari...",
+  "input_group_search_button": "Cari",
+  "input_group_username_placeholder": "namapengguna",
+  "input_group_code_placeholder": "console.log('Halo, dunia!');",
+  "input_group_line_info": "Baris 1, Lajur 1",
+  "input_group_run_button": "Jalankan"
 }

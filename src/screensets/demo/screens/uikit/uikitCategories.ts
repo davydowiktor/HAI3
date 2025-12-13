@@ -183,6 +183,7 @@ export const IMPLEMENTED_ELEMENTS = [
   'Dropdown Menu',
   'Hover Card',
   'Input',
+  'Input Group',
   'Input OTP',
   'Field',
   'Item',

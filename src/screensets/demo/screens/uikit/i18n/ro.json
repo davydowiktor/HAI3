@@ -523,5 +523,19 @@
   "field_last_name_label": "Nume de Familie",
   "field_contact_info_legend": "Informații de Contact",
   "field_phone_label": "Telefon",
-  "field_address_label": "Adresă"
+  "field_address_label": "Adresă",
+  "input_group_heading": "Grup de Intrare",
+  "input_group_button_label": "Intrare cu Buton Suplimentar",
+  "input_group_icon_label": "Intrare cu Buton Pictogramă",
+  "input_group_label_label": "Intrare cu Etichetă Suplimentară",
+  "input_group_textarea_label": "Zonă de Text cu Suplimente",
+  "input_group_url_placeholder": "https://exemplu.com",
+  "input_group_copy_label": "Copiază",
+  "input_group_copy_button": "Copiază",
+  "input_group_search_placeholder": "Tastați pentru a căuta...",
+  "input_group_search_button": "Căutare",
+  "input_group_username_placeholder": "numeutilizator",
+  "input_group_code_placeholder": "console.log('Salut, lume!');",
+  "input_group_line_info": "Linia 1, Coloana 1",
+  "input_group_run_button": "Rulează"
 }

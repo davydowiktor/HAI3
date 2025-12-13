@@ -523,5 +523,19 @@
   "field_last_name_label": "Efternamn",
   "field_contact_info_legend": "Kontaktinformation",
   "field_phone_label": "Telefon",
-  "field_address_label": "Adress"
+  "field_address_label": "Adress",
+  "input_group_heading": "Inmatningsgrupp",
+  "input_group_button_label": "Inmatning med Extra Knapp",
+  "input_group_icon_label": "Inmatning med Ikonknapp",
+  "input_group_label_label": "Inmatning med Extra Etikett",
+  "input_group_textarea_label": "Textområde med Tillägg",
+  "input_group_url_placeholder": "https://exempel.com",
+  "input_group_copy_label": "Kopiera",
+  "input_group_copy_button": "Kopiera",
+  "input_group_search_placeholder": "Skriv för att söka...",
+  "input_group_search_button": "Sök",
+  "input_group_username_placeholder": "användarnamn",
+  "input_group_code_placeholder": "console.log('Hej, världen!');",
+  "input_group_line_info": "Rad 1, Kolumn 1",
+  "input_group_run_button": "Kör"
 }

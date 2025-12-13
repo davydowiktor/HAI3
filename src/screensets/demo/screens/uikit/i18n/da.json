@@ -523,5 +523,19 @@
   "field_last_name_label": "Efternavn",
   "field_contact_info_legend": "Kontaktinformation",
   "field_phone_label": "Telefon",
-  "field_address_label": "Adresse"
+  "field_address_label": "Adresse",
+  "input_group_heading": "Indtastningsgruppe",
+  "input_group_button_label": "Indtastning med Ekstra Knap",
+  "input_group_icon_label": "Indtastning med Ikonknap",
+  "input_group_label_label": "Indtastning med Ekstra Etiket",
+  "input_group_textarea_label": "Tekstområde med Tillæg",
+  "input_group_url_placeholder": "https://eksempel.com",
+  "input_group_copy_label": "Kopier",
+  "input_group_copy_button": "Kopier",
+  "input_group_search_placeholder": "Skriv for at søge...",
+  "input_group_search_button": "Søg",
+  "input_group_username_placeholder": "brugernavn",
+  "input_group_code_placeholder": "console.log('Hej, verden!');",
+  "input_group_line_info": "Linje 1, Kolonne 1",
+  "input_group_run_button": "Kør"
 }

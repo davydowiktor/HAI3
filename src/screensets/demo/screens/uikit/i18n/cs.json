@@ -523,5 +523,19 @@
   "field_last_name_label": "Příjmení",
   "field_contact_info_legend": "Kontaktní Informace",
   "field_phone_label": "Telefon",
-  "field_address_label": "Adresa"
+  "field_address_label": "Adresa",
+  "input_group_heading": "Skupina Vstupů",
+  "input_group_button_label": "Vstup s Dodatečným Tlačítkem",
+  "input_group_icon_label": "Vstup s Tlačítkem Ikony",
+  "input_group_label_label": "Vstup s Dodatečným Popiskem",
+  "input_group_textarea_label": "Textová Oblast s Doplňky",
+  "input_group_url_placeholder": "https://příklad.com",
+  "input_group_copy_label": "Kopírovat",
+  "input_group_copy_button": "Kopírovat",
+  "input_group_search_placeholder": "Zadejte pro vyhledávání...",
+  "input_group_search_button": "Hledat",
+  "input_group_username_placeholder": "uzivatelskejmeno",
+  "input_group_code_placeholder": "console.log('Ahoj, světe!');",
+  "input_group_line_info": "Řádek 1, Sloupec 1",
+  "input_group_run_button": "Spustit"
 }

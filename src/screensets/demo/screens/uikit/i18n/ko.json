@@ -523,5 +523,19 @@
   "field_last_name_label": "성",
   "field_contact_info_legend": "연락처 정보",
   "field_phone_label": "전화",
-  "field_address_label": "주소"
+  "field_address_label": "주소",
+  "input_group_heading": "입력 그룹",
+  "input_group_button_label": "버튼 추가 입력",
+  "input_group_icon_label": "아이콘 버튼 추가 입력",
+  "input_group_label_label": "레이블 추가 입력",
+  "input_group_textarea_label": "추가 기능이 있는 텍스트 영역",
+  "input_group_url_placeholder": "https://예시.com",
+  "input_group_copy_label": "복사",
+  "input_group_copy_button": "복사",
+  "input_group_search_placeholder": "검색하려면 입력...",
+  "input_group_search_button": "검색",
+  "input_group_username_placeholder": "사용자명",
+  "input_group_code_placeholder": "console.log('안녕, 세상!');",
+  "input_group_line_info": "1행, 1열",
+  "input_group_run_button": "실행"
 }

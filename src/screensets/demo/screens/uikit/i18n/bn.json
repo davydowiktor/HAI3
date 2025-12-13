@@ -523,5 +523,19 @@
   "field_last_name_label": "শেষ নাম",
   "field_contact_info_legend": "যোগাযোগের তথ্য",
   "field_phone_label": "ফোন",
-  "field_address_label": "ঠিকানা"
+  "field_address_label": "ঠিকানা",
+  "input_group_heading": "ইনপুট গ্রুপ",
+  "input_group_button_label": "অতিরিক্ত বোতাম সহ ইনপুট",
+  "input_group_icon_label": "আইকন বোতাম সহ ইনপুট",
+  "input_group_label_label": "অতিরিক্ত লেবেল সহ ইনপুট",
+  "input_group_textarea_label": "অতিরিক্ত সহ পাঠ্য এলাকা",
+  "input_group_url_placeholder": "https://উদাহরণ.com",
+  "input_group_copy_label": "কপি",
+  "input_group_copy_button": "কপি",
+  "input_group_search_placeholder": "খুঁজতে টাইপ করুন...",
+  "input_group_search_button": "অনুসন্ধান",
+  "input_group_username_placeholder": "ব্যবহারকারীনাম",
+  "input_group_code_placeholder": "console.log('হ্যালো, বিশ্ব!');",
+  "input_group_line_info": "সারি 1, কলাম 1",
+  "input_group_run_button": "চালান"
 }

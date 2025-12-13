@@ -523,5 +523,19 @@
   "field_last_name_label": "अंतिम नाम",
   "field_contact_info_legend": "संपर्क जानकारी",
   "field_phone_label": "फोन",
-  "field_address_label": "पता"
+  "field_address_label": "पता",
+  "input_group_heading": "इनपुट समूह",
+  "input_group_button_label": "बटन योजक के साथ इनपुट",
+  "input_group_icon_label": "आइकन बटन योजक के साथ इनपुट",
+  "input_group_label_label": "लेबल योजक के साथ इनपुट",
+  "input_group_textarea_label": "अतिरिक्त के साथ टेक्स्ट क्षेत्र",
+  "input_group_url_placeholder": "https://उदाहरण.com",
+  "input_group_copy_label": "कॉपी",
+  "input_group_copy_button": "कॉपी",
+  "input_group_search_placeholder": "खोजने के लिए टाइप करें...",
+  "input_group_search_button": "खोजें",
+  "input_group_username_placeholder": "उपयोगकर्तानाम",
+  "input_group_code_placeholder": "console.log('नमस्ते, दुनिया!');",
+  "input_group_line_info": "पंक्ति 1, स्तंभ 1",
+  "input_group_run_button": "चलाएं"
 }

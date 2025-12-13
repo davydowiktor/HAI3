@@ -523,5 +523,19 @@
   "field_last_name_label": "Прізвище",
   "field_contact_info_legend": "Контактна Інформація",
   "field_phone_label": "Телефон",
-  "field_address_label": "Адреса"
+  "field_address_label": "Адреса",
+  "input_group_heading": "Група Введення",
+  "input_group_button_label": "Введення з Додатковою Кнопкою",
+  "input_group_icon_label": "Введення з Кнопкою-Іконкою",
+  "input_group_label_label": "Введення з Додатковою Міткою",
+  "input_group_textarea_label": "Текстова Область з Доповненнями",
+  "input_group_url_placeholder": "https://приклад.com",
+  "input_group_copy_label": "Копіювати",
+  "input_group_copy_button": "Копіювати",
+  "input_group_search_placeholder": "Введіть для пошуку...",
+  "input_group_search_button": "Пошук",
+  "input_group_username_placeholder": "ім'якористувача",
+  "input_group_code_placeholder": "console.log('Привіт, світ!');",
+  "input_group_line_info": "Рядок 1, Стовпець 1",
+  "input_group_run_button": "Запустити"
 }

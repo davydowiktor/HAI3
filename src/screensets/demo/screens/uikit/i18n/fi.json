@@ -523,5 +523,19 @@
   "field_last_name_label": "Sukunimi",
   "field_contact_info_legend": "Yhteystiedot",
   "field_phone_label": "Puhelin",
-  "field_address_label": "Osoite"
+  "field_address_label": "Osoite",
+  "input_group_heading": "Syöttöryhmä",
+  "input_group_button_label": "Syöte Lisäpainikkeella",
+  "input_group_icon_label": "Syöte Ikonipainikkeella",
+  "input_group_label_label": "Syöte Lisämerkillä",
+  "input_group_textarea_label": "Tekstialue Lisäyksillä",
+  "input_group_url_placeholder": "https://esimerkki.com",
+  "input_group_copy_label": "Kopioi",
+  "input_group_copy_button": "Kopioi",
+  "input_group_search_placeholder": "Kirjoita etsiäksesi...",
+  "input_group_search_button": "Hae",
+  "input_group_username_placeholder": "käyttäjänimi",
+  "input_group_code_placeholder": "console.log('Hei, maailma!');",
+  "input_group_line_info": "Rivi 1, Sarake 1",
+  "input_group_run_button": "Suorita"
 }

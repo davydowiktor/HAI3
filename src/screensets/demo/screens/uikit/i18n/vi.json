@@ -523,5 +523,19 @@
   "field_last_name_label": "Họ",
   "field_contact_info_legend": "Thông Tin Liên Hệ",
   "field_phone_label": "Điện Thoại",
-  "field_address_label": "Địa Chỉ"
+  "field_address_label": "Địa Chỉ",
+  "input_group_heading": "Nhóm Nhập",
+  "input_group_button_label": "Nhập với Nút Bổ Sung",
+  "input_group_icon_label": "Nhập với Nút Biểu Tượng",
+  "input_group_label_label": "Nhập với Nhãn Bổ Sung",
+  "input_group_textarea_label": "Vùng Văn Bản với Bổ Sung",
+  "input_group_url_placeholder": "https://vídụ.com",
+  "input_group_copy_label": "Sao chép",
+  "input_group_copy_button": "Sao chép",
+  "input_group_search_placeholder": "Nhập để tìm kiếm...",
+  "input_group_search_button": "Tìm kiếm",
+  "input_group_username_placeholder": "tendangnhap",
+  "input_group_code_placeholder": "console.log('Xin chào, thế giới!');",
+  "input_group_line_info": "Dòng 1, Cột 1",
+  "input_group_run_button": "Chạy"
 }

@@ -523,5 +523,19 @@
   "field_last_name_label": "கடைசி பெயர்",
   "field_contact_info_legend": "தொடர்பு தகவல்",
   "field_phone_label": "தொலைபேசி",
-  "field_address_label": "முகவரி"
+  "field_address_label": "முகவரி",
+  "input_group_heading": "உள்ளீட்டுக் குழு",
+  "input_group_button_label": "கூடுதல் பொத்தானுடன் உள்ளீடு",
+  "input_group_icon_label": "ஐகான் பொத்தானுடன் உள்ளீடு",
+  "input_group_label_label": "கூடுதல் லேபிளுடன் உள்ளீடு",
+  "input_group_textarea_label": "கூடுதல் கொண்ட உரை பகுதி",
+  "input_group_url_placeholder": "https://எடுத்துக்காட்டு.com",
+  "input_group_copy_label": "நகலெடு",
+  "input_group_copy_button": "நகலெடு",
+  "input_group_search_placeholder": "தேட தட்டச்சு செய்யவும்...",
+  "input_group_search_button": "தேடு",
+  "input_group_username_placeholder": "பயனர்பெயர்",
+  "input_group_code_placeholder": "console.log('வணக்கம், உலகம்!');",
+  "input_group_line_info": "வரி 1, நெடுவரிசை 1",
+  "input_group_run_button": "இயக்கு"
 }

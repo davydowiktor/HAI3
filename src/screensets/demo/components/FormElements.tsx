@@ -1,6 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Checkbox, RadioGroup, RadioGroupItem, Switch, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, NativeSelect, NativeSelectOption, NativeSelectOptGroup, InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator, Textarea, Input, Label, Field, FieldSet, FieldLegend, FieldGroup, FieldLabel, FieldDescription, FieldError, Button, Popover, PopoverContent, PopoverTrigger, ChevronDownIcon } from '@hai3/uikit';
+import {
+  // Base
+  Button,
+  Calendar,
+  Checkbox,
+  Input,
+  Label,
+  Switch,
+  Textarea,
+  // Select
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+  NativeSelect,
+  NativeSelectOptGroup,
+  NativeSelectOption,
+  // Radio
+  RadioGroup,
+  RadioGroupItem,
+  // Field
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+  // Input Group
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupText,
+  InputGroupTextarea,
+  // Input OTP
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+  // Popover
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  // Icons
+  ChevronDownIcon,
+} from '@hai3/uikit';
 import { ButtonVariant } from '@hai3/uikit-contracts';
+import { Copy, RefreshCw, CornerDownLeft } from 'lucide-react';
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
@@ -543,6 +593,99 @@ export const FormElements: React.FC = () => {
                 <Input type="text" id="field-address" />
               </Field>
             </FieldSet>
+          </div>
+        </div>
+      </div>
+
+      {/* Input Group Element Block */}
+      <div data-element-id="element-input-group" className="flex flex-col gap-4">
+        <TextLoader skeletonClassName="h-8 w-32">
+          <h2 className="text-2xl font-semibold">
+            {tk('input_group_heading')}
+          </h2>
+        </TextLoader>
+        <div className="flex flex-col gap-6 p-6 border border-border rounded-lg bg-background overflow-hidden">
+          {/* Input with Button Addon */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-40" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('input_group_button_label')}
+              </label>
+            </TextLoader>
+            <div className="grid w-full max-w-sm gap-4">
+              <InputGroup>
+                <InputGroupInput placeholder={tk('input_group_url_placeholder')} readOnly />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    aria-label={tk('input_group_copy_label')}
+                    title={tk('input_group_copy_label')}
+                    size="icon-xs"
+                  >
+                    <Copy className="size-3.5" />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+              <InputGroup>
+                <InputGroupInput placeholder={tk('input_group_search_placeholder')} />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton variant={ButtonVariant.Secondary}>
+                    {tk('input_group_search_button')}
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+            </div>
+          </div>
+
+          {/* Input with Label Addon */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-40" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('input_group_label_label')}
+              </label>
+            </TextLoader>
+            <div className="grid w-full max-w-sm gap-4">
+              <InputGroup>
+                <InputGroupInput id="input-group-email" placeholder={tk('input_group_username_placeholder')} />
+                <InputGroupAddon align="inline-end">
+                  <Label htmlFor="input-group-email">@example.com</Label>
+                </InputGroupAddon>
+              </InputGroup>
+            </div>
+          </div>
+
+          {/* Textarea with Addons */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-40" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('input_group_textarea_label')}
+              </label>
+            </TextLoader>
+            <div className="w-full max-w-md">
+              <InputGroup>
+                <InputGroupTextarea
+                  id="textarea-code"
+                  placeholder={tk('input_group_code_placeholder')}
+                  className="min-h-[200px]"
+                />
+                <InputGroupAddon align="block-end" className="border-t">
+                  <InputGroupText>{tk('input_group_line_info')}</InputGroupText>
+                  <InputGroupButton size="sm" className="ml-auto" variant={ButtonVariant.Default}>
+                    {tk('input_group_run_button')} <CornerDownLeft className="size-3.5" />
+                  </InputGroupButton>
+                </InputGroupAddon>
+                <InputGroupAddon align="block-start" className="border-b">
+                  <InputGroupText className="font-mono font-medium">
+                    script.js
+                  </InputGroupText>
+                  <InputGroupButton className="ml-auto" size="icon-xs">
+                    <RefreshCw className="size-3.5" />
+                  </InputGroupButton>
+                  <InputGroupButton variant={ButtonVariant.Ghost} size="icon-xs">
+                    <Copy className="size-3.5" />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+            </div>
           </div>
         </div>
       </div>

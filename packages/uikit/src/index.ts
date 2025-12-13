@@ -320,6 +320,9 @@ export { DropdownButton, type DropdownButtonProps } from './composite/buttons/Dr
 // Re-export contract types to ensure consistency
 export { IconButtonSize } from '@hai3/uikit-contracts';
 
+// Composite form components
+export { InputGroup, InputGroupAddon, InputGroupButton, InputGroupText, InputGroupInput, InputGroupTextarea } from './composite/forms/input-group';
+
 // Composite navigation (tailored from shadcn sidebar)
 export {
   Sidebar,
