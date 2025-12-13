@@ -495,5 +495,19 @@
   "label_disabled_label": "Mit Deaktiviertem Formularsteuerelement",
   "label_error_label": "Mit Fehlerstatus",
   "label_description_text": "Ihr Passwort muss mindestens 8 Zeichen lang sein.",
-  "label_error_message": "Bitte geben Sie eine gültige E-Mail-Adresse ein."
+  "label_error_message": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+  "item_heading": "Element",
+  "item_basic_title": "Grundlegendes Element",
+  "item_basic_description": "Ein einfaches Element mit Titel und Beschreibung.",
+  "item_verified_title": "Ihr Profil wurde verifiziert.",
+  "item_action": "Aktion",
+  "item_outline_label": "Umriss-Element mit Titel, Beschreibung und Aktion",
+  "item_muted_label": "Gedämpftes Element mit Medium, Titel und Aktion",
+  "item_group_header_label": "Elementgruppe mit Überschriften, die Bilder enthalten",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Alltägliche Aufgaben und UI-Generierung.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Fortgeschrittenes Denken oder Argumentation.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Open Source Modell für alle."
 }

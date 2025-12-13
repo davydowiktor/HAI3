@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Mục",
+  "item_basic_title": "Mục Cơ Bản",
+  "item_basic_description": "Một mục đơn giản với tiêu đề và mô tả.",
+  "item_verified_title": "Hồ sơ của bạn đã được xác minh.",
+  "item_action": "Hành động",
+  "item_outline_label": "Mục viền ngoài với tiêu đề, mô tả và hành động",
+  "item_muted_label": "Mục tắt tiếng với phương tiện, tiêu đề và hành động",
+  "item_group_header_label": "Nhóm mục với tiêu đề chứa hình ảnh",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Các tác vụ hàng ngày và tạo giao diện người dùng.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Suy nghĩ hoặc lập luận nâng cao.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Mô hình mã nguồn mở cho mọi người."
 }

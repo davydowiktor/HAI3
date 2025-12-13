@@ -491,5 +491,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "عنصر",
+  "item_basic_title": "عنصر أساسي",
+  "item_basic_description": "عنصر بسيط يحتوي على عنوان ووصف.",
+  "item_verified_title": "تم التحقق من ملفك الشخصي.",
+  "item_action": "إجراء",
+  "item_outline_label": "عنصر مخطط مع العنوان والوصف والإجراء",
+  "item_muted_label": "عنصر خافت مع الوسائط والعنوان والإجراء",
+  "item_group_header_label": "مجموعة عناصر مع رؤوس تحتوي على صور",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "المهام اليومية وإنشاء واجهة المستخدم.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "التفكير المتقدم أو المنطق.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "نموذج مفتوح المصدر للجميع."
 }

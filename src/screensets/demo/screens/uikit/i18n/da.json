@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Element",
+  "item_basic_title": "Grundlæggende element",
+  "item_basic_description": "Et simpelt element med titel og beskrivelse.",
+  "item_verified_title": "Din profil er blevet verificeret.",
+  "item_action": "Handling",
+  "item_outline_label": "Omrids-element med titel, beskrivelse og handling",
+  "item_muted_label": "Dæmpet element med medie, titel og handling",
+  "item_group_header_label": "Elementgruppe med overskrifter indeholdende billeder",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Daglige opgaver og UI-generering.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Avanceret tænkning eller ræsonnement.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Open Source model til alle."
 }

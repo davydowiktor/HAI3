@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "உருப்படி",
+  "item_basic_title": "அடிப்படை உருப்படி",
+  "item_basic_description": "தலைப்பு மற்றும் விளக்கத்துடன் ஒரு எளிய உருப்படி.",
+  "item_verified_title": "உங்கள் சுயவிவரம் சரிபார்க்கப்பட்டது.",
+  "item_action": "செயல்",
+  "item_outline_label": "தலைப்பு, விளக்கம் மற்றும் செயலுடன் கோடிட்ட உருப்படி",
+  "item_muted_label": "ஊடகம், தலைப்பு மற்றும் செயலுடன் மெல்லிய உருப்படி",
+  "item_group_header_label": "படங்களைக் கொண்ட தலைப்புகளுடன் உருப்படி குழு",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "தினசரி பணிகள் மற்றும் UI உருவாக்கம்.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "மேம்பட்ட சிந்தனை அல்லது பகுத்தறிவு.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "அனைவருக்கும் திறந்த மூல மாதிரி."
 }

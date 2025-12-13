@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Položka",
+  "item_basic_title": "Základní položka",
+  "item_basic_description": "Jednoduchá položka s názvem a popisem.",
+  "item_verified_title": "Váš profil byl ověřen.",
+  "item_action": "Akce",
+  "item_outline_label": "Položka s obrysem s názvem, popisem a akcí",
+  "item_muted_label": "Ztlumená položka s médiem, názvem a akcí",
+  "item_group_header_label": "Skupina položek s hlavičkami obsahujícími obrázky",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Každodenní úkoly a generování UI.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Pokročilé myšlení nebo uvažování.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Open Source model pro všechny."
 }

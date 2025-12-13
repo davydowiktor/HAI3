@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Στοιχείο",
+  "item_basic_title": "Βασικό Στοιχείο",
+  "item_basic_description": "Ένα απλό στοιχείο με τίτλο και περιγραφή.",
+  "item_verified_title": "Το προφίλ σας έχει επαληθευτεί.",
+  "item_action": "Ενέργεια",
+  "item_outline_label": "Στοιχείο περιγράμματος με τίτλο, περιγραφή και ενέργεια",
+  "item_muted_label": "Στοιχείο με ήχο με μέσο, τίτλο και ενέργεια",
+  "item_group_header_label": "Ομάδα στοιχείων με κεφαλίδες που περιέχουν εικόνες",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Καθημερινές εργασίες και δημιουργία UI.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Προηγμένη σκέψη ή συλλογισμός.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Μοντέλο ανοιχτού κώδικα για όλους."
 }

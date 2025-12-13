@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "আইটেম",
+  "item_basic_title": "মৌলিক আইটেম",
+  "item_basic_description": "শিরোনাম এবং বিবরণ সহ একটি সাধারণ আইটেম।",
+  "item_verified_title": "আপনার প্রোফাইল যাচাই করা হয়েছে।",
+  "item_action": "কর্ম",
+  "item_outline_label": "রূপরেখা আইটেম শিরোনাম, বিবরণ এবং কর্ম সহ",
+  "item_muted_label": "মিডিয়া, শিরোনাম এবং কর্ম সহ নিঃশব্দ আইটেম",
+  "item_group_header_label": "ছবি সহ হেডার সহ আইটেম গ্রুপ",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "দৈনন্দিন কাজ এবং UI তৈরি।",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "উন্নত চিন্তা বা যুক্তি।",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "সবার জন্য ওপেন সোর্স মডেল।"
 }

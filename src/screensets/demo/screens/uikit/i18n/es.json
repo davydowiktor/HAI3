@@ -60,6 +60,9 @@
   "chart_bar_label": "Gráfico de barras",
   "chart_area_label": "Gráfico de área",
   "chart_pie_label": "Gráfico circular",
+  "item_heading": "Elemento",
+  "item_basic_title": "Elemento Básico",
+  "item_basic_description": "Un elemento simple con título y descripción.",
   "aspect_ratio_heading": "Relación de aspecto",
   "aspect_ratio_16_9_label": "Relación 16:9 (Video)",
   "aspect_ratio_4_3_label": "Relación 4:3 (Foto)",
@@ -491,5 +494,16 @@
   "label_disabled_label": "Con Control de Formulario Deshabilitado",
   "label_error_label": "Con Estado de Error",
   "label_description_text": "Su contraseña debe tener al menos 8 caracteres.",
-  "label_error_message": "Por favor ingrese una dirección de correo electrónico válida."
+  "label_error_message": "Por favor ingrese una dirección de correo electrónico válida.",
+  "item_verified_title": "Tu perfil ha sido verificado.",
+  "item_action": "Acción",
+  "item_outline_label": "Elemento de contorno con título, descripción y acción",
+  "item_muted_label": "Elemento silenciado con medio, título y acción",
+  "item_group_header_label": "Grupo de elementos con encabezados que contienen imágenes",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Tareas cotidianas y generación de UI.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Pensamiento o razonamiento avanzado.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Modelo de código abierto para todos."
 }

@@ -495,5 +495,19 @@
   "label_disabled_label": "Con Controllo Modulo Disabilitato",
   "label_error_label": "Con Stato di Errore",
   "label_description_text": "La password deve essere di almeno 8 caratteri.",
-  "label_error_message": "Inserisci un indirizzo email valido."
+  "label_error_message": "Inserisci un indirizzo email valido.",
+  "item_heading": "Elemento",
+  "item_basic_title": "Elemento Base",
+  "item_basic_description": "Un elemento semplice con titolo e descrizione.",
+  "item_verified_title": "Il tuo profilo è stato verificato.",
+  "item_action": "Azione",
+  "item_outline_label": "Elemento con contorno con titolo, descrizione e azione",
+  "item_muted_label": "Elemento smorzato con media, titolo e azione",
+  "item_group_header_label": "Gruppo di elementi con intestazioni contenenti immagini",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Attività quotidiane e generazione UI.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Pensiero o ragionamento avanzato.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Modello open source per tutti."
 }

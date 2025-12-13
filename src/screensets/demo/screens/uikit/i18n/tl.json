@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Item",
+  "item_basic_title": "Pangunahing Item",
+  "item_basic_description": "Isang simpleng item na may pamagat at paglalarawan.",
+  "item_verified_title": "Napatunayan na ang iyong profile.",
+  "item_action": "Aksyon",
+  "item_outline_label": "Item na may balangkas na may pamagat, paglalarawan at aksyon",
+  "item_muted_label": "Item na naka-mute na may media, pamagat at aksyon",
+  "item_group_header_label": "Grupo ng item na may mga header na naglalaman ng mga larawan",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Mga pang-araw-araw na gawain at pagbuo ng UI.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Advanced na pag-iisip o pangangatwiran.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Open Source model para sa lahat."
 }

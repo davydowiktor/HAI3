@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Елемент",
+  "item_basic_title": "Базовий елемент",
+  "item_basic_description": "Простий елемент з заголовком та описом.",
+  "item_verified_title": "Ваш профіль було перевірено.",
+  "item_action": "Дія",
+  "item_outline_label": "Елемент з контуром з заголовком, описом та дією",
+  "item_muted_label": "Приглушений елемент з медіа, заголовком та дією",
+  "item_group_header_label": "Група елементів з заголовками, що містять зображення",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Щоденні завдання та генерація UI.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Розширене мислення або міркування.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Модель з відкритим вихідним кодом для всіх."
 }

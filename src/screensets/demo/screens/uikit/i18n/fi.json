@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Kohde",
+  "item_basic_title": "Peruskohta",
+  "item_basic_description": "Yksinkertainen kohde otsikolla ja kuvauksella.",
+  "item_verified_title": "Profiilisi on vahvistettu.",
+  "item_action": "Toiminto",
+  "item_outline_label": "Ääriviiva-kohta otsikolla, kuvauksella ja toiminnolla",
+  "item_muted_label": "Vaimennettu kohde medialla, otsikolla ja toiminnolla",
+  "item_group_header_label": "Elementtiryhmä otsikoilla, jotka sisältävät kuvia",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Päivittäiset tehtävät ja UI-generointi.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Edistynyt ajattelu tai päättely.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Avoin lähdekoodi -malli kaikille."
 }

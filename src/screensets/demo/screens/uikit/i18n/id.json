@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Item",
+  "item_basic_title": "Item Dasar",
+  "item_basic_description": "Item sederhana dengan judul dan deskripsi.",
+  "item_verified_title": "Profil Anda telah diverifikasi.",
+  "item_action": "Tindakan",
+  "item_outline_label": "Item garis besar dengan judul, deskripsi dan tindakan",
+  "item_muted_label": "Item yang diredam dengan media, judul dan tindakan",
+  "item_group_header_label": "Grup item dengan header yang berisi gambar",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Tugas sehari-hari dan pembuatan UI.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Berpikir atau penalaran lanjutan.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Model open source untuk semua orang."
 }

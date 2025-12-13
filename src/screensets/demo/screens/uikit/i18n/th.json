@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "รายการ",
+  "item_basic_title": "รายการพื้นฐาน",
+  "item_basic_description": "รายการง่ายๆ พร้อมชื่อเรื่องและคำอธิบาย",
+  "item_verified_title": "โปรไฟล์ของคุณได้รับการยืนยันแล้ว",
+  "item_action": "การดำเนินการ",
+  "item_outline_label": "รายการโครงร่างพร้อมชื่อเรื่อง คำอธิบายและการดำเนินการ",
+  "item_muted_label": "รายการที่เงียบพร้อมสื่อ ชื่อเรื่องและการดำเนินการ",
+  "item_group_header_label": "กลุ่มรายการพร้อมส่วนหัวที่มีรูปภาพ",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "งานประจำวันและการสร้าง UI",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "การคิดหรือการให้เหตุผลขั้นสูง",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "โมเดลโอเพนซอร์สสำหรับทุกคน"
 }

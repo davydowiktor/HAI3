@@ -60,6 +60,9 @@
   "chart_bar_label": "Graphique à barres",
   "chart_area_label": "Graphique en aires",
   "chart_pie_label": "Graphique circulaire",
+  "item_heading": "Élément",
+  "item_basic_title": "Élément de base",
+  "item_basic_description": "Un élément simple avec titre et description.",
   "aspect_ratio_heading": "Rapport d'aspect",
   "aspect_ratio_16_9_label": "Rapport 16:9 (Vidéo)",
   "aspect_ratio_4_3_label": "Rapport 4:3 (Photo)",
@@ -495,5 +498,16 @@
   "label_disabled_label": "Avec Contrôle de Formulaire Désactivé",
   "label_error_label": "Avec État d'Erreur",
   "label_description_text": "Votre mot de passe doit contenir au moins 8 caractères.",
-  "label_error_message": "Veuillez entrer une adresse e-mail valide."
+  "label_error_message": "Veuillez entrer une adresse e-mail valide.",
+  "item_verified_title": "Votre profil a été vérifié.",
+  "item_action": "Action",
+  "item_outline_label": "Élément de contour avec titre, description et action",
+  "item_muted_label": "Élément atténué avec média, titre et action",
+  "item_group_header_label": "Groupe d'éléments avec en-têtes contenant des images",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Tâches quotidiennes et génération d'interface.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Pensée ou raisonnement avancé.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Modèle open source pour tous."
 }

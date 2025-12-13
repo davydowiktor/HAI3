@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Objekt",
+  "item_basic_title": "Grundläggande objekt",
+  "item_basic_description": "Ett enkelt objekt med titel och beskrivning.",
+  "item_verified_title": "Din profil har verifierats.",
+  "item_action": "Åtgärd",
+  "item_outline_label": "Objekt med kontur med titel, beskrivning och åtgärd",
+  "item_muted_label": "Dämpat objekt med media, titel och åtgärd",
+  "item_group_header_label": "Objektgrupp med rubriker som innehåller bilder",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Dagliga uppgifter och UI-generering.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Avancerat tänkande eller resonemang.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Öppen källkod-modell för alla."
 }

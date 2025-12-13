@@ -495,5 +495,19 @@
   "label_disabled_label": "비활성화된 양식 컨트롤 포함",
   "label_error_label": "오류 상태 포함",
   "label_description_text": "비밀번호는 최소 8자 이상이어야 합니다.",
-  "label_error_message": "유효한 이메일 주소를 입력하세요."
+  "label_error_message": "유효한 이메일 주소를 입력하세요.",
+  "item_heading": "항목",
+  "item_basic_title": "기본 항목",
+  "item_basic_description": "제목과 설명이 있는 간단한 항목입니다.",
+  "item_verified_title": "프로필이 확인되었습니다.",
+  "item_action": "작업",
+  "item_outline_label": "제목, 설명 및 작업이 있는 개요 항목",
+  "item_muted_label": "미디어, 제목 및 작업이 있는 음소거 항목",
+  "item_group_header_label": "이미지를 포함하는 헤더가 있는 항목 그룹",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "일상적인 작업 및 UI 생성.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "고급 사고 또는 추론.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "모든 사람을 위한 오픈 소스 모델."
 }

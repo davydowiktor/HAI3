@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Item",
+  "item_basic_title": "Basisitem",
+  "item_basic_description": "Een eenvoudig item met titel en beschrijving.",
+  "item_verified_title": "Uw profiel is geverifieerd.",
+  "item_action": "Actie",
+  "item_outline_label": "Omtrekitem met titel, beschrijving en actie",
+  "item_muted_label": "Gedempt item met media, titel en actie",
+  "item_group_header_label": "Itemgroep met headers die afbeeldingen bevatten",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Dagelijkse taken en UI-generatie.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Geavanceerd denken of redeneren.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Open source model voor iedereen."
 }

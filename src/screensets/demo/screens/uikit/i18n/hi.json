@@ -495,5 +495,19 @@
   "label_disabled_label": "अक्षम फॉर्म नियंत्रण के साथ",
   "label_error_label": "त्रुटि स्थिति के साथ",
   "label_description_text": "आपका पासवर्ड कम से कम 8 वर्ण लंबा होना चाहिए।",
-  "label_error_message": "कृपया एक वैध ईमेल पता दर्ज करें।"
+  "label_error_message": "कृपया एक वैध ईमेल पता दर्ज करें।",
+  "item_heading": "आइटम",
+  "item_basic_title": "मूल आइटम",
+  "item_basic_description": "शीर्षक और विवरण के साथ एक सरल आइटम।",
+  "item_verified_title": "आपकी प्रोफ़ाइल सत्यापित हो गई है।",
+  "item_action": "कार्रवाई",
+  "item_outline_label": "शीर्षक, विवरण और कार्रवाई के साथ रूपरेखा आइटम",
+  "item_muted_label": "मीडिया, शीर्षक और कार्रवाई के साथ म्यूट आइटम",
+  "item_group_header_label": "छवियों वाले हेडर के साथ आइटम समूह",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "दैनिक कार्य और UI जनरेशन।",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "उन्नत सोच या तर्क।",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "सभी के लिए ओपन सोर्स मॉडल।"
 }

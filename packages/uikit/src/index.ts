@@ -149,6 +149,20 @@ export {
 // radix separator (divider lines)
 export { Separator } from './base/separator';
 
+// Item components
+export {
+  Item,
+  ItemGroup,
+  ItemSeparator,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+  ItemHeader,
+  ItemFooter,
+} from './base/item';
+
 // shadcn accordion
 export {
   Accordion,

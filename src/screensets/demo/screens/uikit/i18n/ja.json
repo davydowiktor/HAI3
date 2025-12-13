@@ -495,5 +495,19 @@
   "label_disabled_label": "無効なフォームコントロール付き",
   "label_error_label": "エラー状態付き",
   "label_description_text": "パスワードは8文字以上である必要があります。",
-  "label_error_message": "有効なメールアドレスを入力してください。"
+  "label_error_message": "有効なメールアドレスを入力してください。",
+  "item_heading": "アイテム",
+  "item_basic_title": "基本アイテム",
+  "item_basic_description": "タイトルと説明を含むシンプルなアイテム。",
+  "item_verified_title": "あなたのプロフィールが確認されました。",
+  "item_action": "アクション",
+  "item_outline_label": "タイトル、説明、アクション付きのアウトラインアイテム",
+  "item_muted_label": "メディア、タイトル、アクション付きのミュートアイテム",
+  "item_group_header_label": "画像を含むヘッダーを持つアイテムグループ",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "日常的なタスクとUI生成。",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "高度な思考や推論。",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "誰でも使えるオープンソースモデル。"
 }

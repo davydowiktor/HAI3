@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Elem",
+  "item_basic_title": "Alapvető elem",
+  "item_basic_description": "Egy egyszerű elem címmel és leírással.",
+  "item_verified_title": "A profilodat ellenőrizték.",
+  "item_action": "Művelet",
+  "item_outline_label": "Vázlatos elem címmel, leírással és művelettel",
+  "item_muted_label": "Halkított elem médiával, címmel és művelettel",
+  "item_group_header_label": "Elemcsoport képeket tartalmazó fejlécekkel",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Mindennapi feladatok és UI generálás.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Fejlett gondolkodás vagy érvelés.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Nyílt forráskódú modell mindenkinek."
 }

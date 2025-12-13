@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "פריט",
+  "item_basic_title": "פריט בסיסי",
+  "item_basic_description": "פריט פשוט עם כותרת ותיאור.",
+  "item_verified_title": "הפרופיל שלך אומת.",
+  "item_action": "פעולה",
+  "item_outline_label": "פריט קווי מתאר עם כותרת, תיאור ופעולה",
+  "item_muted_label": "פריט מושתק עם מדיה, כותרת ופעולה",
+  "item_group_header_label": "קבוצת פריטים עם כותרות המכילות תמונות",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "משימות יומיומיות ויצירת ממשק משתמש.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "חשיבה או הנמקה מתקדמת.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "מודל קוד פתוח לכולם."
 }

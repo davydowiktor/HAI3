@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Element",
+  "item_basic_title": "Podstawowy element",
+  "item_basic_description": "Prosty element z tytułem i opisem.",
+  "item_verified_title": "Twój profil został zweryfikowany.",
+  "item_action": "Akcja",
+  "item_outline_label": "Element z obramowaniem z tytułem, opisem i akcją",
+  "item_muted_label": "Stłumiony element z mediami, tytułem i akcją",
+  "item_group_header_label": "Grupa elementów z nagłówkami zawierającymi obrazy",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Codzienne zadania i generowanie UI.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Zaawansowane myślenie lub rozumowanie.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Model open source dla wszystkich."
 }

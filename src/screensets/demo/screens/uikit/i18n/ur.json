@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "آئٹم",
+  "item_basic_title": "بنیادی آئٹم",
+  "item_basic_description": "عنوان اور تفصیل کے ساتھ ایک سادہ آئٹم۔",
+  "item_verified_title": "آپ کا پروفائل تصدیق شدہ ہے۔",
+  "item_action": "عمل",
+  "item_outline_label": "عنوان، تفصیل اور عمل کے ساتھ آؤٹ لائن آئٹم",
+  "item_muted_label": "میڈیا، عنوان اور عمل کے ساتھ میوٹ آئٹم",
+  "item_group_header_label": "تصاویر پر مشتمل ہیڈرز کے ساتھ آئٹم گروپ",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "روزمرہ کے کام اور UI تخلیق۔",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "اعلیٰ درجے کی سوچ یا استدلال۔",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "سب کے لیے اوپن سورس ماڈل۔"
 }

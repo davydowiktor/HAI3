@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Öğe",
+  "item_basic_title": "Temel Öğe",
+  "item_basic_description": "Başlık ve açıklama içeren basit bir öğe.",
+  "item_verified_title": "Profiliniz doğrulandı.",
+  "item_action": "İşlem",
+  "item_outline_label": "Başlık, açıklama ve işlem içeren anahat öğesi",
+  "item_muted_label": "Medya, başlık ve işlem içeren sessiz öğe",
+  "item_group_header_label": "Resim içeren başlıklara sahip öğe grubu",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Günlük görevler ve UI oluşturma.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Gelişmiş düşünme veya akıl yürütme.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Herkes için açık kaynak model."
 }

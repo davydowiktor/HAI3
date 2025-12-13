@@ -495,5 +495,19 @@
   "label_disabled_label": "С Отключенным Элементом Формы",
   "label_error_label": "С Состоянием Ошибки",
   "label_description_text": "Ваш пароль должен содержать не менее 8 символов.",
-  "label_error_message": "Пожалуйста, введите действительный адрес электронной почты."
+  "label_error_message": "Пожалуйста, введите действительный адрес электронной почты.",
+  "item_heading": "Элемент",
+  "item_basic_title": "Базовый элемент",
+  "item_basic_description": "Простой элемент с заголовком и описанием.",
+  "item_verified_title": "Ваш профиль был проверен.",
+  "item_action": "Действие",
+  "item_outline_label": "Элемент с контуром с заголовком, описанием и действием",
+  "item_muted_label": "Приглушенный элемент с медиа, заголовком и действием",
+  "item_group_header_label": "Группа элементов с заголовками, содержащими изображения",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Повседневные задачи и генерация UI.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Продвинутое мышление или рассуждение.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Модель с открытым исходным кодом для всех."
 }

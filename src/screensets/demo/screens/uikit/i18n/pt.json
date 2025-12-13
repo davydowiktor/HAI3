@@ -495,5 +495,19 @@
   "label_disabled_label": "Com Controle de Formulário Desabilitado",
   "label_error_label": "Com Estado de Erro",
   "label_description_text": "Sua senha deve ter pelo menos 8 caracteres.",
-  "label_error_message": "Por favor, insira um endereço de e-mail válido."
+  "label_error_message": "Por favor, insira um endereço de e-mail válido.",
+  "item_heading": "Item",
+  "item_basic_title": "Item Básico",
+  "item_basic_description": "Um item simples com título e descrição.",
+  "item_verified_title": "Seu perfil foi verificado.",
+  "item_action": "Ação",
+  "item_outline_label": "Item de contorno com título, descrição e ação",
+  "item_muted_label": "Item silenciado com mídia, título e ação",
+  "item_group_header_label": "Grupo de itens com cabeçalhos contendo imagens",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Tarefas cotidianas e geração de UI.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Pensamento ou raciocínio avançado.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Modelo open source para todos."
 }

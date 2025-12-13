@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Kipengele",
+  "item_basic_title": "Kipengele cha Msingi",
+  "item_basic_description": "Kipengele rahisi chenye kichwa na maelezo.",
+  "item_verified_title": "Wasifu wako umehakikiwa.",
+  "item_action": "Kitendo",
+  "item_outline_label": "Kipengele chenye muhtasari chenye kichwa, maelezo na kitendo",
+  "item_muted_label": "Kipengele kilichopunguzwa chenye vyombo, kichwa na kitendo",
+  "item_group_header_label": "Kikundi cha vipengele na vichwa vyenye picha",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Kazi za kila siku na uzalishaji wa UI.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Fikra za hali ya juu au hoja.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Mfano wa chanzo wazi kwa kila mtu."
 }

@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "Element",
+  "item_basic_title": "Element de bază",
+  "item_basic_description": "Un element simplu cu titlu și descriere.",
+  "item_verified_title": "Profilul tău a fost verificat.",
+  "item_action": "Acțiune",
+  "item_outline_label": "Element cu contur cu titlu, descriere și acțiune",
+  "item_muted_label": "Element redus cu media, titlu și acțiune",
+  "item_group_header_label": "Grup de elemente cu anteturi care conțin imagini",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "Sarcini zilnice și generare UI.",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "Gândire sau raționament avansat.",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "Model open source pentru toți."
 }

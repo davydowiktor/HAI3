@@ -495,5 +495,19 @@
   "label_disabled_label": "With Disabled Form Control",
   "label_error_label": "With Error State",
   "label_description_text": "Your password must be at least 8 characters long.",
-  "label_error_message": "Please enter a valid email address."
+  "label_error_message": "Please enter a valid email address.",
+  "item_heading": "項目",
+  "item_basic_title": "基本項目",
+  "item_basic_description": "帶有標題和描述的簡單項目。",
+  "item_verified_title": "您的個人資料已通過驗證。",
+  "item_action": "操作",
+  "item_outline_label": "帶標題、描述和操作的輪廓項目",
+  "item_muted_label": "帶媒體、標題和操作的靜音項目",
+  "item_group_header_label": "包含圖像的標題項目組",
+  "item_model_1_name": "v0-1.5-sm",
+  "item_model_1_description": "日常任務和UI生成。",
+  "item_model_2_name": "v0-1.5-lg",
+  "item_model_2_description": "高級思考或推理。",
+  "item_model_3_name": "v0-2.0-mini",
+  "item_model_3_description": "面向所有人的開源模型。"
 }

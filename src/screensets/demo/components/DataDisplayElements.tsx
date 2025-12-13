@@ -22,9 +22,20 @@ import {
   ChartTooltipContent,
   ChartLegendContent,
   ResponsiveContainer,
+  Item,
+  ItemGroup,
+  ItemHeader,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+  Button,
+  ButtonVariant,
+  ButtonSize,
 } from '@hai3/uikit';
 import { useTranslation, TextLoader } from '@hai3/uicore';
-import { BadgeCheckIcon } from '../uikit/icons/BadgeCheckIcon';
+import { BadgeCheckIcon, ChevronRightIcon } from 'lucide-react';
 import { DEMO_SCREENSET_ID } from "../ids";
 import { UI_KIT_ELEMENTS_SCREEN_ID } from "../ids";
 
@@ -304,6 +315,146 @@ export const DataDisplayElements: React.FC = () => {
             </ChartContainer>
           </div>
 
+        </div>
+      </div>
+
+      {/* Item Element Block */}
+      <div data-element-id="element-item" className="flex flex-col gap-4">
+        <TextLoader skeletonClassName="h-8 w-24">
+          <h2 className="text-2xl font-semibold">
+            {tk('item_heading')}
+          </h2>
+        </TextLoader>
+        <div className="flex flex-col gap-6 p-6 border border-border rounded-lg bg-background">
+          {/* Outline Item Example */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-48" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('item_outline_label')}
+              </label>
+            </TextLoader>
+            <Item variant="outline">
+              <ItemContent>
+                <ItemTitle>
+                  <TextLoader skeletonClassName="h-4 w-24" inheritColor>
+                    {tk('item_basic_title')}
+                  </TextLoader>
+                </ItemTitle>
+                <ItemDescription>
+                  <TextLoader skeletonClassName="h-4 w-64" inheritColor>
+                    {tk('item_basic_description')}
+                  </TextLoader>
+                </ItemDescription>
+              </ItemContent>
+              <ItemActions>
+                <Button variant={ButtonVariant.Outline} size={ButtonSize.Sm}>
+                  <TextLoader skeletonClassName="h-4 w-12" inheritColor>
+                    {tk('item_action')}
+                  </TextLoader>
+                </Button>
+              </ItemActions>
+            </Item>
+          </div>
+
+          {/* Muted Item Example */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-48" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('item_muted_label')}
+              </label>
+            </TextLoader>
+            <Item variant="muted" size="sm" asChild>
+              <a href="#">
+                <ItemMedia>
+                  <BadgeCheckIcon className="size-5" />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>
+                    <TextLoader skeletonClassName="h-4 w-48" inheritColor>
+                      {tk('item_verified_title')}
+                    </TextLoader>
+                  </ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  <ChevronRightIcon className="size-4" />
+                </ItemActions>
+              </a>
+            </Item>
+          </div>
+
+          {/* Item Group with Header Example */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-64" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('item_group_header_label')}
+              </label>
+            </TextLoader>
+            <ItemGroup className="grid grid-cols-3 gap-4">
+              <Item variant="outline">
+                <ItemHeader>
+                  <img
+                    src="https://images.unsplash.com/photo-1650804068570-7fb2e3dbf888?q=80&w=640&auto=format&fit=crop"
+                    alt={tk('item_model_1_name')}
+                    className="aspect-square w-full rounded-sm object-cover"
+                  />
+                </ItemHeader>
+                <ItemContent>
+                  <ItemTitle>
+                    <TextLoader skeletonClassName="h-4 w-24" inheritColor>
+                      {tk('item_model_1_name')}
+                    </TextLoader>
+                  </ItemTitle>
+                  <ItemDescription>
+                    <TextLoader skeletonClassName="h-4 w-48" inheritColor>
+                      {tk('item_model_1_description')}
+                    </TextLoader>
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
+              <Item variant="outline">
+                <ItemHeader>
+                  <img
+                    src="https://images.unsplash.com/photo-1610280777472-54133d004c8c?q=80&w=640&auto=format&fit=crop"
+                    alt={tk('item_model_2_name')}
+                    className="aspect-square w-full rounded-sm object-cover"
+                  />
+                </ItemHeader>
+                <ItemContent>
+                  <ItemTitle>
+                    <TextLoader skeletonClassName="h-4 w-24" inheritColor>
+                      {tk('item_model_2_name')}
+                    </TextLoader>
+                  </ItemTitle>
+                  <ItemDescription>
+                    <TextLoader skeletonClassName="h-4 w-48" inheritColor>
+                      {tk('item_model_2_description')}
+                    </TextLoader>
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
+              <Item variant="outline">
+                <ItemHeader>
+                  <img
+                    src="https://images.unsplash.com/photo-1602146057681-08560aee8cde?q=80&w=640&auto=format&fit=crop"
+                    alt={tk('item_model_3_name')}
+                    className="aspect-square w-full rounded-sm object-cover"
+                  />
+                </ItemHeader>
+                <ItemContent>
+                  <ItemTitle>
+                    <TextLoader skeletonClassName="h-4 w-24" inheritColor>
+                      {tk('item_model_3_name')}
+                    </TextLoader>
+                  </ItemTitle>
+                  <ItemDescription>
+                    <TextLoader skeletonClassName="h-4 w-48" inheritColor>
+                      {tk('item_model_3_description')}
+                    </TextLoader>
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
+            </ItemGroup>
+          </div>
         </div>
       </div>
     </>
