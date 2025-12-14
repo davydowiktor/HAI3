@@ -101,14 +101,22 @@ The system SHALL define the action pattern (types and helpers) in `@hai3/events`
 - **AND** it MUST only emit events via `eventBus.emit()`
 - **AND** it MUST NOT dispatch directly to Redux store
 
-#### Scenario: Framework provides core action instances
+#### Scenario: Framework provides core action instances via plugins
 
-- **WHEN** importing from `@hai3/framework`
-- **THEN** navigation actions are available: `navigateToScreen`, `navigateToScreenset`
-- **AND** layout actions are available: `showPopup`, `hidePopup`, `showOverlay`, `hideOverlay`
-- **AND** theme actions are available: `changeTheme`
-- **AND** language actions are available: `setLanguage`
+- **WHEN** using `createHAI3App()` (full preset)
+- **THEN** all actions are available on the app instance:
+  - navigation actions: `navigateToScreen`, `navigateToScreenset` (from navigation plugin)
+  - layout actions: `showPopup`, `hidePopup`, `showOverlay`, `hideOverlay` (from layout plugin)
+  - theme actions: `changeTheme` (from themes plugin)
+  - language actions: `setLanguage` (from i18n plugin)
 - **AND** all actions are created using `createAction` from `@hai3/events`
+
+#### Scenario: Action availability depends on plugins
+
+- **WHEN** using `createHAI3().use(presets.headless()).build()`
+- **THEN** navigation/layout/theme/language actions are NOT available
+- **AND** only screensets plugin capabilities are present
+- **BECAUSE** headless preset only includes screensets plugin
 
 #### Scenario: User-defined action instances
 
@@ -350,6 +358,95 @@ The system SHALL comply with all SOLID principles.
 - **WHEN** reviewing package dependencies
 - **THEN** high-level packages depend on abstractions (interfaces, types)
 - **AND** no package depends on concrete uikit implementation
+
+### Requirement: Plugin Architecture
+
+The system SHALL provide a plugin-based architecture in `@hai3/framework` that allows users to compose only the features they need.
+
+#### Scenario: Plugin interface contract
+
+- **WHEN** creating a new plugin
+- **THEN** it implements the `HAI3Plugin` interface
+- **AND** it declares a unique `name` property
+- **AND** it optionally declares `dependencies` on other plugins
+- **AND** it optionally provides `registries`, `slices`, `effects`, and/or `actions`
+
+#### Scenario: createHAI3 builder pattern
+
+- **WHEN** importing from `@hai3/framework`
+- **THEN** `createHAI3()` function is available
+- **AND** it returns a builder with `.use(plugin)` method
+- **AND** it returns a builder with `.build()` method that creates the app
+
+#### Scenario: Plugin composition
+
+- **WHEN** using `createHAI3().use(plugin1).use(plugin2).build()`
+- **THEN** only the specified plugins are initialized
+- **AND** only dependencies of those plugins are included
+- **AND** unused plugins are not bundled (tree-shaking)
+
+#### Scenario: Presets for common configurations
+
+- **WHEN** importing from `@hai3/framework`
+- **THEN** `presets.full()` is available (all plugins)
+- **AND** `presets.minimal()` is available (screensets + themes)
+- **AND** `presets.headless()` is available (screensets only)
+
+#### Scenario: Full preset is default
+
+- **WHEN** using `createHAI3App()` convenience function
+- **THEN** it is equivalent to `createHAI3().use(presets.full()).build()`
+- **AND** all plugins are included for full HAI3 experience
+
+#### Scenario: Headless preset for external integration
+
+- **WHEN** an external platform wants only screenset orchestration
+- **THEN** they use `createHAI3().use(presets.headless()).build()`
+- **AND** only `screensets` plugin is included
+- **AND** layout domains (header, footer, menu, etc.) are NOT included
+- **AND** they can render HAI3 screens in their own layout
+
+#### Scenario: Individual plugin imports
+
+- **WHEN** importing individual plugins
+- **THEN** `screensets`, `themes`, `layout`, `routing`, `effects`, `navigation`, `i18n` are available
+- **AND** each can be used independently via `.use(plugin())`
+
+#### Scenario: Plugin dependency auto-resolution
+
+- **WHEN** a plugin declares dependencies on other plugins
+- **AND** the dependencies are not explicitly added
+- **AND** no conflicting plugin with custom config exists
+- **THEN** the system auto-adds missing dependencies with DEFAULT config
+
+#### Scenario: Plugin dependency conflict warning
+
+- **WHEN** a plugin declares dependencies on other plugins
+- **AND** the dependency already exists with CUSTOM config
+- **THEN** the system logs a warning about the existing configuration
+- **AND** does NOT add a duplicate plugin
+
+#### Scenario: Screensets-only integration
+
+- **WHEN** using `createHAI3().use(screensets()).build()`
+- **THEN** `app.screensetRegistry` is available
+- **AND** `app.store` is available (for screen state)
+- **AND** layout domains are NOT registered
+- **AND** the company can use their own menu/header/routing
+
+#### Scenario: Plugin provides registries
+
+- **WHEN** a plugin provides registries (e.g., `screensetRegistry`)
+- **THEN** they are accessible on the built app instance
+- **AND** they are typed correctly via TypeScript
+
+#### Scenario: Plugin lifecycle hooks
+
+- **WHEN** a plugin defines `onInit` lifecycle hook
+- **THEN** it is called after all plugins are registered
+- **AND** it receives the app instance
+- **WHEN** a plugin defines `onDestroy` lifecycle hook
+- **THEN** it is called when the app is destroyed
 
 ### Requirement: UI Kit Support
 

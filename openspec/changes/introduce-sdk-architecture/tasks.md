@@ -266,6 +266,16 @@ At the end of each PHASE, all tasks in that phase MUST pass verification before 
 - [ ] 2.6.5 Define `createHAI3App` function signature
 - [ ] 2.6.6 Export all types from `@hai3/framework/types`
 
+#### 2.6.7 Plugin System Types
+
+- [ ] 2.6.7.1 Define `HAI3Plugin<TConfig>` interface with name, dependencies, provides, lifecycle hooks
+- [ ] 2.6.7.2 Define `HAI3AppBuilder` interface with `.use()` and `.build()` methods
+- [ ] 2.6.7.3 Define `HAI3App` interface (built app with registries, store, actions)
+- [ ] 2.6.7.4 Define `PluginProvides` interface (registries, slices, effects, actions)
+- [ ] 2.6.7.5 Define `PluginLifecycle` interface (onRegister, onInit, onDestroy)
+- [ ] 2.6.7.6 Define `ScreensetsConfig` interface for screensets plugin config
+- [ ] 2.6.7.7 Define `Preset` type as `() => HAI3Plugin[]`
+
 ### 2.7 @hai3/react Types
 
 - [ ] 2.7.1 Define `HAI3ProviderProps` interface
@@ -436,23 +446,78 @@ At the end of each PHASE, all tasks in that phase MUST pass verification before 
 
 ### 4.1 @hai3/framework Package
 
-- [ ] 4.1.1 Create `packages/framework/` directory structure
-- [ ] 4.1.2 Create `packages/framework/package.json` (deps: all SDK packages)
-- [ ] 4.1.3 Create `packages/framework/tsconfig.json`
-- [ ] 4.1.4 Create `packages/framework/tsup.config.ts`
-- [ ] 4.1.5 Implement SDK package wiring
-- [ ] 4.1.6 Implement `screensetRegistry`
-- [ ] 4.1.7 Implement `themeRegistry`
-- [ ] 4.1.8 Implement `routeRegistry`
-- [ ] 4.1.9 Implement effect coordination system
-- [ ] 4.1.10 Implement navigation actions (`navigateToScreen`, `navigateToScreenset`)
-- [ ] 4.1.11 Implement layout actions (`showPopup`, `hidePopup`, `showOverlay`, `hideOverlay`)
-- [ ] 4.1.12 Implement theme actions (`changeTheme`)
-- [ ] 4.1.13 Implement language actions (`setLanguage`)
-- [ ] 4.1.14 Implement `createHAI3App()` function
-- [ ] 4.1.15 Create `packages/framework/src/index.ts` with all exports
-- [ ] 4.1.16 Verify: `npm run build:packages:framework` succeeds
-- [ ] 4.1.17 Verify: Only SDK packages as @hai3 dependencies
+#### 4.1.0 Package Setup
+
+- [ ] 4.1.0.1 Create `packages/framework/` directory structure
+- [ ] 4.1.0.2 Create `packages/framework/package.json` (deps: all SDK packages)
+- [ ] 4.1.0.3 Create `packages/framework/tsconfig.json`
+- [ ] 4.1.0.4 Create `packages/framework/tsup.config.ts`
+
+#### 4.1.1 Plugin System Core (MUST implement first)
+
+- [ ] 4.1.1.1 Implement `createHAI3()` builder function
+- [ ] 4.1.1.2 Implement `HAI3AppBuilder` class with `.use()` method
+- [ ] 4.1.1.3 Implement `HAI3AppBuilder.build()` method
+- [ ] 4.1.1.4 Implement plugin dependency resolution:
+  - Auto-add missing deps with DEFAULT config when unambiguous
+  - Warn (don't duplicate) when dep exists with custom config
+  - Error only if plugin cannot be instantiated
+- [ ] 4.1.1.5 Implement plugin lifecycle management (onRegister, onInit, onDestroy)
+- [ ] 4.1.1.6 Implement registry aggregation from plugins
+- [ ] 4.1.1.7 Implement slice aggregation and store configuration from plugins
+- [ ] 4.1.1.8 Implement effect aggregation from plugins
+- [ ] 4.1.1.9 Implement action aggregation from plugins
+- [ ] 4.1.1.10 Add error handling for missing plugin dependencies
+
+#### 4.1.2 Individual Plugins
+
+- [ ] 4.1.2.1 Implement `screensets()` plugin (screensetRegistry, screenSlice - NO navigation actions)
+- [ ] 4.1.2.2 Implement `themes()` plugin (themeRegistry, changeTheme action)
+- [ ] 4.1.2.3 Implement `layout()` plugin (header, footer, menu, sidebar, popup, overlay slices + effects)
+- [ ] 4.1.2.4 Implement `routing()` plugin (routeRegistry, URL sync)
+- [ ] 4.1.2.5 Implement `effects()` plugin (core effect coordination infrastructure)
+- [ ] 4.1.2.6 Implement `navigation()` plugin (navigateToScreen, navigateToScreenset actions + URL effects)
+- [ ] 4.1.2.7 Implement `i18n()` plugin (i18nRegistry wiring, setLanguage action)
+
+#### 4.1.3 Presets
+
+- [ ] 4.1.3.1 Implement `presets.full()` - all plugins for full HAI3 experience
+- [ ] 4.1.3.2 Implement `presets.minimal()` - screensets + themes only
+- [ ] 4.1.3.3 Implement `presets.headless()` - screensets only for external integration
+- [ ] 4.1.3.4 Implement `createHAI3App()` convenience function using full preset
+
+#### 4.1.4 Registries (via plugins)
+
+- [ ] 4.1.4.1 Implement `createScreensetRegistry()` factory
+- [ ] 4.1.4.2 Implement `createThemeRegistry()` factory
+- [ ] 4.1.4.3 Implement `createRouteRegistry()` factory
+
+#### 4.1.5 Actions (via plugins)
+
+- [ ] 4.1.5.1 Implement navigation actions (`navigateToScreen`, `navigateToScreenset`)
+- [ ] 4.1.5.2 Implement layout actions (`showPopup`, `hidePopup`, `showOverlay`, `hideOverlay`)
+- [ ] 4.1.5.3 Implement theme actions (`changeTheme`)
+- [ ] 4.1.5.4 Implement language actions (`setLanguage`)
+
+#### 4.1.6 Package Finalization
+
+- [ ] 4.1.6.1 Create `packages/framework/src/index.ts` with all exports
+- [ ] 4.1.6.2 Export: `createHAI3`, `createHAI3App`, `presets`
+- [ ] 4.1.6.3 Export: individual plugins (`screensets`, `themes`, `layout`, etc.)
+- [ ] 4.1.6.4 Export: all types from `@hai3/framework/types`
+- [ ] 4.1.6.5 Verify: `npm run build:packages:framework` succeeds
+- [ ] 4.1.6.6 Verify: Only SDK packages as @hai3 dependencies
+
+#### 4.1.7 Plugin System Testing
+
+- [ ] 4.1.7.1 Test: `createHAI3().use(screensets()).build()` works (headless mode)
+- [ ] 4.1.7.2 Test: `createHAI3().use(presets.full()).build()` works (all plugins)
+- [ ] 4.1.7.3 Test: Plugin dependency auto-resolution (layout adds screensets if missing)
+- [ ] 4.1.7.4 Test: Missing dependency throws clear error message
+- [ ] 4.1.7.5 Test: `app.screensetRegistry` is accessible after build
+- [ ] 4.1.7.6 Test: `app.store` is configured with plugin slices
+- [ ] 4.1.7.7 Test: Plugin lifecycle hooks are called in correct order
+- [ ] 4.1.7.8 Test: Tree-shaking - unused plugins not in bundle (verify with bundlesize)
 
 ### 4.2 @hai3/react Package
 
@@ -854,30 +919,60 @@ Note: Screensets are auto-discovered via Vite glob pattern (`*Screenset.tsx`). N
 - [ ] 10.6.2 Test: Deprecation warnings appear in dev mode
 - [ ] 10.6.3 Verify: All @hai3/uicore exports are available
 
-### 10.7 AI Guidelines Validation
+### 10.7 Plugin System & External Integration Tests
 
-- [ ] 10.7.1 Verify each file in `.ai/` against `.ai/targets/AI.md`
-- [ ] 10.7.2 Run `hai3 ai sync` and verify all 4 files generated
-- [ ] 10.7.3 Verify CLAUDE.md content is accurate
-- [ ] 10.7.4 Verify .github/copilot-instructions.md content is accurate
-- [ ] 10.7.5 Verify .cursor/rules/hai3.md content is accurate
-- [ ] 10.7.6 Verify .windsurf/rules/hai3.md content is accurate
+**Test the plugin architecture for external platform integration (screensets-only use case)**
 
-### 10.8 Automated Prompt Validation
+#### 10.7.1 Headless Preset Tests
 
-- [ ] 10.8.1 Run `npm run test:prompts` - all tests pass
-- [ ] 10.8.2 Verify coverage report shows ≥80% coverage
-- [ ] 10.8.3 Run each test 3 times - variance <30%
-- [ ] 10.8.4 Verify `/hai3-validate` correctly detects:
+- [ ] 10.7.1.1 Create test project using `createHAI3().use(presets.headless()).build()`
+- [ ] 10.7.1.2 Verify: Only screensets plugin is active
+- [ ] 10.7.1.3 Verify: `app.screensetRegistry` is available and works
+- [ ] 10.7.1.4 Verify: `app.store` is configured with screen slice only
+- [ ] 10.7.1.5 Verify: Layout domains (header, menu, footer) are NOT registered
+- [ ] 10.7.1.6 Verify: Bundle size is smaller than full preset
+
+#### 10.7.2 Custom Plugin Composition Tests
+
+- [ ] 10.7.2.1 Test: `createHAI3().use(screensets()).use(themes()).build()` works
+- [ ] 10.7.2.2 Test: Individual plugins can be imported and used
+- [ ] 10.7.2.3 Test: Unused plugins are tree-shaken from bundle
+- [ ] 10.7.2.4 Verify: Plugin dependency auto-resolution works
+
+#### 10.7.3 External Platform Integration Simulation
+
+- [ ] 10.7.3.1 Create mock "external platform" with custom menu component
+- [ ] 10.7.3.2 Integrate HAI3 screensets using headless preset
+- [ ] 10.7.3.3 Render HAI3 screens inside external platform's layout
+- [ ] 10.7.3.4 Verify: External menu can navigate to HAI3 screens
+- [ ] 10.7.3.5 Verify: HAI3 screen state is managed correctly
+- [ ] 10.7.3.6 Verify: No conflicts between external platform and HAI3
+- [ ] 10.7.3.7 Document integration pattern for external platforms
+
+### 10.8 AI Guidelines Validation
+
+- [ ] 10.8.1 Verify each file in `.ai/` against `.ai/targets/AI.md`
+- [ ] 10.8.2 Run `hai3 ai sync` and verify all 4 files generated
+- [ ] 10.8.3 Verify CLAUDE.md content is accurate
+- [ ] 10.8.4 Verify .github/copilot-instructions.md content is accurate
+- [ ] 10.8.5 Verify .cursor/rules/hai3.md content is accurate
+- [ ] 10.8.6 Verify .windsurf/rules/hai3.md content is accurate
+
+### 10.9 Automated Prompt Validation
+
+- [ ] 10.9.1 Run `npm run test:prompts` - all tests pass
+- [ ] 10.9.2 Verify coverage report shows ≥80% coverage
+- [ ] 10.9.3 Run each test 3 times - variance <30%
+- [ ] 10.9.4 Verify `/hai3-validate` correctly detects:
   - [ ] Direct dispatch violations
   - [ ] Internal import violations
   - [ ] Circular dependency violations
   - [ ] Missing ID constants violations
-- [ ] 10.8.5 Verify `/hai3-new-screenset` generates correct imports
-- [ ] 10.8.6 Verify `/hai3-new-action` generates correct `createAction` usage
-- [ ] 10.8.7 Verify all commands are under 500 words
-- [ ] 10.8.8 Verify GitHub Actions workflow syntax is valid
-- [ ] 10.8.9 Document any flaky tests for future investigation
+- [ ] 10.9.5 Verify `/hai3-new-screenset` generates correct imports
+- [ ] 10.9.6 Verify `/hai3-new-action` generates correct `createAction` usage
+- [ ] 10.9.7 Verify all commands are under 500 words
+- [ ] 10.9.8 Verify GitHub Actions workflow syntax is valid
+- [ ] 10.9.9 Document any flaky tests for future investigation
 
 ---
 

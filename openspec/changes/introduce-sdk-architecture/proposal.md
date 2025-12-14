@@ -90,6 +90,59 @@ LAYER 4: CLI-Generated Layout (IN USER'S PROJECT, not npm)
 3. **CLI generates layout** - Following shadcn/ui model, user owns rendering code
 4. **Types-first design** - All interfaces defined before implementation
 5. **TDD approach** - ESLint rules, dependency-cruiser updated BEFORE implementation
+6. **Plugin architecture** - Framework uses composable plugins for maximum flexibility
+
+### Plugin Architecture (Framework Layer)
+
+The `@hai3/framework` package uses a **plugin-based architecture** inspired by [TanStack](https://tanstack.com/), [NestJS](https://docs.nestjs.com/modules), and [AWS SDK v3](https://aws.amazon.com/blogs/developer/modular-packages-in-aws-sdk-for-javascript/).
+
+**Why?** External companies may want to integrate HAI3 screensets into their existing platforms without adopting HAI3's full layout system (header, menu, footer). Plugin architecture allows them to use only what they need.
+
+```
+@hai3/framework
+├── createHAI3()              ← Minimal core with plugin system
+├── plugins/
+│   ├── screensets()          ← Screenset registry + screen slice
+│   ├── themes()              ← Theme registry + changeTheme
+│   ├── layout()              ← Layout domains (header, menu, footer, etc.)
+│   ├── routing()             ← Route registry + URL sync
+│   ├── effects()             ← Core effect coordination system
+│   ├── navigation()          ← Navigation actions (navigateToScreen, etc.)
+│   └── i18n()                ← i18nRegistry + setLanguage
+├── presets/
+│   ├── full()                ← All 7 plugins (default for hai3 create)
+│   ├── minimal()             ← screensets + themes only
+│   └── headless()            ← screensets only (external integration)
+```
+
+**Usage Examples:**
+
+```typescript
+// Full HAI3 experience (default)
+import { createHAI3App } from '@hai3/framework';
+const app = createHAI3App();
+
+// External platform - screensets only
+import { createHAI3, screensets } from '@hai3/framework';
+const app = createHAI3()
+  .use(screensets())
+  .build();
+
+// Custom composition
+import { createHAI3, screensets, themes, i18n } from '@hai3/framework';
+const app = createHAI3()
+  .use(screensets())
+  .use(themes())
+  .use(i18n())
+  // NO layout() - they have their own
+  .build();
+```
+
+**Benefits:**
+- **SOLID-compliant** - Each plugin has single responsibility, open for extension
+- **Tree-shakeable** - Unused plugins not bundled
+- **External integration** - Companies can embed HAI3 screens in their existing platforms
+- **Flexible composition** - Mix and match features as needed
 
 ### What Happens to Existing Packages
 

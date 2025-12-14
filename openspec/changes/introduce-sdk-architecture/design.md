@@ -353,6 +353,319 @@ Action (pure function, returns void)
 3. **Instances in User Code** - Domain actions use screenset-specific event names
 4. **Type Safety** - `createAction` is fully typed via `EventPayloadMap` augmentation
 
+## Plugin Architecture
+
+### Why Plugins?
+
+A potential user (external company) wants to integrate HAI3 screensets into their existing platform. They already have their own menu, header, and navigation - they only need HAI3's screenset orchestration.
+
+**The Problem**: If `screensetRegistry` requires the full `@hai3/framework` (which depends on ALL SDK packages), users who only need screensets would pull in unnecessary dependencies.
+
+**The Solution**: Plugin architecture allows users to compose only the features they need, following patterns from:
+- [TanStack](https://tanstack.com/) - Feature plugins extend the core
+- [NestJS](https://docs.nestjs.com/modules) - Module composition with DynamicModule
+- [AWS SDK v3](https://aws.amazon.com/blogs/developer/modular-packages-in-aws-sdk-for-javascript/) - Modular clients with middleware/plugins
+- [Zustand](https://zustand.docs.pmnd.rs/guides/slices-pattern) - Slices composition
+
+### Architecture Overview
+
+```
+@hai3/framework
+├── createHAI3()              ← Minimal core with plugin system
+├── plugins/
+│   ├── screensets()          ← Screenset registry + patterns
+│   ├── themes()              ← Theme registry
+│   ├── layout()              ← Layout domains (header, menu, footer, etc.)
+│   ├── routing()             ← Route registry + URL sync
+│   ├── effects()             ← Effect coordination system
+│   └── navigation()          ← Navigation actions
+├── presets/
+│   ├── full()                ← All plugins (default for hai3 create)
+│   ├── minimal()             ← screensets + themes only
+│   └── headless()            ← screensets only (external integration)
+```
+
+### Plugin Interface
+
+```typescript
+/**
+ * HAI3Plugin interface - all plugins implement this contract.
+ * Follows Liskov Substitution Principle - any plugin can be used interchangeably.
+ */
+interface HAI3Plugin<TConfig = unknown> {
+  /** Unique plugin identifier */
+  name: string;
+
+  /** Other plugins this plugin requires */
+  dependencies?: string[];
+
+  /** Lifecycle: Called when plugin is registered */
+  onRegister?(app: HAI3AppBuilder, config: TConfig): void;
+
+  /** Lifecycle: Called after all plugins registered, before app starts */
+  onInit?(app: HAI3App): void | Promise<void>;
+
+  /** Lifecycle: Called when app is destroyed */
+  onDestroy?(app: HAI3App): void;
+
+  /** What this plugin provides to the app */
+  provides?: {
+    registries?: Record<string, unknown>;
+    slices?: SliceObject[];
+    effects?: EffectInitializer[];
+    actions?: Record<string, Action>;
+  };
+}
+```
+
+### Plugin Examples
+
+```typescript
+// screensets plugin - minimal, just screenset orchestration
+export const screensets = (config?: ScreensetsConfig): HAI3Plugin => ({
+  name: 'screensets',
+  dependencies: [],  // No other plugins required
+
+  provides: {
+    registries: { screensetRegistry: createScreensetRegistry() },
+    slices: [screenSlice],
+    // NOTE: Navigation actions are in navigation() plugin, not here
+    // This allows headless users to provide their own navigation
+  },
+
+  onInit(app) {
+    // Auto-discover screensets if configured
+    if (config?.autoDiscover) {
+      discoverScreensets(app.screensetRegistry);
+    }
+  },
+});
+
+// layout plugin - provides all layout domains
+export const layout = (): HAI3Plugin => ({
+  name: 'layout',
+  dependencies: ['screensets'],  // Needs screensets for screen domain
+
+  provides: {
+    slices: [headerSlice, footerSlice, menuSlice, sidebarSlice, popupSlice, overlaySlice],
+    effects: [initLayoutEffects],
+    actions: { showPopup, hidePopup, showOverlay, hideOverlay },
+  },
+});
+
+// themes plugin - theme management
+export const themes = (): HAI3Plugin => ({
+  name: 'themes',
+  dependencies: [],
+
+  provides: {
+    registries: { themeRegistry: createThemeRegistry() },
+    actions: { changeTheme },
+  },
+});
+
+// navigation plugin - navigation actions for HAI3 patterns
+export const navigation = (): HAI3Plugin => ({
+  name: 'navigation',
+  dependencies: ['screensets'],  // Needs screensetRegistry
+
+  provides: {
+    actions: { navigateToScreen, navigateToScreenset },
+    effects: [initNavigationEffects],  // URL sync, history, etc.
+  },
+});
+
+// effects plugin - core effect coordination infrastructure
+export const effects = (): HAI3Plugin => ({
+  name: 'effects',
+  dependencies: [],
+
+  provides: {
+    // Provides the effect system itself, not specific effects
+    // Individual plugins register their own effects
+  },
+
+  onRegister(app) {
+    // Initialize the effect coordination system
+    // This allows plugins to register effects that respond to events
+    initEffectSystem(app);
+  },
+});
+```
+
+### Usage Patterns
+
+#### 1. Full HAI3 Experience (Default)
+
+```typescript
+import { createHAI3App } from '@hai3/framework';
+
+// Uses full() preset automatically - all plugins included
+const app = createHAI3App();
+```
+
+#### 2. Using Presets
+
+```typescript
+import { createHAI3, presets } from '@hai3/framework';
+
+// Headless preset - screensets only, for external platform integration
+const app = createHAI3()
+  .use(presets.headless())
+  .build();
+
+// Minimal preset - screensets + themes, no layout domains
+const app = createHAI3()
+  .use(presets.minimal())
+  .build();
+```
+
+#### 3. Custom Composition
+
+```typescript
+import { createHAI3, screensets, themes, i18n } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(screensets())
+  .use(themes())
+  .use(i18n())
+  // NO layout() - they have their own menu/header
+  .build();
+```
+
+#### 4. External Platform Integration
+
+```typescript
+// Company with their own platform - only needs screenset orchestration
+import { createHAI3, screensets } from '@hai3/framework';
+import { Provider } from 'react-redux';
+
+// Minimal HAI3 setup
+const hai3 = createHAI3()
+  .use(screensets())
+  .build();
+
+// Their own menu component using HAI3 screensets
+const TheirMenu: React.FC = () => {
+  const allScreensets = hai3.screensetRegistry.getAll();
+
+  return (
+    <nav className="their-existing-menu">
+      {allScreensets.map(ss => (
+        <button key={ss.id} onClick={() => theirNavigate(ss.id)}>
+          {ss.name}
+        </button>
+      ))}
+    </nav>
+  );
+};
+
+// Their screen renderer - injects HAI3 screens into their layout
+const TheirScreenRenderer: React.FC<{ screensetId: string; screenId: string }> = ({
+  screensetId,
+  screenId
+}) => {
+  const screenset = hai3.screensetRegistry.get(screensetId);
+  const screen = screenset.screens.find(s => s.id === screenId);
+  const ScreenComponent = React.lazy(screen.loader);
+
+  return (
+    <Provider store={hai3.store}>
+      <Suspense fallback={<TheirLoadingSpinner />}>
+        <ScreenComponent />
+      </Suspense>
+    </Provider>
+  );
+};
+```
+
+### Presets Definition
+
+```typescript
+// presets/full.ts - All features (default)
+export const full = (): HAI3Plugin[] => [
+  screensets({ autoDiscover: true }),
+  themes(),
+  layout(),
+  routing(),
+  effects(),
+  navigation(),
+  i18n(),
+];
+
+// presets/minimal.ts - Screensets + themes, no layout
+export const minimal = (): HAI3Plugin[] => [
+  screensets({ autoDiscover: true }),
+  themes(),
+];
+
+// presets/headless.ts - Screensets only, for external integration
+export const headless = (): HAI3Plugin[] => [
+  screensets({ autoDiscover: false }),  // Manual registration
+];
+```
+
+### SOLID Compliance
+
+| Principle | How Plugin Architecture Satisfies It |
+|-----------|-------------------------------------|
+| **S - Single Responsibility** | Each plugin has one job (screensets, themes, layout) |
+| **O - Open/Closed** | Add features via new plugins, don't modify existing |
+| **L - Liskov Substitution** | All plugins implement `HAI3Plugin` interface |
+| **I - Interface Segregation** | Users import only plugins they need |
+| **D - Dependency Inversion** | Core depends on `HAI3Plugin` interface, not implementations |
+
+### Dependency Resolution
+
+The plugin system resolves dependencies with clear, predictable behavior:
+
+**Rule: Dependencies are ALWAYS auto-added when unambiguous.**
+
+```typescript
+const app = createHAI3()
+  .use(layout())      // Declares dependency on 'screensets'
+  .use(themes())      // No dependencies
+  // screensets() is auto-added with DEFAULT config because layout() depends on it
+  .build();
+```
+
+**Rule: Error is thrown when auto-resolution is ambiguous (requires config).**
+
+```typescript
+// This WORKS - screensets() with default config can be auto-added
+const app = createHAI3()
+  .use(navigation())  // Depends on 'screensets'
+  .build();           // screensets() auto-added with default config
+
+// This FAILS - if the user already has screensets with custom config
+const app = createHAI3()
+  .use(screensets({ autoDiscover: false }))  // Custom config
+  .use(layout())
+  // navigation() is NOT auto-added because screensets config is ambiguous
+  .build();
+// Warning: navigation() requires 'screensets' but it's already configured.
+// Explicitly add navigation() if needed.
+```
+
+**Dependency Resolution Algorithm:**
+1. Collect all plugins' declared dependencies
+2. For each missing dependency:
+   - If no existing plugin with that name → auto-add with default config
+   - If plugin already exists with custom config → warn, don't duplicate
+3. Throw error only if a required plugin cannot be instantiated
+
+### Tree-Shaking Benefits
+
+```typescript
+// Only screensets - minimal bundle
+import { createHAI3, screensets } from '@hai3/framework';
+// Bundle: ~15KB (events + store + screensets)
+
+// Full experience
+import { createHAI3App } from '@hai3/framework';
+// Bundle: ~45KB (all SDK packages + all plugins)
+```
+
 ## CLI Scaffold Commands
 
 ### @hai3/uikit as Default UI Kit
