@@ -90,6 +90,7 @@ export { Skeleton } from './base/skeleton';
 export { Spinner, type SpinnerProps } from './base/spinner';
 export { Slider, SliderTrack, SliderRange, SliderThumb } from './base/slider';
 export { Progress } from './base/progress';
+export { Toaster, toast } from './base/sonner';
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './base/tooltip';
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './base/popover';
 export { HoverCard, HoverCardTrigger, HoverCardContent } from './base/hover-card';
