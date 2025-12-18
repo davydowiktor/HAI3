@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Tekli",
   "toggle_group_outline_label": "Ana hat",
   "toggle_group_spacing_label": "Boşluklu",
-  "toggle_group_disabled_label": "Devre dışı"
+  "toggle_group_disabled_label": "Devre dışı",
+  "kbd_heading": "Tuşlar",
+  "kbd_basic_label": "Temel Tuşlar",
+  "kbd_group_label": "Tuş Kombinasyonları",
+  "kbd_group_text": "Kullan",
+  "kbd_group_or": "veya",
+  "kbd_button_label": "Düğmelerde",
+  "kbd_accept": "Kabul Et",
+  "kbd_cancel": "İptal",
+  "kbd_tooltip_label": "İpuçlarında",
+  "kbd_save": "Kaydet",
+  "kbd_save_changes": "Değişiklikleri Kaydet",
+  "kbd_print": "Yazdır",
+  "kbd_print_document": "Belgeyi Yazdır",
+  "kbd_input_label": "Giriş Grubunda",
+  "kbd_search_placeholder": "Ara..."
 }

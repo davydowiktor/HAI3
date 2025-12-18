@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Unique",
   "toggle_group_outline_label": "Contour",
   "toggle_group_spacing_label": "Avec espacement",
-  "toggle_group_disabled_label": "Désactivé"
+  "toggle_group_disabled_label": "Désactivé",
+  "kbd_heading": "Touches",
+  "kbd_basic_label": "Touches de base",
+  "kbd_group_label": "Combinaisons de touches",
+  "kbd_group_text": "Utilisez",
+  "kbd_group_or": "ou",
+  "kbd_button_label": "Dans les boutons",
+  "kbd_accept": "Accepter",
+  "kbd_cancel": "Annuler",
+  "kbd_tooltip_label": "Dans les infobulles",
+  "kbd_save": "Enregistrer",
+  "kbd_save_changes": "Enregistrer les modifications",
+  "kbd_print": "Imprimer",
+  "kbd_print_document": "Imprimer le document",
+  "kbd_input_label": "Dans le groupe de saisie",
+  "kbd_search_placeholder": "Rechercher..."
 }

@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Đơn",
   "toggle_group_outline_label": "Viền",
   "toggle_group_spacing_label": "Có khoảng cách",
-  "toggle_group_disabled_label": "Vô hiệu hóa"
+  "toggle_group_disabled_label": "Vô hiệu hóa",
+  "kbd_heading": "Phím",
+  "kbd_basic_label": "Phím Cơ Bản",
+  "kbd_group_label": "Tổ Hợp Phím",
+  "kbd_group_text": "Sử dụng",
+  "kbd_group_or": "hoặc",
+  "kbd_button_label": "Trong Nút",
+  "kbd_accept": "Chấp nhận",
+  "kbd_cancel": "Hủy",
+  "kbd_tooltip_label": "Trong Tooltip",
+  "kbd_save": "Lưu",
+  "kbd_save_changes": "Lưu Thay Đổi",
+  "kbd_print": "In",
+  "kbd_print_document": "In Tài Liệu",
+  "kbd_input_label": "Trong Nhóm Input",
+  "kbd_search_placeholder": "Tìm kiếm..."
 }

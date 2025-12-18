@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Moja",
   "toggle_group_outline_label": "Muhtasari",
   "toggle_group_spacing_label": "Na nafasi",
-  "toggle_group_disabled_label": "Imezimwa"
+  "toggle_group_disabled_label": "Imezimwa",
+  "kbd_heading": "Funguo",
+  "kbd_basic_label": "Funguo za Msingi",
+  "kbd_group_label": "Mchanganyiko wa Funguo",
+  "kbd_group_text": "Tumia",
+  "kbd_group_or": "au",
+  "kbd_button_label": "Katika Vifungo",
+  "kbd_accept": "Kubali",
+  "kbd_cancel": "Ghairi",
+  "kbd_tooltip_label": "Katika Vidokezo",
+  "kbd_save": "Hifadhi",
+  "kbd_save_changes": "Hifadhi Mabadiliko",
+  "kbd_print": "Chapisha",
+  "kbd_print_document": "Chapisha Hati",
+  "kbd_input_label": "Katika Kikundi cha Kuingiza",
+  "kbd_search_placeholder": "Tafuta..."
 }

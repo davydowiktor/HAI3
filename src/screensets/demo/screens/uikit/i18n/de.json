@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Einzeln",
   "toggle_group_outline_label": "Umriss",
   "toggle_group_spacing_label": "Mit Abstand",
-  "toggle_group_disabled_label": "Deaktiviert"
+  "toggle_group_disabled_label": "Deaktiviert",
+  "kbd_heading": "Tasten",
+  "kbd_basic_label": "Grundtasten",
+  "kbd_group_label": "Tastenkombinationen",
+  "kbd_group_text": "Verwenden Sie",
+  "kbd_group_or": "oder",
+  "kbd_button_label": "In Schaltflächen",
+  "kbd_accept": "Akzeptieren",
+  "kbd_cancel": "Abbrechen",
+  "kbd_tooltip_label": "In Tooltips",
+  "kbd_save": "Speichern",
+  "kbd_save_changes": "Änderungen speichern",
+  "kbd_print": "Drucken",
+  "kbd_print_document": "Dokument drucken",
+  "kbd_input_label": "In Eingabegruppe",
+  "kbd_search_placeholder": "Suchen..."
 }

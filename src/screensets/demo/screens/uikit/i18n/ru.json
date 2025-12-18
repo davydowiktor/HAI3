@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Одиночный",
   "toggle_group_outline_label": "Контур",
   "toggle_group_spacing_label": "С отступами",
-  "toggle_group_disabled_label": "Отключено"
+  "toggle_group_disabled_label": "Отключено",
+  "kbd_heading": "Клавиши",
+  "kbd_basic_label": "Базовые клавиши",
+  "kbd_group_label": "Комбинации клавиш",
+  "kbd_group_text": "Используйте",
+  "kbd_group_or": "или",
+  "kbd_button_label": "В кнопках",
+  "kbd_accept": "Принять",
+  "kbd_cancel": "Отмена",
+  "kbd_tooltip_label": "В подсказках",
+  "kbd_save": "Сохранить",
+  "kbd_save_changes": "Сохранить изменения",
+  "kbd_print": "Печать",
+  "kbd_print_document": "Печать документа",
+  "kbd_input_label": "В группе ввода",
+  "kbd_search_placeholder": "Поиск..."
 }

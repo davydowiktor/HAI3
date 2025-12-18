@@ -657,5 +657,20 @@
   "toggle_group_single_label": "เดี่ยว",
   "toggle_group_outline_label": "โครงร่าง",
   "toggle_group_spacing_label": "มีระยะห่าง",
-  "toggle_group_disabled_label": "ปิดใช้งาน"
+  "toggle_group_disabled_label": "ปิดใช้งาน",
+  "kbd_heading": "ปุ่ม",
+  "kbd_basic_label": "ปุ่มพื้นฐาน",
+  "kbd_group_label": "การรวมปุ่ม",
+  "kbd_group_text": "ใช้",
+  "kbd_group_or": "หรือ",
+  "kbd_button_label": "ในปุ่ม",
+  "kbd_accept": "ยอมรับ",
+  "kbd_cancel": "ยกเลิก",
+  "kbd_tooltip_label": "ในคำแนะนำ",
+  "kbd_save": "บันทึก",
+  "kbd_save_changes": "บันทึกการเปลี่ยนแปลง",
+  "kbd_print": "พิมพ์",
+  "kbd_print_document": "พิมพ์เอกสาร",
+  "kbd_input_label": "ในกลุ่มอินพุต",
+  "kbd_search_placeholder": "ค้นหา..."
 }

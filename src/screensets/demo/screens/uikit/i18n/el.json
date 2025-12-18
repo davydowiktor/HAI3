@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Μονό",
   "toggle_group_outline_label": "Περίγραμμα",
   "toggle_group_spacing_label": "Με απόσταση",
-  "toggle_group_disabled_label": "Απενεργοποιημένο"
+  "toggle_group_disabled_label": "Απενεργοποιημένο",
+  "kbd_heading": "Πλήκτρα",
+  "kbd_basic_label": "Βασικά πλήκτρα",
+  "kbd_group_label": "Συνδυασμοί πλήκτρων",
+  "kbd_group_text": "Χρησιμοποιήστε",
+  "kbd_group_or": "ή",
+  "kbd_button_label": "Σε κουμπιά",
+  "kbd_accept": "Αποδοχή",
+  "kbd_cancel": "Ακύρωση",
+  "kbd_tooltip_label": "Σε tooltips",
+  "kbd_save": "Αποθήκευση",
+  "kbd_save_changes": "Αποθήκευση αλλαγών",
+  "kbd_print": "Εκτύπωση",
+  "kbd_print_document": "Εκτύπωση εγγράφου",
+  "kbd_input_label": "Σε ομάδα εισόδου",
+  "kbd_search_placeholder": "Αναζήτηση..."
 }

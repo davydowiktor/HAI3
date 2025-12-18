@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Enkelt",
   "toggle_group_outline_label": "Kontur",
   "toggle_group_spacing_label": "Med afstand",
-  "toggle_group_disabled_label": "Deaktiveret"
+  "toggle_group_disabled_label": "Deaktiveret",
+  "kbd_heading": "Taster",
+  "kbd_basic_label": "Basistaster",
+  "kbd_group_label": "Tastekombinationer",
+  "kbd_group_text": "Brug",
+  "kbd_group_or": "eller",
+  "kbd_button_label": "I knapper",
+  "kbd_accept": "Accepter",
+  "kbd_cancel": "Annuller",
+  "kbd_tooltip_label": "I værktøjstips",
+  "kbd_save": "Gem",
+  "kbd_save_changes": "Gem ændringer",
+  "kbd_print": "Udskriv",
+  "kbd_print_document": "Udskriv dokument",
+  "kbd_input_label": "I inputgruppe",
+  "kbd_search_placeholder": "Søg..."
 }

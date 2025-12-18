@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Singolo",
   "toggle_group_outline_label": "Contorno",
   "toggle_group_spacing_label": "Con spaziatura",
-  "toggle_group_disabled_label": "Disabilitato"
+  "toggle_group_disabled_label": "Disabilitato",
+  "kbd_heading": "Tasti",
+  "kbd_basic_label": "Tasti base",
+  "kbd_group_label": "Combinazioni di tasti",
+  "kbd_group_text": "Usa",
+  "kbd_group_or": "o",
+  "kbd_button_label": "Nei pulsanti",
+  "kbd_accept": "Accetta",
+  "kbd_cancel": "Annulla",
+  "kbd_tooltip_label": "Nei tooltip",
+  "kbd_save": "Salva",
+  "kbd_save_changes": "Salva modifiche",
+  "kbd_print": "Stampa",
+  "kbd_print_document": "Stampa documento",
+  "kbd_input_label": "Nel gruppo di input",
+  "kbd_search_placeholder": "Cerca..."
 }

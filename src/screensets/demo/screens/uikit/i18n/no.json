@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Enkelt",
   "toggle_group_outline_label": "Omriss",
   "toggle_group_spacing_label": "Med mellomrom",
-  "toggle_group_disabled_label": "Deaktivert"
+  "toggle_group_disabled_label": "Deaktivert",
+  "kbd_heading": "Taster",
+  "kbd_basic_label": "Grunnleggende taster",
+  "kbd_group_label": "Tastekombinasjoner",
+  "kbd_group_text": "Bruk",
+  "kbd_group_or": "eller",
+  "kbd_button_label": "I knapper",
+  "kbd_accept": "Godta",
+  "kbd_cancel": "Avbryt",
+  "kbd_tooltip_label": "I verktøytips",
+  "kbd_save": "Lagre",
+  "kbd_save_changes": "Lagre endringer",
+  "kbd_print": "Skriv ut",
+  "kbd_print_document": "Skriv ut dokument",
+  "kbd_input_label": "I inndatagruppe",
+  "kbd_search_placeholder": "Søk..."
 }

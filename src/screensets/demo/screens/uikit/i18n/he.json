@@ -657,5 +657,20 @@
   "toggle_group_single_label": "יחיד",
   "toggle_group_outline_label": "קו מתאר",
   "toggle_group_spacing_label": "עם רווח",
-  "toggle_group_disabled_label": "מושבת"
+  "toggle_group_disabled_label": "מושבת",
+  "kbd_heading": "מקשים",
+  "kbd_basic_label": "מקשים בסיסיים",
+  "kbd_group_label": "צירופי מקשים",
+  "kbd_group_text": "השתמש ב",
+  "kbd_group_or": "או",
+  "kbd_button_label": "בכפתורים",
+  "kbd_accept": "קבל",
+  "kbd_cancel": "בטל",
+  "kbd_tooltip_label": "בטיפים",
+  "kbd_save": "שמור",
+  "kbd_save_changes": "שמור שינויים",
+  "kbd_print": "הדפס",
+  "kbd_print_document": "הדפס מסמך",
+  "kbd_input_label": "בקבוצת קלט",
+  "kbd_search_placeholder": "חיפוש..."
 }

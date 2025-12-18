@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Single",
   "toggle_group_outline_label": "Balangkas",
   "toggle_group_spacing_label": "May Espasyo",
-  "toggle_group_disabled_label": "Hindi pinagana"
+  "toggle_group_disabled_label": "Hindi pinagana",
+  "kbd_heading": "Mga Key",
+  "kbd_basic_label": "Pangunahing Key",
+  "kbd_group_label": "Mga Kumbinasyon ng Key",
+  "kbd_group_text": "Gamitin ang",
+  "kbd_group_or": "o",
+  "kbd_button_label": "Sa mga Button",
+  "kbd_accept": "Tanggapin",
+  "kbd_cancel": "Kanselahin",
+  "kbd_tooltip_label": "Sa mga Tooltip",
+  "kbd_save": "I-save",
+  "kbd_save_changes": "I-save ang mga Pagbabago",
+  "kbd_print": "I-print",
+  "kbd_print_document": "I-print ang Dokumento",
+  "kbd_input_label": "Sa Input Group",
+  "kbd_search_placeholder": "Maghanap..."
 }

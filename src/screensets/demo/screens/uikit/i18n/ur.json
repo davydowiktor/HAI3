@@ -657,5 +657,20 @@
   "toggle_group_single_label": "سنگل",
   "toggle_group_outline_label": "آؤٹ لائن",
   "toggle_group_spacing_label": "فاصلے کے ساتھ",
-  "toggle_group_disabled_label": "غیر فعال"
+  "toggle_group_disabled_label": "غیر فعال",
+  "kbd_heading": "چابیاں",
+  "kbd_basic_label": "بنیادی چابیاں",
+  "kbd_group_label": "چابی امتزاج",
+  "kbd_group_text": "استعمال کریں",
+  "kbd_group_or": "یا",
+  "kbd_button_label": "بٹنوں میں",
+  "kbd_accept": "قبول کریں",
+  "kbd_cancel": "منسوخ کریں",
+  "kbd_tooltip_label": "ٹول ٹپس میں",
+  "kbd_save": "محفوظ کریں",
+  "kbd_save_changes": "تبدیلیاں محفوظ کریں",
+  "kbd_print": "پرنٹ",
+  "kbd_print_document": "دستاویز پرنٹ کریں",
+  "kbd_input_label": "ان پٹ گروپ میں",
+  "kbd_search_placeholder": "تلاش کریں..."
 }

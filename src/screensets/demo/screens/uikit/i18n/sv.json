@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Enkel",
   "toggle_group_outline_label": "Kontur",
   "toggle_group_spacing_label": "Med avstånd",
-  "toggle_group_disabled_label": "Inaktiverad"
+  "toggle_group_disabled_label": "Inaktiverad",
+  "kbd_heading": "Tangenter",
+  "kbd_basic_label": "Grundläggande tangenter",
+  "kbd_group_label": "Tangentkombinationer",
+  "kbd_group_text": "Använd",
+  "kbd_group_or": "eller",
+  "kbd_button_label": "I knappar",
+  "kbd_accept": "Acceptera",
+  "kbd_cancel": "Avbryt",
+  "kbd_tooltip_label": "I verktygstips",
+  "kbd_save": "Spara",
+  "kbd_save_changes": "Spara ändringar",
+  "kbd_print": "Skriv ut",
+  "kbd_print_document": "Skriv ut dokument",
+  "kbd_input_label": "I inmatningsgrupp",
+  "kbd_search_placeholder": "Sök..."
 }

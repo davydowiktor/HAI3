@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Single",
   "toggle_group_outline_label": "Outline",
   "toggle_group_spacing_label": "With Spacing",
-  "toggle_group_disabled_label": "Disabled"
+  "toggle_group_disabled_label": "Disabled",
+  "kbd_heading": "Kbd",
+  "kbd_basic_label": "Basic Keys",
+  "kbd_group_label": "Key Combinations",
+  "kbd_group_text": "Use",
+  "kbd_group_or": "or",
+  "kbd_button_label": "In Buttons",
+  "kbd_accept": "Accept",
+  "kbd_cancel": "Cancel",
+  "kbd_tooltip_label": "In Tooltips",
+  "kbd_save": "Save",
+  "kbd_save_changes": "Save Changes",
+  "kbd_print": "Print",
+  "kbd_print_document": "Print Document",
+  "kbd_input_label": "In Input Group",
+  "kbd_search_placeholder": "Search..."
 }

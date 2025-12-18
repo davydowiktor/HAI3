@@ -657,5 +657,20 @@
   "toggle_group_single_label": "تکی",
   "toggle_group_outline_label": "خطوط",
   "toggle_group_spacing_label": "با فاصله",
-  "toggle_group_disabled_label": "غیرفعال"
+  "toggle_group_disabled_label": "غیرفعال",
+  "kbd_heading": "کلیدها",
+  "kbd_basic_label": "کلیدهای پایه",
+  "kbd_group_label": "ترکیب کلیدها",
+  "kbd_group_text": "استفاده کنید",
+  "kbd_group_or": "یا",
+  "kbd_button_label": "در دکمه‌ها",
+  "kbd_accept": "قبول",
+  "kbd_cancel": "لغو",
+  "kbd_tooltip_label": "در راهنماها",
+  "kbd_save": "ذخیره",
+  "kbd_save_changes": "ذخیره تغییرات",
+  "kbd_print": "چاپ",
+  "kbd_print_document": "چاپ سند",
+  "kbd_input_label": "در گروه ورودی",
+  "kbd_search_placeholder": "جستجو..."
 }

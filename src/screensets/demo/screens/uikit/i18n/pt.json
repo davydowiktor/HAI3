@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Único",
   "toggle_group_outline_label": "Contorno",
   "toggle_group_spacing_label": "Com espaçamento",
-  "toggle_group_disabled_label": "Desativado"
+  "toggle_group_disabled_label": "Desativado",
+  "kbd_heading": "Teclas",
+  "kbd_basic_label": "Teclas básicas",
+  "kbd_group_label": "Combinações de teclas",
+  "kbd_group_text": "Use",
+  "kbd_group_or": "ou",
+  "kbd_button_label": "Em botões",
+  "kbd_accept": "Aceitar",
+  "kbd_cancel": "Cancelar",
+  "kbd_tooltip_label": "Em tooltips",
+  "kbd_save": "Salvar",
+  "kbd_save_changes": "Salvar alterações",
+  "kbd_print": "Imprimir",
+  "kbd_print_document": "Imprimir documento",
+  "kbd_input_label": "Em grupo de entrada",
+  "kbd_search_placeholder": "Pesquisar..."
 }

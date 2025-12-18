@@ -42,9 +42,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Kbd,
+  KbdGroup,
+  ButtonGroup,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
 } from '@hai3/uikit';
 import { useTranslation, TextLoader } from '@hai3/uicore';
-import { BadgeCheckIcon } from 'lucide-react';
+import { BadgeCheckIcon, SearchIcon } from 'lucide-react';
 import { DEMO_SCREENSET_ID } from "../ids";
 import { UI_KIT_ELEMENTS_SCREEN_ID } from "../ids";
 import { PaymentsDataTable } from '../uikit/data/PaymentsDataTable';
@@ -464,6 +473,150 @@ export const DataDisplayElements: React.FC = () => {
                 </ItemContent>
               </Item>
             </ItemGroup>
+          </div>
+        </div>
+      </div>
+
+      {/* Kbd Element Block */}
+      <div data-element-id="element-kbd" className="flex flex-col gap-4">
+        <TextLoader skeletonClassName="h-8 w-24">
+          <h2 className="text-2xl font-semibold">
+            {tk('kbd_heading')}
+          </h2>
+        </TextLoader>
+        <div className="flex flex-col gap-6 p-6 border border-border rounded-lg bg-background">
+          {/* Basic Kbd */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-32" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('kbd_basic_label')}
+              </label>
+            </TextLoader>
+            <div className="flex flex-wrap items-center gap-2">
+              <Kbd>⌘</Kbd>
+              <Kbd>K</Kbd>
+              <Kbd>Esc</Kbd>
+              <Kbd>⏎</Kbd>
+              <Kbd>Ctrl</Kbd>
+              <Kbd>Shift</Kbd>
+            </div>
+          </div>
+
+          {/* KbdGroup */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-32" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('kbd_group_label')}
+              </label>
+            </TextLoader>
+            <p className="text-muted-foreground text-sm">
+              <TextLoader skeletonClassName="h-4 w-64" inheritColor>
+                {tk('kbd_group_text')}{' '}
+                <KbdGroup>
+                  <Kbd>Ctrl</Kbd>
+                  <Kbd>B</Kbd>
+                </KbdGroup>{' '}
+                {tk('kbd_group_or')}{' '}
+                <KbdGroup>
+                  <Kbd>Ctrl</Kbd>
+                  <Kbd>K</Kbd>
+                </KbdGroup>
+              </TextLoader>
+            </p>
+          </div>
+
+          {/* Kbd in Buttons */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-32" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('kbd_button_label')}
+              </label>
+            </TextLoader>
+            <div className="flex flex-wrap items-center gap-4">
+              <Button variant={ButtonVariant.Outline} size={ButtonSize.Sm} className="pr-2">
+                <TextLoader skeletonClassName="h-4 w-12" inheritColor>
+                  {tk('kbd_accept')}
+                </TextLoader>
+                <Kbd>⏎</Kbd>
+              </Button>
+              <Button variant={ButtonVariant.Outline} size={ButtonSize.Sm} className="pr-2">
+                <TextLoader skeletonClassName="h-4 w-12" inheritColor>
+                  {tk('kbd_cancel')}
+                </TextLoader>
+                <Kbd>Esc</Kbd>
+              </Button>
+            </div>
+          </div>
+
+          {/* Kbd in Tooltips */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-32" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('kbd_tooltip_label')}
+              </label>
+            </TextLoader>
+            <div className="flex flex-wrap gap-4">
+              <ButtonGroup>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size={ButtonSize.Sm} variant={ButtonVariant.Outline}>
+                      <TextLoader skeletonClassName="h-4 w-8" inheritColor>
+                        {tk('kbd_save')}
+                      </TextLoader>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="flex items-center gap-2">
+                      <TextLoader skeletonClassName="h-4 w-20" inheritColor>
+                        {tk('kbd_save_changes')}
+                      </TextLoader>
+                      <Kbd>S</Kbd>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size={ButtonSize.Sm} variant={ButtonVariant.Outline}>
+                      <TextLoader skeletonClassName="h-4 w-8" inheritColor>
+                        {tk('kbd_print')}
+                      </TextLoader>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="flex items-center gap-2">
+                      <TextLoader skeletonClassName="h-4 w-24" inheritColor>
+                        {tk('kbd_print_document')}
+                      </TextLoader>
+                      <KbdGroup>
+                        <Kbd>Ctrl</Kbd>
+                        <Kbd>P</Kbd>
+                      </KbdGroup>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </ButtonGroup>
+            </div>
+          </div>
+
+          {/* Kbd in Input Group */}
+          <div className="flex flex-col gap-2">
+            <TextLoader skeletonClassName="h-4 w-32" inheritColor>
+              <label className="text-xs text-muted-foreground">
+                {tk('kbd_input_label')}
+              </label>
+            </TextLoader>
+            <div className="flex w-full max-w-xs flex-col gap-6">
+              <InputGroup>
+                <InputGroupInput placeholder={tk('kbd_search_placeholder')} />
+                <InputGroupAddon>
+                  <SearchIcon className="size-4" />
+                </InputGroupAddon>
+                <InputGroupAddon align="inline-end">
+                  <Kbd>⌘</Kbd>
+                  <Kbd>K</Kbd>
+                </InputGroupAddon>
+              </InputGroup>
+            </div>
           </div>
         </div>
       </div>

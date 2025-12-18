@@ -657,5 +657,20 @@
   "toggle_group_single_label": "单选",
   "toggle_group_outline_label": "轮廓",
   "toggle_group_spacing_label": "带间距",
-  "toggle_group_disabled_label": "禁用"
+  "toggle_group_disabled_label": "禁用",
+  "kbd_heading": "按键",
+  "kbd_basic_label": "基本按键",
+  "kbd_group_label": "组合键",
+  "kbd_group_text": "使用",
+  "kbd_group_or": "或",
+  "kbd_button_label": "在按钮中",
+  "kbd_accept": "接受",
+  "kbd_cancel": "取消",
+  "kbd_tooltip_label": "在提示中",
+  "kbd_save": "保存",
+  "kbd_save_changes": "保存更改",
+  "kbd_print": "打印",
+  "kbd_print_document": "打印文档",
+  "kbd_input_label": "在输入组中",
+  "kbd_search_placeholder": "搜索..."
 }

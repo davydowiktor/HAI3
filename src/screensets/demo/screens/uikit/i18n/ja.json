@@ -657,5 +657,20 @@
   "toggle_group_single_label": "単一",
   "toggle_group_outline_label": "アウトライン",
   "toggle_group_spacing_label": "間隔付き",
-  "toggle_group_disabled_label": "無効"
+  "toggle_group_disabled_label": "無効",
+  "kbd_heading": "キー",
+  "kbd_basic_label": "基本キー",
+  "kbd_group_label": "キーの組み合わせ",
+  "kbd_group_text": "使用",
+  "kbd_group_or": "または",
+  "kbd_button_label": "ボタン内",
+  "kbd_accept": "承諾",
+  "kbd_cancel": "キャンセル",
+  "kbd_tooltip_label": "ツールチップ内",
+  "kbd_save": "保存",
+  "kbd_save_changes": "変更を保存",
+  "kbd_print": "印刷",
+  "kbd_print_document": "ドキュメントを印刷",
+  "kbd_input_label": "入力グループ内",
+  "kbd_search_placeholder": "検索..."
 }

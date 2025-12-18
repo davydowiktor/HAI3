@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Yksittäinen",
   "toggle_group_outline_label": "Ääriviiva",
   "toggle_group_spacing_label": "Väleillä",
-  "toggle_group_disabled_label": "Poistettu käytöstä"
+  "toggle_group_disabled_label": "Poistettu käytöstä",
+  "kbd_heading": "Näppäimet",
+  "kbd_basic_label": "Perusnäppäimet",
+  "kbd_group_label": "Näppäinyhdistelmät",
+  "kbd_group_text": "Käytä",
+  "kbd_group_or": "tai",
+  "kbd_button_label": "Painikkeissa",
+  "kbd_accept": "Hyväksy",
+  "kbd_cancel": "Peruuta",
+  "kbd_tooltip_label": "Vihjeissä",
+  "kbd_save": "Tallenna",
+  "kbd_save_changes": "Tallenna muutokset",
+  "kbd_print": "Tulosta",
+  "kbd_print_document": "Tulosta asiakirja",
+  "kbd_input_label": "Syöteryhmässä",
+  "kbd_search_placeholder": "Hae..."
 }

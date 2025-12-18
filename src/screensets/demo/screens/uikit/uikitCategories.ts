@@ -194,6 +194,7 @@ export const IMPLEMENTED_ELEMENTS = [
   'Field',
   'Form',
   'Item',
+  'Kbd',
   'Label',
   'Menubar',
   'Native Select',

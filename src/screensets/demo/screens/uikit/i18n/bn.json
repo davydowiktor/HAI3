@@ -657,5 +657,20 @@
   "toggle_group_single_label": "একক",
   "toggle_group_outline_label": "আউটলাইন",
   "toggle_group_spacing_label": "স্পেসিং সহ",
-  "toggle_group_disabled_label": "অক্ষম"
+  "toggle_group_disabled_label": "অক্ষম",
+  "kbd_heading": "কীবোর্ড",
+  "kbd_basic_label": "বেসিক কী",
+  "kbd_group_label": "কী সংমিশ্রণ",
+  "kbd_group_text": "ব্যবহার করুন",
+  "kbd_group_or": "অথবা",
+  "kbd_button_label": "বাটনে",
+  "kbd_accept": "গ্রহণ",
+  "kbd_cancel": "বাতিল",
+  "kbd_tooltip_label": "টুলটিপে",
+  "kbd_save": "সংরক্ষণ",
+  "kbd_save_changes": "পরিবর্তন সংরক্ষণ",
+  "kbd_print": "প্রিন্ট",
+  "kbd_print_document": "ডকুমেন্ট প্রিন্ট",
+  "kbd_input_label": "ইনপুট গ্রুপে",
+  "kbd_search_placeholder": "অনুসন্ধান..."
 }

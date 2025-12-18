@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Pojedynczy",
   "toggle_group_outline_label": "Kontur",
   "toggle_group_spacing_label": "Z odstępami",
-  "toggle_group_disabled_label": "Wyłączony"
+  "toggle_group_disabled_label": "Wyłączony",
+  "kbd_heading": "Klawisze",
+  "kbd_basic_label": "Podstawowe klawisze",
+  "kbd_group_label": "Kombinacje klawiszy",
+  "kbd_group_text": "Użyj",
+  "kbd_group_or": "lub",
+  "kbd_button_label": "W przyciskach",
+  "kbd_accept": "Akceptuj",
+  "kbd_cancel": "Anuluj",
+  "kbd_tooltip_label": "W podpowiedziach",
+  "kbd_save": "Zapisz",
+  "kbd_save_changes": "Zapisz zmiany",
+  "kbd_print": "Drukuj",
+  "kbd_print_document": "Drukuj dokument",
+  "kbd_input_label": "W grupie wprowadzania",
+  "kbd_search_placeholder": "Szukaj..."
 }

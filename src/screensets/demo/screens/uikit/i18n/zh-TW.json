@@ -657,5 +657,20 @@
   "toggle_group_single_label": "單選",
   "toggle_group_outline_label": "輪廓",
   "toggle_group_spacing_label": "帶間距",
-  "toggle_group_disabled_label": "停用"
+  "toggle_group_disabled_label": "停用",
+  "kbd_heading": "按鍵",
+  "kbd_basic_label": "基本按鍵",
+  "kbd_group_label": "組合鍵",
+  "kbd_group_text": "使用",
+  "kbd_group_or": "或",
+  "kbd_button_label": "在按鈕中",
+  "kbd_accept": "接受",
+  "kbd_cancel": "取消",
+  "kbd_tooltip_label": "在提示中",
+  "kbd_save": "儲存",
+  "kbd_save_changes": "儲存更改",
+  "kbd_print": "列印",
+  "kbd_print_document": "列印文件",
+  "kbd_input_label": "在輸入群組中",
+  "kbd_search_placeholder": "搜尋..."
 }

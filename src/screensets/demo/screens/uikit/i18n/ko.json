@@ -657,5 +657,20 @@
   "toggle_group_single_label": "단일",
   "toggle_group_outline_label": "윤곽선",
   "toggle_group_spacing_label": "간격 포함",
-  "toggle_group_disabled_label": "비활성화"
+  "toggle_group_disabled_label": "비활성화",
+  "kbd_heading": "키",
+  "kbd_basic_label": "기본 키",
+  "kbd_group_label": "키 조합",
+  "kbd_group_text": "사용",
+  "kbd_group_or": "또는",
+  "kbd_button_label": "버튼에서",
+  "kbd_accept": "수락",
+  "kbd_cancel": "취소",
+  "kbd_tooltip_label": "툴팁에서",
+  "kbd_save": "저장",
+  "kbd_save_changes": "변경 사항 저장",
+  "kbd_print": "인쇄",
+  "kbd_print_document": "문서 인쇄",
+  "kbd_input_label": "입력 그룹에서",
+  "kbd_search_placeholder": "검색..."
 }

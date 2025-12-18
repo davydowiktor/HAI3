@@ -653,5 +653,20 @@
   "toggle_group_single_label": "فردي",
   "toggle_group_outline_label": "محيط",
   "toggle_group_spacing_label": "مع تباعد",
-  "toggle_group_disabled_label": "معطل"
+  "toggle_group_disabled_label": "معطل",
+  "kbd_heading": "مفاتيح",
+  "kbd_basic_label": "المفاتيح الأساسية",
+  "kbd_group_label": "تركيبات المفاتيح",
+  "kbd_group_text": "استخدم",
+  "kbd_group_or": "أو",
+  "kbd_button_label": "في الأزرار",
+  "kbd_accept": "قبول",
+  "kbd_cancel": "إلغاء",
+  "kbd_tooltip_label": "في التلميحات",
+  "kbd_save": "حفظ",
+  "kbd_save_changes": "حفظ التغييرات",
+  "kbd_print": "طباعة",
+  "kbd_print_document": "طباعة المستند",
+  "kbd_input_label": "في مجموعة الإدخال",
+  "kbd_search_placeholder": "بحث..."
 }

@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Одиночний",
   "toggle_group_outline_label": "Контур",
   "toggle_group_spacing_label": "З відступами",
-  "toggle_group_disabled_label": "Вимкнено"
+  "toggle_group_disabled_label": "Вимкнено",
+  "kbd_heading": "Клавіші",
+  "kbd_basic_label": "Базові клавіші",
+  "kbd_group_label": "Комбінації клавіш",
+  "kbd_group_text": "Використовуйте",
+  "kbd_group_or": "або",
+  "kbd_button_label": "У кнопках",
+  "kbd_accept": "Прийняти",
+  "kbd_cancel": "Скасувати",
+  "kbd_tooltip_label": "У підказках",
+  "kbd_save": "Зберегти",
+  "kbd_save_changes": "Зберегти зміни",
+  "kbd_print": "Друк",
+  "kbd_print_document": "Друк документа",
+  "kbd_input_label": "У групі введення",
+  "kbd_search_placeholder": "Пошук..."
 }

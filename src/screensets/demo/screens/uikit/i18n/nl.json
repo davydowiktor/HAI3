@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Enkel",
   "toggle_group_outline_label": "Omtrek",
   "toggle_group_spacing_label": "Met tussenruimte",
-  "toggle_group_disabled_label": "Uitgeschakeld"
+  "toggle_group_disabled_label": "Uitgeschakeld",
+  "kbd_heading": "Toetsen",
+  "kbd_basic_label": "Basistoetsen",
+  "kbd_group_label": "Toetscombinaties",
+  "kbd_group_text": "Gebruik",
+  "kbd_group_or": "of",
+  "kbd_button_label": "In knoppen",
+  "kbd_accept": "Accepteren",
+  "kbd_cancel": "Annuleren",
+  "kbd_tooltip_label": "In tooltips",
+  "kbd_save": "Opslaan",
+  "kbd_save_changes": "Wijzigingen opslaan",
+  "kbd_print": "Afdrukken",
+  "kbd_print_document": "Document afdrukken",
+  "kbd_input_label": "In invoergroep",
+  "kbd_search_placeholder": "Zoeken..."
 }

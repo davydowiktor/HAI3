@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Egyszeres",
   "toggle_group_outline_label": "Körvonal",
   "toggle_group_spacing_label": "Térközzel",
-  "toggle_group_disabled_label": "Letiltva"
+  "toggle_group_disabled_label": "Letiltva",
+  "kbd_heading": "Billentyűk",
+  "kbd_basic_label": "Alap billentyűk",
+  "kbd_group_label": "Billentyűkombinációk",
+  "kbd_group_text": "Használja",
+  "kbd_group_or": "vagy",
+  "kbd_button_label": "Gombokban",
+  "kbd_accept": "Elfogad",
+  "kbd_cancel": "Mégse",
+  "kbd_tooltip_label": "Tippekben",
+  "kbd_save": "Mentés",
+  "kbd_save_changes": "Változtatások mentése",
+  "kbd_print": "Nyomtatás",
+  "kbd_print_document": "Dokumentum nyomtatása",
+  "kbd_input_label": "Beviteli csoportban",
+  "kbd_search_placeholder": "Keresés..."
 }

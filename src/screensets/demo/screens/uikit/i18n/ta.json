@@ -657,5 +657,20 @@
   "toggle_group_single_label": "ஒற்றை",
   "toggle_group_outline_label": "வெளிக்கோடு",
   "toggle_group_spacing_label": "இடைவெளியுடன்",
-  "toggle_group_disabled_label": "முடக்கப்பட்டது"
+  "toggle_group_disabled_label": "முடக்கப்பட்டது",
+  "kbd_heading": "விசைகள்",
+  "kbd_basic_label": "அடிப்படை விசைகள்",
+  "kbd_group_label": "விசை கலவைகள்",
+  "kbd_group_text": "பயன்படுத்தவும்",
+  "kbd_group_or": "அல்லது",
+  "kbd_button_label": "பொத்தான்களில்",
+  "kbd_accept": "ஏற்கவும்",
+  "kbd_cancel": "ரத்து",
+  "kbd_tooltip_label": "குறிப்புகளில்",
+  "kbd_save": "சேமி",
+  "kbd_save_changes": "மாற்றங்களை சேமி",
+  "kbd_print": "அச்சிடு",
+  "kbd_print_document": "ஆவணத்தை அச்சிடு",
+  "kbd_input_label": "உள்ளீட்டு குழுவில்",
+  "kbd_search_placeholder": "தேடு..."
 }

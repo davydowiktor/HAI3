@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Simplu",
   "toggle_group_outline_label": "Contur",
   "toggle_group_spacing_label": "Cu spațiere",
-  "toggle_group_disabled_label": "Dezactivat"
+  "toggle_group_disabled_label": "Dezactivat",
+  "kbd_heading": "Taste",
+  "kbd_basic_label": "Taste de bază",
+  "kbd_group_label": "Combinații de taste",
+  "kbd_group_text": "Folosiți",
+  "kbd_group_or": "sau",
+  "kbd_button_label": "În butoane",
+  "kbd_accept": "Acceptă",
+  "kbd_cancel": "Anulează",
+  "kbd_tooltip_label": "În indicii",
+  "kbd_save": "Salvează",
+  "kbd_save_changes": "Salvează modificările",
+  "kbd_print": "Tipărește",
+  "kbd_print_document": "Tipărește documentul",
+  "kbd_input_label": "În grupul de intrare",
+  "kbd_search_placeholder": "Caută..."
 }

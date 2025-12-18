@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Jednotlivý",
   "toggle_group_outline_label": "Obrys",
   "toggle_group_spacing_label": "S mezerami",
-  "toggle_group_disabled_label": "Zakázáno"
+  "toggle_group_disabled_label": "Zakázáno",
+  "kbd_heading": "Klávesy",
+  "kbd_basic_label": "Základní klávesy",
+  "kbd_group_label": "Kombinace kláves",
+  "kbd_group_text": "Použijte",
+  "kbd_group_or": "nebo",
+  "kbd_button_label": "V tlačítkách",
+  "kbd_accept": "Přijmout",
+  "kbd_cancel": "Zrušit",
+  "kbd_tooltip_label": "V nápovědách",
+  "kbd_save": "Uložit",
+  "kbd_save_changes": "Uložit změny",
+  "kbd_print": "Tisk",
+  "kbd_print_document": "Tisknout dokument",
+  "kbd_input_label": "Ve skupině vstupu",
+  "kbd_search_placeholder": "Hledat..."
 }

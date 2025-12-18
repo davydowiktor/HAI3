@@ -657,5 +657,20 @@
   "toggle_group_single_label": "एकल",
   "toggle_group_outline_label": "आउटलाइन",
   "toggle_group_spacing_label": "स्पेसिंग के साथ",
-  "toggle_group_disabled_label": "अक्षम"
+  "toggle_group_disabled_label": "अक्षम",
+  "kbd_heading": "कुंजियाँ",
+  "kbd_basic_label": "बुनियादी कुंजियाँ",
+  "kbd_group_label": "कुंजी संयोजन",
+  "kbd_group_text": "उपयोग करें",
+  "kbd_group_or": "या",
+  "kbd_button_label": "बटन में",
+  "kbd_accept": "स्वीकार करें",
+  "kbd_cancel": "रद्द करें",
+  "kbd_tooltip_label": "टूलटिप में",
+  "kbd_save": "सहेजें",
+  "kbd_save_changes": "परिवर्तन सहेजें",
+  "kbd_print": "प्रिंट",
+  "kbd_print_document": "दस्तावेज़ प्रिंट करें",
+  "kbd_input_label": "इनपुट ग्रुप में",
+  "kbd_search_placeholder": "खोजें..."
 }

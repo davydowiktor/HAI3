@@ -657,5 +657,20 @@
   "toggle_group_single_label": "Tunggal",
   "toggle_group_outline_label": "Garis luar",
   "toggle_group_spacing_label": "Dengan jarak",
-  "toggle_group_disabled_label": "Dilumpuhkan"
+  "toggle_group_disabled_label": "Dilumpuhkan",
+  "kbd_heading": "Kekunci",
+  "kbd_basic_label": "Kekunci Asas",
+  "kbd_group_label": "Gabungan Kekunci",
+  "kbd_group_text": "Guna",
+  "kbd_group_or": "atau",
+  "kbd_button_label": "Dalam Butang",
+  "kbd_accept": "Terima",
+  "kbd_cancel": "Batal",
+  "kbd_tooltip_label": "Dalam Tooltip",
+  "kbd_save": "Simpan",
+  "kbd_save_changes": "Simpan Perubahan",
+  "kbd_print": "Cetak",
+  "kbd_print_document": "Cetak Dokumen",
+  "kbd_input_label": "Dalam Kumpulan Input",
+  "kbd_search_placeholder": "Cari..."
 }
