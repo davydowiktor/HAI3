@@ -1355,11 +1355,11 @@ Note: Promptfoo tests require API keys and test fixtures. Deferred to post-publi
 
 ---
 
-## MIGRATION COMPLETE ✅
+## MIGRATION STATUS
 
-The 3-Layer SDK Architecture migration is **complete**. Summary:
+The 3-Layer SDK Architecture migration summary:
 
-### Completed Phases
+### Phases
 
 | Phase | Status | Description |
 |-------|--------|-------------|
@@ -1378,6 +1378,7 @@ The 3-Layer SDK Architecture migration is **complete**. Summary:
 | Phase 12 | ✅ | @hai3/state consolidation |
 | Phase 13 | ✅ | Architectural corrections (critical: createAction removed) |
 | Phase 14 | ✅ | ReducerPayload rename & createSlice wrapper |
+| Phase 15 | ✅ | Migrate ESLint config to TypeScript |
 
 ### Package Architecture
 
@@ -2021,3 +2022,65 @@ export function initMenuEffects(dispatch: AppDispatch): void {
 - [x] 14.6.9 `npm run lint` passes
 - [x] 14.6.10 `npm run arch:check` passes (arch:deps verified)
 - [x] 14.6.11 `npm run build:packages` succeeds
+
+---
+
+## PHASE 15: Migrate ESLint Config to TypeScript ✅ COMPLETE
+
+**Convert `@hai3/eslint-config` from JavaScript to TypeScript for type safety.**
+
+### 15.1 Package Setup ✅
+
+#### 15.1.1 TypeScript Configuration
+
+- [x] 15.1.1.1 Create `packages/eslint-config/tsconfig.json` ✅
+- [x] 15.1.1.2 Create `packages/eslint-config/tsup.config.ts` ✅
+  - Note: DTS disabled (ESLint types are complex, private package doesn't need declarations)
+- [x] 15.1.1.3 Add dev dependencies: `typescript`, `tsup` ✅
+- [x] 15.1.1.4 Add build script: `"build": "tsup"` ✅
+
+### 15.2 Convert Source Files ✅
+
+#### 15.2.1 Rename Files
+
+- [x] 15.2.1.1 Rename `base.js` → `base.ts` ✅
+- [x] 15.2.1.2 Rename `sdk.js` → `sdk.ts` ✅
+- [x] 15.2.1.3 Rename `framework.js` → `framework.ts` ✅
+- [x] 15.2.1.4 Rename `react.js` → `react.ts` ✅
+- [x] 15.2.1.5 Rename `screenset.js` → `screenset.ts` ✅
+- [x] 15.2.1.6 Rename `index.js` → `index.ts` ✅
+
+#### 15.2.2 Add TypeScript Types
+
+- [x] 15.2.2.1 `base.ts`: Uses `ConfigArray` from typescript-eslint ✅
+- [x] 15.2.2.2 `sdk.ts`: Add type annotation, update import ✅
+- [x] 15.2.2.3 `framework.ts`: Add type annotation, update import ✅
+- [x] 15.2.2.4 `react.ts`: Add type annotation, update import ✅
+- [x] 15.2.2.5 `screenset.ts`: Add type annotation, update import ✅
+- [x] 15.2.2.6 `index.ts`: Update re-export paths ✅
+
+### 15.3 Update Package Exports ✅
+
+- [x] 15.3.1 Update `exports` in package.json to `dist/*.js` ✅
+- [x] 15.3.2 Update `files` array to `["dist"]` ✅
+- [x] 15.3.3 Skip `types` field (DTS not generated for private package) ✅
+- [x] 15.3.4 Keep `.js` export aliases for backward compatibility ✅
+
+### 15.4 Build System Integration ✅
+
+- [x] 15.4.1 `dist/` already in root `.gitignore` ✅
+- [x] 15.4.2 Added `build:packages:config` to build order (first, no deps) ✅
+
+### 15.5 Validation ✅
+
+- [x] 15.5.1 `npm run build:packages` - eslint-config compiles ✅
+- [x] 15.5.2 Verify `dist/` contains `.js` files ✅
+- [x] 15.5.3 `npm run lint` - all packages lint correctly ✅
+- [x] 15.5.4 `npm run arch:layers` - 33/33 tests pass ✅
+- [x] 15.5.5 `npm run arch:check` - 6/6 tests pass ✅
+- [x] 15.5.6 `npm run type-check` - no errors ✅
+
+### 15.6 Cleanup ✅
+
+- [x] 15.6.1 Delete original `.js` source files ✅
+- [x] 15.6.2 Verify no dangling imports ✅

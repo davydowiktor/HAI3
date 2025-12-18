@@ -9,8 +9,8 @@
  * - L4 (screenset): User code with flux rules and isolation
  */
 
-export { baseConfig } from './base.js';
-export { sdkConfig } from './sdk.js';
-export { frameworkConfig } from './framework.js';
-export { reactConfig } from './react.js';
-export { screensetConfig, createScreensetConfig } from './screenset.js';
+export { baseConfig } from './base';
+export { sdkConfig } from './sdk';
+export { frameworkConfig } from './framework';
+export { reactConfig } from './react';
+export { screensetConfig, createScreensetConfig } from './screenset';

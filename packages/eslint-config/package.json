@@ -5,21 +5,28 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./index.js",
-    "./base": "./base.js",
-    "./base.js": "./base.js",
-    "./sdk": "./sdk.js",
-    "./sdk.js": "./sdk.js",
-    "./framework": "./framework.js",
-    "./framework.js": "./framework.js",
-    "./react": "./react.js",
-    "./react.js": "./react.js",
-    "./screenset": "./screenset.js",
-    "./screenset.js": "./screenset.js"
+    ".": "./dist/index.js",
+    "./base": "./dist/base.js",
+    "./base.js": "./dist/base.js",
+    "./sdk": "./dist/sdk.js",
+    "./sdk.js": "./dist/sdk.js",
+    "./framework": "./dist/framework.js",
+    "./framework.js": "./dist/framework.js",
+    "./react": "./dist/react.js",
+    "./react.js": "./dist/react.js",
+    "./screenset": "./dist/screenset.js",
+    "./screenset.js": "./dist/screenset.js"
   },
   "files": [
-    "*.js"
+    "dist"
   ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
   "peerDependencies": {
     "@eslint/js": ">=9.0.0",
     "eslint": ">=9.0.0",

@@ -6,12 +6,11 @@
  */
 
 import js from '@eslint/js';
-import tseslint from 'typescript-eslint';
+import tseslint, { type ConfigArray } from 'typescript-eslint';
 import unusedImports from 'eslint-plugin-unused-imports';
 import globals from 'globals';
 
-/** @type {import('eslint').Linter.Config[]} */
-export const baseConfig = [
+export const baseConfig: ConfigArray = [
   // Global ignores
   {
     ignores: [

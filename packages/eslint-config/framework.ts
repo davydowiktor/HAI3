@@ -12,10 +12,10 @@
  * - react, react-dom (framework is headless)
  */
 
-import { baseConfig } from './base.js';
+import type { ConfigArray } from 'typescript-eslint';
+import { baseConfig } from './base';
 
-/** @type {import('eslint').Linter.Config[]} */
-export const frameworkConfig = [
+export const frameworkConfig: ConfigArray = [
   ...baseConfig,
 
   // Framework-specific restrictions

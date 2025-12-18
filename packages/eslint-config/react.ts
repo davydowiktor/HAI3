@@ -12,11 +12,11 @@
  * - @hai3/uicore (deprecated)
  */
 
-import { baseConfig } from './base.js';
+import type { ConfigArray } from 'typescript-eslint';
+import { baseConfig } from './base';
 import reactHooks from 'eslint-plugin-react-hooks';
 
-/** @type {import('eslint').Linter.Config[]} */
-export const reactConfig = [
+export const reactConfig: ConfigArray = [
   ...baseConfig,
 
   // React hooks rules

@@ -9,19 +9,22 @@
  * to ensure NO existing rules are lost during the SDK migration.
  */
 
-import { baseConfig } from './base.js';
+import type { ConfigArray } from 'typescript-eslint';
+import type { Linter } from 'eslint';
+import { baseConfig } from './base';
 import reactHooks from 'eslint-plugin-react-hooks';
+
+interface ScreensetConfigOptions {
+  localPlugin?: Linter.Plugin;
+}
 
 /**
  * Creates screenset configuration with optional local plugin
- * @param {object} options - Configuration options
- * @param {object} [options.localPlugin] - Local plugin instance (eslint-plugin-local)
- * @returns {import('eslint').Linter.Config[]}
  */
-export function createScreensetConfig(options = {}) {
+export function createScreensetConfig(options: ScreensetConfigOptions = {}): ConfigArray {
   const { localPlugin } = options;
 
-  const config = [
+  const config: ConfigArray = [
     ...baseConfig,
 
     // React hooks rules

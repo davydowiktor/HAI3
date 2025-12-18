@@ -7,10 +7,10 @@
  * - NO React dependencies (framework-agnostic)
  */
 
-import { baseConfig } from './base.js';
+import type { ConfigArray } from 'typescript-eslint';
+import { baseConfig } from './base';
 
-/** @type {import('eslint').Linter.Config[]} */
-export const sdkConfig = [
+export const sdkConfig: ConfigArray = [
   ...baseConfig,
 
   // SDK-specific restrictions
