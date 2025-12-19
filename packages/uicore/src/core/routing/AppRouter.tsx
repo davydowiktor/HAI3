@@ -13,6 +13,7 @@ import type { RouterType } from '../HAI3Provider';
 
 export interface AppRouterProps {
   routerType?: RouterType;
+  autoNavigate?: boolean;
 }
 
 /**
@@ -22,8 +23,12 @@ export interface AppRouterProps {
  * - Provides URL structure: /:screenId
  * - Handles default route and 404s
  * - Two-way sync between URL and Redux state
+ * - Optional auto-navigation to first screen (controlled by autoNavigate prop)
  */
-export const AppRouter: React.FC<AppRouterProps> = ({ routerType = 'browser' }) => {
+export const AppRouter: React.FC<AppRouterProps> = ({
+  routerType = 'browser',
+  autoNavigate = true
+}) => {
   const Router = {
     browser: BrowserRouter,
     hash: HashRouter,
@@ -47,13 +52,18 @@ export const AppRouter: React.FC<AppRouterProps> = ({ routerType = 'browser' }) 
           }
         />
 
-        {/* Default route - redirect to first screen */}
+        {/* Default route - show first screen or wait for explicit navigation */}
         <Route
           path="/"
           element={
-            defaultScreenId
+            autoNavigate && defaultScreenId
               ? <Navigate to={`/${defaultScreenId}`} replace />
-              : <div>No screens available</div>
+              : (
+                <>
+                  <RouterSync />
+                  <Layout />
+                </>
+              )
           }
         />
 

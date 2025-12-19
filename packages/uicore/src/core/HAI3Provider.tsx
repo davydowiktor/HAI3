@@ -20,6 +20,12 @@ export type RouterType = 'browser' | 'hash' | 'memory';
 
 export type RouterConfig = {
   type: RouterType;
+  /**
+   * Auto-navigate to first screen on initial load (default: true)
+   * If false, app stays on "/" until navigateToScreen() is called
+   * Useful for external navigation control
+   */
+  autoNavigate?: boolean;
 };
 
 /**
@@ -98,7 +104,7 @@ const HAI3ProviderInner: React.FC<HAI3ProviderProps> = ({ children, router, layo
   return (
     <>
       {children}
-      <AppRouter routerType={router?.type} />
+      <AppRouter routerType={router?.type} autoNavigate={router?.autoNavigate} />
       {StudioOverlay && (
         <Suspense fallback={null}>
           <StudioOverlay />
