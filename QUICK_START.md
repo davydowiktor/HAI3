@@ -12,12 +12,17 @@ This guide will help you get started with HAI3 UI-Core development.
    npm ci
    ```
 
-2. **Start development server**
+2. **Build packages**
+   ```bash
+   npm run build:packages
+   ```
+
+3. **Start development server**
    ```bash
    npm run dev
    ```
 
-3. **Open browser**
+4. **Open browser**
    Navigate to `http://localhost:5173`
 
 ## Project Structure Overview

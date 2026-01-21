@@ -9,7 +9,7 @@ Thank you for your interest in contributing to HAI3 Dev Kit! This document provi
 
 ### Prerequisites
 
-- **Node.js** v20.11.0+
+- **Node.js** v25.1.0+
 - **Git** for version control
 
 ### Development Setup

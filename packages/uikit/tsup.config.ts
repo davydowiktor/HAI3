@@ -9,7 +9,11 @@ export default defineConfig({
       js: format === 'cjs' ? '.cjs' : '.js',
     };
   },
-  dts: true,
+  dts: {
+    compilerOptions: {
+      moduleResolution: 'node',
+    },
+  },
   clean: true,
   sourcemap: true,
   external: [
@@ -25,6 +29,8 @@ export default defineConfig({
     'class-variance-authority',
     'clsx',
     'lucide-react',
+    'react-hook-form',
+    '@hookform/resolvers',
     'recharts',
     'tailwind-merge',
   ],
