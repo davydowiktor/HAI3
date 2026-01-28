@@ -843,7 +843,7 @@ The system SHALL configure Module Federation to support framework-agnostic isola
 - **THEN** SharedDependencyConfig SHALL include `name` (package name, required)
 - **AND** SharedDependencyConfig SHALL include `requiredVersion` (semver range, required)
 - **AND** SharedDependencyConfig MAY include `singleton` (boolean, optional, default: false)
-- **AND** `singleton: false` SHALL mean code is shared but each MFE gets its own instance
+- **AND** `singleton: false` SHALL mean code is shared but each MFE instance gets its own runtime instance
 - **AND** `singleton: true` SHALL mean code is shared AND the same instance is used everywhere
 
 #### Scenario: Code sharing vs instance sharing
@@ -857,15 +857,15 @@ The system SHALL configure Module Federation to support framework-agnostic isola
 
 - **WHEN** `singleton` is not specified in SharedDependencyConfig
 - **THEN** the default SHALL be `false` (isolated instances)
-- **AND** each MFE SHALL receive its own instance from the shared code
+- **AND** each MFE instance SHALL receive its own runtime instance from the shared code
 - **AND** this provides both code sharing (performance) and instance isolation (safety)
 
 #### Scenario: Stateful library sharing with isolation
 
 - **WHEN** sharing React, ReactDOM, @hai3/*, or GTS via sharedDependencies
 - **THEN** `singleton` SHOULD be `false` to preserve runtime isolation
-- **AND** each MFE SHALL have its own React context, hooks state, and reconciler
-- **AND** each MFE SHALL have its own TypeSystemPlugin and schema registry
+- **AND** each MFE instance SHALL have its own React context, hooks state, and reconciler
+- **AND** each MFE instance SHALL have its own TypeSystemPlugin and schema registry
 - **AND** bundle size optimization SHALL still be achieved through code sharing
 
 #### Scenario: Stateless utility sharing
@@ -877,10 +877,10 @@ The system SHALL configure Module Federation to support framework-agnostic isola
 
 #### Scenario: Isolation requirement enforcement
 
-- **WHEN** an MFE attempts to discover types via its TypeSystemPlugin
-- **THEN** `plugin.query('gts.*')` SHALL only return types in that MFE's registry
-- **AND** the MFE SHALL NOT be able to discover host's registered types
-- **AND** the MFE SHALL NOT be able to discover other MFE's registered types
+- **WHEN** an MFE instance attempts to discover types via its TypeSystemPlugin
+- **THEN** `plugin.query('gts.*')` SHALL only return types in that MFE instance's registry
+- **AND** the MFE instance SHALL NOT be able to discover parent's registered types
+- **AND** the MFE instance SHALL NOT be able to discover other MFE instances' registered types (including other instances of the same MFE entry)
 - **AND** this isolation SHALL be guaranteed by `singleton: false` on @hai3/screensets and GTS
 
 ### Requirement: Explicit Timeout Configuration

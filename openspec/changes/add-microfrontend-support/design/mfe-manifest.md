@@ -58,7 +58,7 @@ MfManifest is a **standalone type** containing Module Federation configuration.
           "singleton": {
             "type": "boolean",
             "default": false,
-            "$comment": "If true, share single instance. Default false = code shared but instances isolated."
+            "$comment": "If true, all consumers share one instance (instance sharing). If false (default), each consumer gets its own isolated instance from the shared code (instance isolation)."
           }
         },
         "required": ["name", "requiredVersion"]
@@ -105,12 +105,16 @@ interface MfManifest {
  * These benefits are NOT mutually exclusive! The `singleton` parameter controls
  * instance behavior while code sharing always provides the bundle optimization.
  *
- * - `singleton: false` (DEFAULT) = Code shared, instances ISOLATED per MFE
+ * - `singleton: false` (DEFAULT for MfeHandlerMF) = Code shared, instances ISOLATED per MFE
  * - `singleton: true` = Code shared, instance SHARED across all consumers
  *
- * HAI3 Recommendation:
+ * HAI3 Default Handler (MfeHandlerMF) Recommendation:
  * - Use `singleton: false` (default) for anything with state (React, @hai3/*, GTS)
  * - Use `singleton: true` ONLY for truly stateless utilities (lodash, date-fns)
+ *
+ * Custom Handlers:
+ * - May use `singleton: true` for internal MFEs that need to share state
+ * - 3rd-party MFEs should ALWAYS use `singleton: false` (security)
  */
 interface SharedDependencyConfig {
   /** Package name (e.g., 'react', 'lodash', '@hai3/screensets') */
@@ -119,13 +123,16 @@ interface SharedDependencyConfig {
   requiredVersion: string;
   /**
    * Whether to share a single instance across all consumers.
-   * Default: false (each consumer gets its own isolated instance)
+   * Default: false (with MfeHandlerMF, each consumer gets its own isolated instance)
    *
-   * - false: Code is shared (cached), but each MFE gets its OWN instance
+   * - false: Code is shared (cached), but each MFE instance gets its OWN runtime instance
    * - true: Code is shared AND the same instance is used everywhere
    *
-   * IMPORTANT: Only set to true for truly stateless utilities (lodash, date-fns).
-   * Libraries with state (React, Redux, GTS, @hai3/*) should use false.
+   * IMPORTANT for MfeHandlerMF (default handler):
+   * - Only set to true for truly stateless utilities (lodash, date-fns)
+   * - Libraries with state (React, Redux, GTS, @hai3/*) should use false
+   *
+   * Custom handlers may use different defaults based on isolation requirements.
    */
   singleton?: boolean;
 }
@@ -142,16 +149,19 @@ const analyticsManifest: MfManifest = {
   // Two benefits are controlled independently:
   // 1. Code sharing (always) - download once, cache it
   // 2. Instance sharing (singleton flag) - share instance or isolate
+  //
+  // This example uses MfeHandlerMF defaults (strict isolation).
+  // Custom handlers for internal MFEs may use different settings.
   sharedDependencies: [
     // React/ReactDOM: Code shared for bundle optimization, but singleton: false
-    // ensures each MFE gets its own React instance (isolation preserved)
+    // ensures each MFE instance gets its own React instance (MfeHandlerMF default)
     { name: 'react', requiredVersion: '^18.0.0', singleton: false },
     { name: 'react-dom', requiredVersion: '^18.0.0', singleton: false },
     // Stateless utilities: singleton: true is safe (no state to isolate)
     { name: 'lodash', requiredVersion: '^4.17.0', singleton: true },
     { name: 'date-fns', requiredVersion: '^2.30.0', singleton: true },
-    // @hai3/* packages: Must use singleton: false for runtime isolation
-    // Or omit entirely if this MFE doesn't need to share code with host
+    // @hai3/* packages: MfeHandlerMF uses singleton: false for runtime isolation
+    // Custom handlers for internal MFEs may use singleton: true if sharing is needed
     // { name: '@hai3/screensets', requiredVersion: '^1.0.0', singleton: false },
   ],
   entries: [

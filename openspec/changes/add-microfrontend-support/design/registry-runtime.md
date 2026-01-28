@@ -8,21 +8,29 @@ This document covers the ScreensetsRegistry runtime isolation model, action chai
 - [MFE API](./mfe-api.md) - MfeEntryLifecycle interface
 - [MFE Actions](./mfe-actions.md) - Action and ActionsChain types
 - [MFE Domain](./mfe-domain.md) - ExtensionDomain type
-- [MFE Extension](./mfe-extension.md) - Extension type
+- [MFE Domain/Extension](./mfe-domain.md) - ExtensionDomain and Extension types
 
 ---
 
 ## Decisions
 
-### Decision 9: Isolated Runtime Instances (Framework-Agnostic)
+### Decision 13: Instance-Level Isolation (Framework-Agnostic, Default Behavior)
 
-Each MFE instance runs with its own FULLY ISOLATED runtime:
+HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation by default. Each MFE **instance** runs with its own isolated runtime - even multiple instances of the **same** MFE entry are isolated from each other. Custom handlers can implement different strategies:
+
 - Own @hai3/screensets instance
 - Own TypeSystemPlugin instance (with own schema registry)
 - Own @hai3/state container
 - Can use ANY UI framework (Vue 3, Angular, Svelte, etc.)
 
 The host uses React, but MFEs are NOT required to use React.
+
+**Example (default behavior)**: If "ChartWidget" MFE entry is mounted twice (Extension A and Extension B), each instance has its own isolated runtime. Instance A cannot access Instance B's state, even though they share the same MFE entry code.
+
+**Custom handlers can implement different isolation strategies:**
+- Strict isolation (like default) - recommended for 3rd-party MFEs
+- Shared state between internal MFE instances for coordination
+- Hybrid approaches based on enterprise requirements
 
 **Architecture:**
 ```
@@ -51,16 +59,18 @@ The host uses React, but MFEs are NOT required to use React.
 - Shared properties passed via MfeBridge only
 - Actions delivered via ActionsChainsMediator through MfeBridge
 
-### Decision 13: Framework-Agnostic Isolation Model
+### Decision 14: Framework-Agnostic Isolation Model (Default Behavior)
 
-**What**: MFEs are completely isolated with their own runtime instances. Each MFE can use ANY UI framework.
+**What**: HAI3's default handler enforces complete isolation by default where each MFE **instance** has its own runtime. This isolation applies even between multiple instances of the same MFE entry. Each MFE instance can use ANY UI framework. Custom handlers can implement different isolation strategies for internal MFEs.
 
-**Why Complete GTS Isolation is Required**:
+**Why Complete GTS Isolation is the Default**:
 
-If GTS/TypeSystemPlugin were shared as a singleton:
+With the default handler, GTS/TypeSystemPlugin isolation is enforced because:
 1. MFEs could call `plugin.query('gts.*')` and discover ALL registered types (security violation)
 2. MFEs could learn about host's internal domain structure
 3. MFEs should ONLY know about their own contract with the host domain
+
+**Custom handlers for internal MFEs** may choose to relax this isolation when security is not a concern (e.g., all MFEs are from the same trusted codebase).
 
 **Internal Runtime Coordination**:
 
@@ -233,7 +243,11 @@ class ScreensetsRegistry {
 }
 ```
 
-### Decision 15: Shadow DOM Utilities
+### Decision 15: Error Class Hierarchy
+
+The MFE system defines a hierarchy of error classes for specific failure scenarios. See [mfe-errors.md](./mfe-errors.md) for the complete error class definitions.
+
+### Decision 16: Shadow DOM Utilities
 
 Shadow DOM utilities are provided by `@hai3/screensets` for style isolation.
 
@@ -250,7 +264,7 @@ function injectCssVariables(shadowRoot: ShadowRoot, variables: Record<string, st
 function injectStylesheet(shadowRoot: ShadowRoot, css: string, id?: string): void;
 ```
 
-### Decision 19: Dynamic Registration Model
+### Decision 17: Dynamic Registration Model
 
 **What**: Extensions and MFEs can be registered at ANY time during the application lifecycle.
 

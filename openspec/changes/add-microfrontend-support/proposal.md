@@ -2,14 +2,15 @@
 
 ## Why
 
-HAI3 applications need to compose functionality from multiple independently deployed microfrontends (MFEs). Vendors can create MFE extensions that integrate into host applications through well-defined extension points. This enables:
+HAI3 applications need to compose functionality from multiple independently deployed microfrontends (MFEs). Vendors can create MFE extensions that integrate into parent applications through well-defined extension points. This enables:
 
-1. **Independent Deployment**: MFEs can be deployed separately from the host application
-2. **Vendor Extensibility**: Third parties can create extensions without modifying host code, using ANY UI framework (Vue 3, Angular, Svelte, etc.)
-3. **Complete Runtime Isolation**: Each MFE maintains its own isolated runtime (state, TypeSystemPlugin, schema registry) with controlled communication ONLY through the contract
-4. **Type-Safe Contracts**: Each runtime has its own TypeSystemPlugin instance - MFEs cannot discover host or other MFE schemas
-5. **Framework Agnostic**: Host uses React, but MFEs can use any framework - no React/ReactDOM dependency for MFEs
+1. **Independent Deployment**: MFEs can be deployed separately from the parent application
+2. **Vendor Extensibility**: Third parties can create extensions without modifying parent code, using ANY UI framework (Vue 3, Angular, Svelte, etc.)
+3. **Instance-Level Runtime Isolation (Default)**: HAI3's default handler (`MfeHandlerMF`) enforces isolation - each MFE instance maintains its own isolated runtime (state, TypeSystemPlugin, schema registry). Custom handlers can implement different isolation strategies based on their requirements.
+4. **Type-Safe Contracts**: Each runtime has its own TypeSystemPlugin instance - MFE instances cannot discover parent or sibling schemas
+5. **Framework Agnostic**: Parent uses React, but MFEs can use any framework - no React/ReactDOM dependency for MFEs
 6. **Dynamic Registration**: Extensions and MFEs can be registered at ANY time during runtime, not just at app initialization - enabling runtime configuration, feature flags, and backend-driven extensibility
+7. **Hierarchical Composition**: MFEs can define their own domains for nested extensions - an MFE can be both an extension (to its parent) and a domain provider (for its children)
 
 ## What Changes
 
@@ -35,17 +36,28 @@ const app = createHAI3()
 
 ### Core Architecture
 
-Each MFE and host has its **own FULLY ISOLATED runtime**:
+HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation as the default strategy. Custom handlers can implement different isolation strategies (including shared state) for internal MFEs when needed.
+
+**With the default handler, each MFE instance has its own FULLY ISOLATED runtime:**
 - Own `@hai3/screensets` instance (NOT singleton)
 - Own `TypeSystemPlugin` instance (NOT singleton) with isolated schema registry
 - Own `@hai3/state` container
-- Can use ANY UI framework (host uses React, MFEs can use Vue 3, Angular, Svelte, etc.)
+- Can use ANY UI framework (parent uses React, MFEs can use Vue 3, Angular, Svelte, etc.)
+
+**Instance-level isolation (default behavior)**: If the same MFE entry is mounted twice (in two different extensions), HAI3's default handler creates isolated runtimes. Instance A of "ChartWidget" cannot access Instance B of "ChartWidget".
+
+**Custom handler flexibility**: Custom handlers (e.g., `MfeHandlerAcme`) can implement different isolation strategies:
+- **Strict isolation** (like default) - recommended for 3rd-party/vendor MFEs (security)
+- **Shared state** between instances - for internal MFEs that need coordination
+- **Hybrid approaches** - isolate some resources, share others
 
 Communication happens ONLY through the explicit contract (MfeBridge interface):
 - **Shared properties** (parent to child, read-only)
 - **Actions chain** delivered by ActionsChainsMediator to targets
 
-Internal runtime coordination (between host and MFE runtimes) uses PRIVATE mechanisms not exposed to MFE code.
+Internal runtime coordination (between parent and MFE instance runtimes) uses PRIVATE mechanisms not exposed to MFE code.
+
+**Hierarchical domains**: Domains can exist at ANY level. An MFE can be an extension to its parent's domain, define its OWN domains for nested MFEs, or both simultaneously.
 
 ### Architectural Decision: Type System Plugin Abstraction
 
@@ -117,11 +129,11 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
-| `MfeBridgeFactory<TBridge>` | `create(entry, connection)` | Abstract factory for creating bridge instances |
+| `MfeBridgeFactory<TBridge>` | `create(domainId, entryTypeId, instanceId)` | Abstract factory for creating bridge instances |
 | `MfeHandler<TEntry, TBridge>` | `bridgeFactory, canHandle(entryTypeId), load(entry), preload?(entry), priority?` | Abstract handler class for different entry types |
 | `LoadedMfe` | `lifecycle, entry, unload()` | Result of loading an MFE bundle |
 
-**Note on MfeEntry Design:** MfeEntry is a **pure contract** type (abstract base) that defines ONLY the communication interface (properties, actions). Derived types like `MfeEntryMF` add handler-specific fields. This separation ensures the same entry contract works with any handler and allows future handlers (ESM, Import Maps) to add their own derived types.
+**Note on MfeEntry Design:** MfeEntry is a **pure contract** type (abstract base) that defines ONLY the communication contract (properties, actions). Derived types like `MfeEntryMF` add handler-specific fields. This separation ensures the same entry contract works with any handler and allows future handlers (ESM, Import Maps) to add their own derived types.
 
 **Note on MfeEntryLifecycle Design:** MfeEntryLifecycle is the **lifecycle interface** that all MFE entries must implement. The name focuses on lifecycle semantics (mount/unmount) rather than implementation details like "Export" or "Module". This interface:
 - Defines framework-agnostic lifecycle methods any MFE entry must implement
@@ -266,9 +278,22 @@ On timeout: execute fallback chain if defined (same as any other failure)
 
 ### Hierarchical Extension Domains
 
-- HAI3 provides base layout domains: `sidebar`, `popup`, `screen`, `overlay`
-- Vendor screensets can define their own extension domains
-- Example: A dashboard screenset defines a "widget slot" domain for third-party widgets
+Domains can exist at **any level** of the hierarchy, enabling nested composition:
+
+- **Host-level domains**: HAI3 provides base layout domains (`sidebar`, `popup`, `screen`, `overlay`)
+- **MFE-level domains**: Any MFE can define its own domains for nested extensions
+- **Recursive nesting**: An MFE can be both an extension (to its parent) AND a domain provider (for its children)
+
+```
+Host Application
+  └── Sidebar Domain (host's)
+        └── Dashboard MFE (extension to host, also defines domains)
+              └── Widget Slot Domain (MFE's own domain)
+                    └── Chart Widget MFE (nested extension)
+                    └── Table Widget MFE (nested extension)
+```
+
+Example: A dashboard screenset defines a "widget slot" domain for third-party widgets, while itself being an extension to the host's sidebar domain.
 
 ### DRY Principle for Extension Actions
 
@@ -335,9 +360,9 @@ interface LoadExtPayload {
 
 **Key Principle**: Extensions and MFEs are NOT known at app initialization time. They can be registered dynamically at any point during the application lifecycle.
 
-**ScreensetsRegistry** is the central registry for MFE screensets. It:
-- Registers extension domains (extension points where MFEs can mount)
-- Registers extensions (bindings between MFE entries and domains)
+**ScreensetsRegistry** is the central registry for MFE screensets. Each MFE instance has its own ScreensetsRegistry (for instance-level isolation). It:
+- Registers extension domains (extension points where MFE instances can mount - can be at host level OR within an MFE)
+- Registers extensions (bindings between MFE entries and domains, each creating an isolated instance)
 - Registers MFE entries and manifests
 - Manages the Type System plugin for type validation and schema registry
 - Coordinates MFE loading and lifecycle

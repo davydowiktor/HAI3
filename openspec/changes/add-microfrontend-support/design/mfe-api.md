@@ -6,12 +6,12 @@ This document covers the MFE Bridge interfaces, MfeEntryLifecycle interface, and
 
 ## Context
 
-The MFE API defines the runtime contract between host and MFE. It consists of:
+The MFE API defines the runtime contract between parent and MFE instance. It consists of:
 - **MfeEntryLifecycle**: The interface every MFE must export (mount/unmount methods)
-- **MfeBridge**: The communication channel passed to MFEs for host interaction
-- **MfeBridgeConnection**: Extended bridge interface used by the host to manage MFE communication
+- **MfeBridge**: The communication channel passed to each MFE **instance** for parent interaction
+- **MfeBridgeConnection**: Extended bridge interface used by the parent to manage MFE instance communication
 
-These interfaces are framework-agnostic - MFEs can use React, Vue, Angular, Svelte, or vanilla JS while implementing the same lifecycle contract. The MfeBridge allows MFEs to send [actions chains](./mfe-actions.md) (targeting the domain) and subscribe to [shared properties](./mfe-shared-property.md).
+These interfaces are framework-agnostic - MFEs can use React, Vue, Angular, Svelte, or vanilla JS while implementing the same lifecycle contract. Each MFE **instance** receives its own MfeBridge instance (even multiple instances of the same MFE entry get separate bridges). The MfeBridge allows MFE instances to send [actions chains](./mfe-actions.md) (targeting the domain) and subscribe to [shared properties](./mfe-shared-property.md).
 
 ## Definition
 
@@ -36,7 +36,7 @@ interface MfeEntryLifecycle {
 
 ## MFE Bridge Interfaces
 
-The MFE Bridge provides a bidirectional communication channel between host and MFE. The bridge is created by the host when mounting an extension and passed to the MFE component via props.
+The MFE Bridge provides a bidirectional communication channel between parent and MFE instance. With HAI3's default handler (`MfeHandlerMF`), each MFE **instance** receives its own bridge instance - this supports instance-level isolation. Even multiple instances of the same MFE entry get separate, independent bridges. Custom handlers can implement different bridge sharing strategies for internal MFEs. The bridge is created by the parent when mounting an extension and passed to the MFE component via props.
 
 ### MfeBridge Interface
 
@@ -102,6 +102,44 @@ await runtime.unmountExtension(extensionId);
 ### Domain-Level Property Updates
 
 Shared properties are managed at the DOMAIN level, not per-MFE. When the host updates a domain property, ALL extensions in that domain that subscribe to that property receive the update.
+
+```
++------------------------------------------+
+|                 HOST                      |
+|                                          |
+|  runtime.updateDomainProperty(           |
+|    domainId,                             |
+|    "theme",                              |
+|    "dark"                                |
+|  )                                       |
++--------------------+---------------------+
+                     |
+                     v
++--------------------+---------------------+
+|              DOMAIN                      |
+|  (stores property value)                 |
+|                                          |
+|  theme: "dark"                           |
++----+---------------+----------------+----+
+     |               |                |
+     v               v                v
++----+----+    +-----+----+    +-----+----+
+|Extension|    |Extension |    |Extension |
+|    A    |    |    B     |    |    C     |
++---------+    +----------+    +----------+
+|subscribed|   |subscribed|    |   NOT    |
+|to theme  |   |to theme  |    |subscribed|
++---------+    +----------+    +----------+
+     |               |                |
+     v               v                X
+ RECEIVES        RECEIVES         (no update)
+ "dark"          "dark"
+```
+
+**Key Points:**
+- Properties are stored at the domain level
+- Only extensions that subscribe to a property receive updates
+- Subscription is determined by the entry's `requiredProperties` or `optionalProperties`
 
 ```typescript
 // Update a shared property for all subscribed extensions in the domain

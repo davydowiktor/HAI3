@@ -6,55 +6,61 @@ This document provides a high-level overview of the Microfrontend (MFE) system a
 
 ## What is the MFE System?
 
-The MFE system allows independent UI components (microfrontends) to be loaded into a host application at runtime. Each MFE is developed, deployed, and versioned independently, but they all work together within the host.
+The MFE system allows independent UI components (microfrontends) to be loaded into a parent application at runtime. Each MFE is developed, deployed, and versioned independently, and they can work together through well-defined contracts.
 
 **Key Benefits:**
 - Teams can develop and deploy independently
 - MFEs can use different frameworks (React, Vue, Svelte, etc.)
-- Components are isolated - one MFE cannot break another
-- New features can be added without redeploying the host
+- **Instance-level isolation (default)** - HAI3's default handler enforces isolation where each MFE instance has its own runtime; custom handlers can implement different strategies
+- New features can be added without redeploying the parent
+- **Hierarchical composition** - MFEs can define their own domains for nested extensions
 
 ---
 
 ## Core Concepts
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                       HOST APPLICATION                         │
-│                                                                │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                      DOMAIN (Slot)                       │  │
-│  │                                                          │  │
-│  │  "Where MFEs can mount"                                  │  │
-│  │  - Provides shared properties (user, theme, etc.)        │  │
-│  │  - Defines supported action types (contract)             │  │
-│  │                                                          │  │
-│  │  ┌─────────────────┐  ┌─────────────────┐                │  │
-│  │  │   EXTENSION A   │  │   EXTENSION B   │                │  │
-│  │  │                 │  │                 │                │  │
-│  │  │  ┌───────────┐  │  │  ┌───────────┐  │                │  │
-│  │  │  │    MFE    │  │  │  │    MFE    │  │                │  │
-│  │  │  │  (React)  │  │  │  │   (Vue)   │  │                │  │
-│  │  │  └───────────┘  │  │  └───────────┘  │                │  │
-│  │  └─────────────────┘  └─────────────────┘                │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                          HOST APPLICATION                              │
+│                                                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                         DOMAIN A (Host's)                        │  │
+│  │  - Provides shared properties (user, theme, etc.)                │  │
+│  │  - Defines supported action types (contract)                     │  │
+│  │                                                                  │  │
+│  │  ┌─────────────────────────────────────┐  ┌─────────────────┐    │  │
+│  │  │          EXTENSION A                │  │   EXTENSION B   │    │  │
+│  │  │  ┌───────────────────────────────┐  │  │  ┌───────────┐  │    │  │
+│  │  │  │   MFE INSTANCE (React)        │  │  │  │    MFE    │  │    │  │
+│  │  │  │   - Has its own runtime       │  │  │  │   (Vue)   │  │    │  │
+│  │  │  │   - Can define its OWN domain │  │  │  └───────────┘  │    │  │
+│  │  │  │                               │  │  └─────────────────┘    │  │
+│  │  │  │  ┌─────────────────────────┐  │  │                         │  │
+│  │  │  │  │    DOMAIN B (MFE's)     │  │  │  MFEs can be BOTH:      │  │
+│  │  │  │  │  ┌────────┐ ┌────────┐  │  │  │  - Extension to parent  │  │
+│  │  │  │  │  │ Ext C  │ │ Ext D  │  │  │  │  - Domain provider for  │  │
+│  │  │  │  │  │ (MFE)  │ │ (MFE)  │  │  │  │    its own children     │  │
+│  │  │  │  │  └────────┘ └────────┘  │  │  │                         │  │
+│  │  │  │  └─────────────────────────┘  │  │                         │  │
+│  │  │  └───────────────────────────────┘  │                         │  │
+│  │  └─────────────────────────────────────┘                         │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### The Three Main Types
 
 | Type | What it is | Analogy |
 |------|-----------|---------|
-| [**Domain**](./design/mfe-domain.md) | A slot where MFEs can be placed | A power outlet |
-| [**Entry**](./design/mfe-entry-mf.md) | The MFE's contract (what it needs and provides) | A plug specification |
-| [**Extension**](./design/mfe-extension.md) | The actual MFE instance mounted in a domain | A plugged-in device |
+| [**Domain**](./mfe-domain.md) | A slot where MFE instances can mount (can exist at any level - host or nested MFE) | A power outlet |
+| [**Entry**](./mfe-entry-mf.md) | The MFE's contract (what it needs and provides) | A plug specification |
+| [**Extension**](./mfe-domain.md#extension) | The actual MFE instance mounted in a domain (isolated by default; custom handlers can allow sharing) | A plugged-in device |
 
 ---
 
-## How MFEs Communicate
+## How MFE Instances Communicate
 
-MFEs don't talk directly to each other. Each MFE has its own **Bridge** to the host. All communication goes through the host.
+MFE instances don't talk directly to each other. Each MFE **instance** has its own **Bridge** to its parent domain. All communication goes through the parent.
 
 ```
 ┌─────────────┐      ┌──────────────┐      ┌─────────────┐
@@ -72,11 +78,11 @@ MFEs don't talk directly to each other. Each MFE has its own **Bridge** to the h
 
 ### Two Communication Mechanisms
 
-1. **[Shared Properties](./design/mfe-shared-property.md)** - One-way: host → MFEs
+1. **[Shared Properties](./mfe-shared-property.md)** - One-way: host → MFEs
    - User context, theme, selected items
    - MFEs subscribe and react to changes
 
-2. **[Actions Chains](./design/mfe-actions.md)** - Bidirectional: routed to targets
+2. **[Actions Chains](./mfe-actions.md)** - Bidirectional: routed to targets
    - ActionsChains are sent to targets (domains or extensions)
    - ActionsChainsMediator routes chains to targets based on `action.target`
    - Action types in contracts define what targets can send/receive; ActionsChains are the messages
@@ -85,7 +91,7 @@ MFEs don't talk directly to each other. Each MFE has its own **Bridge** to the h
 
 ## How MFEs are Loaded
 
-MFEs are loaded on-demand using [Module Federation](./design/mfe-loading.md). The host doesn't bundle MFE code - it fetches it at runtime.
+MFEs are loaded on-demand using [Module Federation](./mfe-loading.md). The host doesn't bundle MFE code - it fetches it at runtime.
 
 ```
 ┌─────────────────┐         ┌─────────────────┐
@@ -103,35 +109,50 @@ MFEs are loaded on-demand using [Module Federation](./design/mfe-loading.md). Th
 └─────────────────┘         └─────────────────┘
 ```
 
-The [MfManifest](./design/mfe-manifest.md) tells the handler where to find the MFE bundle and what dependencies it shares with the host.
+The [MfManifest](./mfe-manifest.md) tells the handler where to find the MFE bundle and what dependencies it shares with the host.
 
 ---
 
-## Runtime Isolation
+## Runtime Isolation (Default Behavior)
 
-Each MFE runs in isolation. This means:
+HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation. Custom handlers can implement different isolation strategies based on their requirements.
 
-- **Separate state** - MFE A cannot access MFE B's React state
-- **Separate styles** - CSS from one MFE doesn't leak to another (Shadow DOM)
-- **Separate errors** - If MFE A crashes, MFE B keeps working
+**With the default handler, each MFE instance runs in complete isolation:**
+
+- **Separate state** - Instance A cannot access Instance B's React state (even if they're the same MFE entry)
+- **Separate styles** - CSS from one instance doesn't leak to another (Shadow DOM)
+- **Separate errors** - If Instance A crashes, Instance B keeps working
+- **Instance-level isolation** - mounting the same MFE entry twice creates two completely independent runtime instances
 
 ```
-┌──────────────────────────────────────────────┐
-│                    HOST                      │
-│                                              │
-│  ┌──────────────────┐  ┌──────────────────┐  │
-│  │ Shadow DOM       │  │ Shadow DOM       │  │
-│  │ ┌──────────────┐ │  │ ┌──────────────┐ │  │
-│  │ │   MFE A      │ │  │ │   MFE B      │ │  │
-│  │ │              │ │  │ │              │ │  │
-│  │ │ Own React    │ │  │ │ Own Vue      │ │  │
-│  │ │ Own styles   │ │  │ │ Own styles   │ │  │
-│  │ │ Own state    │ │  │ │ Own state    │ │  │
-│  │ └──────────────┘ │  │ └──────────────┘ │  │
-│  └──────────────────┘  └──────────────────┘  │
-│                                              │
-└──────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│                           PARENT                                  │
+│                                                                   │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐ │
+│  │ Shadow DOM       │  │ Shadow DOM       │  │ Shadow DOM       │ │
+│  │ ┌──────────────┐ │  │ ┌──────────────┐ │  │ ┌──────────────┐ │ │
+│  │ │ INSTANCE A   │ │  │ │ INSTANCE B   │ │  │ │ INSTANCE C   │ │ │
+│  │ │ (ChartMFE)   │ │  │ │ (ChartMFE)   │ │  │ │ (TableMFE)   │ │ │
+│  │ │              │ │  │ │              │ │  │ │              │ │ │
+│  │ │ Own React    │ │  │ │ Own React    │ │  │ │ Own Vue      │ │ │
+│  │ │ Own styles   │ │  │ │ Own styles   │ │  │ │ Own styles   │ │ │
+│  │ │ Own state    │ │  │ │ Own state    │ │  │ │ Own state    │ │ │
+│  │ └──────────────┘ │  │ └──────────────┘ │  │ └──────────────┘ │ │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘ │
+│                                                                   │
+│  Note: With default handler, Instances A and B (same MFE entry)   │
+│  are completely isolated. Custom handlers can allow sharing.      │
+└───────────────────────────────────────────────────────────────────┘
 ```
+
+**Isolation Recommendations:**
+
+| MFE Source | Recommended Strategy | Reason |
+|------------|---------------------|--------|
+| 3rd-party/vendor MFEs | Always isolate | Security - untrusted code must not access other instances |
+| Internal MFEs | Handler can allow sharing | Coordination, efficiency - trusted code can share state if beneficial |
+
+Custom handlers (e.g., `MfeHandlerAcme`) can choose to allow internal MFE instances to share state, bridges, or other resources when isolation is not required.
 
 ---
 
@@ -168,13 +189,13 @@ Each MFE runs in isolation. This means:
     └─────────┘
 ```
 
-See [MFE API](./design/mfe-api.md) for the mount/unmount interface that MFEs must implement.
+See [MFE API](./mfe-api.md) for the mount/unmount interface that MFEs must implement.
 
 ---
 
 ## Error Handling
 
-When things go wrong, the system provides [specific error types](./design/mfe-errors.md):
+When things go wrong, the system provides [specific error types](./mfe-errors.md):
 
 | Error | When it happens |
 |-------|-----------------|
@@ -191,15 +212,16 @@ For detailed specifications, see:
 
 | Document | Description |
 |----------|-------------|
-| [mfe-domain.md](./design/mfe-domain.md) | Extension domains (slots for MFEs) |
-| [mfe-entry-mf.md](./design/mfe-entry-mf.md) | MFE entry contracts |
-| [mfe-extension.md](./design/mfe-extension.md) | Extensions (MFE instances) |
-| [mfe-manifest.md](./design/mfe-manifest.md) | Module Federation configuration |
-| [mfe-loading.md](./design/mfe-loading.md) | Bundle loading and isolation |
-| [mfe-actions.md](./design/mfe-actions.md) | Action types and actions chains |
-| [mfe-shared-property.md](./design/mfe-shared-property.md) | Shared properties |
-| [mfe-api.md](./design/mfe-api.md) | MFE lifecycle and bridge interfaces |
-| [mfe-errors.md](./design/mfe-errors.md) | Error class hierarchy |
-| [type-system.md](./design/type-system.md) | GTS type system and validation |
-| [registry-runtime.md](./design/registry-runtime.md) | Runtime isolation and registration |
-| [principles.md](./design/principles.md) | Design principles |
+| [glossary.md](./glossary.md) | Key terms and definitions |
+| [mfe-domain.md](./mfe-domain.md) | Extension domains and extensions |
+| [mfe-entry-mf.md](./mfe-entry-mf.md) | MFE entry contracts |
+| [mfe-manifest.md](./mfe-manifest.md) | Module Federation configuration |
+| [mfe-loading.md](./mfe-loading.md) | Handler architecture and bundle loading |
+| [mfe-actions.md](./mfe-actions.md) | Action types and actions chains |
+| [mfe-shared-property.md](./mfe-shared-property.md) | Shared properties |
+| [mfe-api.md](./mfe-api.md) | MFE lifecycle and bridge interfaces |
+| [mfe-errors.md](./mfe-errors.md) | Error class hierarchy |
+| [type-system.md](./type-system.md) | Type system plugin and contract validation |
+| [schemas.md](./schemas.md) | GTS JSON Schema definitions |
+| [registry-runtime.md](./registry-runtime.md) | Runtime isolation and registration |
+| [principles.md](./principles.md) | Design principles |

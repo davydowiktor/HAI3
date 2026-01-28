@@ -6,7 +6,7 @@ This document covers the MfeEntry and MfeEntryMF types and their usage in the MF
 
 ## Context
 
-MfeEntry defines the contract that an MFE declares with its hosting [domain](./mfe-domain.md). It specifies what [properties](./mfe-shared-property.md) the MFE requires/accepts and what [action types](./mfe-actions.md) it can send (to its domain) and receive (when targeted). The entry is referenced by [Extension](./mfe-extension.md) to bind an MFE implementation to a specific domain.
+MfeEntry defines the contract that an MFE declares with its hosting [domain](./mfe-domain.md). It specifies what [properties](./mfe-shared-property.md) the MFE requires/accepts and what [action types](./mfe-actions.md) it can send (to its domain) and receive (when targeted). The entry is referenced by [Extension](./mfe-domain.md#extension) to bind an MFE implementation to a specific domain.
 
 MfeEntry is abstract - it defines only the communication contract. Derived types add loader-specific fields. HAI3 ships MfeEntryMF (Module Federation) as the default, but companies can create their own derived types with richer contracts.
 
@@ -16,13 +16,13 @@ MfeEntry is abstract - it defines only the communication contract. Derived types
 
 **MfeEntryMF**: HAI3's default derived GTS type extending MfeEntry with Module Federation 2.0 loading configuration - references an MfManifest and specifies the exposed module path. This is also a thin contract suitable for 3rd-party vendors.
 
-**Custom Derived Types**: Companies can create their own derived entry types (e.g., `MfeEntryAcme`) with richer contracts including metadata, translations, preload assets, feature flags, etc. These custom types are handled by custom [MfeHandler](./mfe-loading.md#decision-11-mfehandler-abstraction-and-registry) implementations registered by the company.
+**Custom Derived Types**: Companies can create their own derived entry types (e.g., `MfeEntryAcme`) with richer contracts including metadata, translations, preload assets, feature flags, etc. These custom types are handled by custom [MfeHandler](./mfe-loading.md#decision-10-mfehandler-abstraction-and-registry) implementations registered by the company.
 
 ---
 
 ## MFE Entry Schema (Abstract Base)
 
-MfeEntry is the **abstract base type** for all entry contracts. It defines ONLY the communication interface (properties, actions). Derived types add loader-specific fields.
+MfeEntry is the **abstract base type** for all entry contracts. It defines ONLY the communication contract (properties, actions). Derived types add loader-specific fields.
 
 ```json
 {
@@ -125,7 +125,7 @@ Companies can define their own derived entry types that:
 2. **Add loader-specific fields** - manifest, exposedModule (if using MF), or custom loader fields
 3. **Add company-specific metadata** - translations, routes, preloadAssets, featureFlags, etc.
 
-These custom entry types are handled by company-registered [MfeHandler](./mfe-loading.md#decision-11-mfehandler-abstraction-and-registry) implementations.
+These custom entry types are handled by company-registered [MfeHandler](./mfe-loading.md#decision-10-mfehandler-abstraction-and-registry) implementations.
 
 **Example: Company Custom Entry Type**
 
@@ -147,7 +147,7 @@ interface MfeEntryAcme extends MfeEntry {
 // gts.hai3.screensets.mfe.entry.v1~acme.corp.mfe.entry_acme.v1~
 ```
 
-See [MFE Loading - Decision 11](./mfe-loading.md#decision-11-mfehandler-abstraction-and-registry) for how custom handlers handle these derived types.
+See [MFE Loading - Decision 10](./mfe-loading.md#decision-10-mfehandler-abstraction-and-registry) for how custom handlers handle these derived types.
 
 ## TypeScript Interface Definitions
 

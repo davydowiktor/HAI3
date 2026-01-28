@@ -79,7 +79,7 @@ mfeActions.registerManifest(manifest);
 ```
 
 - **WHEN** loading an MFE
-- **THEN** `@hai3/screensets` SHALL NOT be shared (each MFE gets isolated instance)
+- **THEN** `@hai3/screensets` SHALL NOT be shared as singleton (each MFE instance gets its own isolated runtime instance)
 - **AND** `@globaltypesystem/gts-ts` SHALL NOT be shared (isolated TypeSystemPlugin)
 - **AND** React/ReactDOM SHALL NOT be shared (MFEs are framework-agnostic)
 - **AND** no singletons SHALL be used by design
