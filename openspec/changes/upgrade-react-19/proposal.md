@@ -12,6 +12,7 @@ React 19 introduces performance improvements, new hooks, and simplifies ref forw
   - @types/react: 18.3.3 → 19.0.8
   - @types/react-dom: 18.3.0 → 19.0.3
   - Redux Toolkit: 2.2.1 → 2.11.2 (React 19 compatibility)
+  - react-redux: 9.1.2 → 9.2.0 (React 19 compatibility, CLI generator only)
   - lucide-react: 0.344.0 → 0.563.0 (React 19 compatibility)
 
 - **Code changes:**

@@ -97,7 +97,8 @@ const Button = ({ ref, ...props }: ButtonProps & { ref?: Ref<HTMLButtonElement> 
 | @types/react | 18.3.3 | 19.0.8 | ✅ Types published |
 | @types/react-dom | 18.3.0 | 19.0.3 | ✅ Types published |
 | @reduxjs/toolkit | 2.2.1 | 2.11.2 | ✅ React 19 support added in 2.5.0 |
-| react-redux | 9.1.0 | (no change) | ✅ Compatible with React 19 |
+| react-redux (monorepo) | 9.1.0 | (no change) | ✅ Compatible with React 19 |
+| react-redux (CLI gen) | 9.1.2 | 9.2.0 | ✅ React 19 support added in 9.2.0 |
 | @radix-ui/* (23 packages) | v1.x-v2.x | (no change) | ✅ Verified React 19 compatible |
 | react-hook-form | 7.68.0 | (no change) | ✅ Compatible |
 | lucide-react | 0.344.0 | 0.563.0 | ✅ React 19 support added in 0.450.0 |
@@ -105,6 +106,8 @@ const Button = ({ ref, ...props }: ButtonProps & { ref?: Ref<HTMLButtonElement> 
 **Key findings:**
 - Redux Toolkit 2.2.1 has React 18 peer dependency constraints
 - Upgrading to 2.11.2 adds React 19 peer dependency support
+- react-redux 9.1.2 only supports React ^18.0
+- react-redux 9.2.0 adds React 19 support (^18.0 || ^19)
 - All other dependencies use flexible version ranges or are already compatible
 
 ## File Changes
@@ -218,6 +221,7 @@ const dependencies: Record<string, string> = {
   'lucide-react': '0.563.0',
   react: '19.2.4',
   'react-dom': '19.2.4',
+  'react-redux': '9.2.0',
   // ...
 };
 
