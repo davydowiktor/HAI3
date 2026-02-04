@@ -25,6 +25,7 @@ export {
   useAppSelector,
   useTranslation,
   useScreenTranslations,
+  useFormatters,
   useNavigation,
   useTheme,
 } from './hooks';
@@ -57,6 +58,7 @@ export type {
   UseAppDispatchReturn,
   UseTranslationReturn,
   UseScreenTranslationsReturn,
+  UseFormattersReturn,
   UseLanguageReturn,
   UseThemeReturn,
   UseMenuReturn,
@@ -380,7 +382,7 @@ import type { EventPayloadMap as FrameworkEventPayloadMap } from '@hai3/framewor
 import type { EventBus } from '@hai3/state';
 import { eventBus as frameworkEventBus } from '@hai3/framework';
 
-export interface EventPayloadMap extends FrameworkEventPayloadMap {}
+export interface EventPayloadMap extends FrameworkEventPayloadMap { }
 
 /**
  * Re-export eventBus with augmented EventPayloadMap type.

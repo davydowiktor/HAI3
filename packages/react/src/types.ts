@@ -157,6 +157,23 @@ export interface UseThemeReturn {
 }
 
 /**
+ * useFormatters Hook Return Type
+ * Locale-aware formatters (locale from i18nRegistry.getLanguage()).
+ */
+export interface UseFormattersReturn {
+  formatDate: (date: Date | number | string, format: 'short' | 'medium' | 'long' | 'full') => string;
+  formatTime: (date: Date | number | string, format: 'short' | 'medium') => string;
+  formatDateTime: (date: Date | number | string, dateFormat: 'short' | 'medium' | 'long' | 'full', timeFormat: 'short' | 'medium') => string;
+  formatRelative: (date: Date | number | string, base?: Date | number | string) => string;
+  formatNumber: (value: number | null | undefined, options?: Intl.NumberFormatOptions) => string;
+  formatPercent: (value: number | null | undefined, decimals?: number) => string;
+  formatCompact: (value: number | null | undefined) => string;
+  formatCurrency: (value: number | null | undefined, currencyCode: string) => string;
+  compareStrings: (a: string, b: string, options?: Intl.CollatorOptions) => number;
+  createCollator: (options?: Intl.CollatorOptions) => Intl.Collator;
+}
+
+/**
  * useMenu Hook Return Type
  * Menu state and actions.
  */
