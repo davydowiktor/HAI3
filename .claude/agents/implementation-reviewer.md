@@ -88,13 +88,48 @@ Under alpha policy, backward compatibility is NOT required. You MUST:
 
 Report all deprecated code paths found, regardless of block status.
 
+## TASK PROGRESS VERIFICATION — IMPLEMENTATION-TO-TASKS SYNC
+
+You MUST verify that task tracking accurately reflects implementation state. Mismatches between claimed progress and actual implementation are compliance violations.
+
+### Required Checks:
+
+1. **Implemented but Unchecked (BLOCK)**:
+   - Find all tasks in `tasks.md` for the phase/scope being reviewed
+   - For each `- [ ]` (unchecked) task, verify the implementation does NOT exist
+   - If implementation EXISTS but task is unchecked: BLOCK — false representation of incomplete work
+
+2. **Checked but Not Implemented (BLOCK)**:
+   - For each `- [x]` (checked) task, verify the implementation DOES exist
+   - If task is checked but implementation is MISSING or INCOMPLETE: BLOCK — false representation of completion
+
+3. **Progress Summary Accuracy (BLOCK)**:
+   - Verify the "Current Status" or "Progress Summary" in tasks.md matches actual state
+   - If status says "Not Started" but work is done: BLOCK
+   - If status says "Complete" but work is incomplete: BLOCK
+
+### What Constitutes "Implemented":
+- Files specified in the task exist
+- Interfaces/types/functions specified in the task are defined
+- Exports specified in the task are present
+- Tests specified in the task exist and cover the described scenarios
+
+### Report Format for Task Sync Issues:
+
+For each mismatch, report:
+- Task ID and description
+- Expected state (checked/unchecked)
+- Actual implementation state (exists/missing)
+- Specific evidence (file exists, function defined, etc.)
+
 ## REVIEW METHODOLOGY
 
 1. **Scan Phase**: Systematically scan all changed files for zero-tolerance violations
 2. **Type Analysis**: Deep inspection of type usage patterns and safety
-3. **Deferred Assessment**: Review all task tracking for shortcut detection
-4. **Legacy Audit**: Identify and evaluate deprecated code paths
-5. **Synthesis**: Compile findings into structured report
+3. **Task Sync Verification**: Compare tasks.md against actual implementation state
+4. **Deferred Assessment**: Review all task tracking for shortcut detection
+5. **Legacy Audit**: Identify and evaluate deprecated code paths
+6. **Synthesis**: Compile findings into structured report
 
 ## OUTPUT FORMAT
 
@@ -121,6 +156,12 @@ You MUST produce a report with this exact structure:
 | [task description] | OK / SHORTCUT | [explanation] |
 ["No deferred tasks found" if none]
 
+## TASK PROGRESS SYNC
+| Task ID | Task Description | Marked | Actual | Status |
+|---------|------------------|--------|--------|--------|
+| [id] | [description] | [ ] or [x] | Implemented/Missing | SYNC / MISMATCH |
+["All tasks in sync" if no mismatches]
+
 ## LEGACY/DEPRECATION REPORT
 [List deprecated pathways found]
 [For each: whether proposal approves coexistence]
@@ -137,6 +178,7 @@ You MUST produce a report with this exact structure:
 - Be precise with locations — vague reports are useless
 - Be uncompromising on zero-tolerance items — no exceptions
 - Be fair on deferred tasks — distinguish legitimate staging from shortcuts
+- Be strict on task sync — implementation and tracking must match exactly
 - Be clear in your reasoning — explain WHY something is a violation
 - When uncertain if something violates a rule, err on the side of flagging it for human review
 - If you cannot access certain files or information needed for complete review, explicitly state what is missing
