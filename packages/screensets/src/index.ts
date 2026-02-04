@@ -62,3 +62,17 @@ export {
   // Registry interface
   type ScreensetRegistry,
 } from './types';
+
+// ============================================================================
+// MFE (Microfrontend) Support
+// ============================================================================
+
+export type {
+  JSONSchema,
+  ValidationError,
+  ValidationResult,
+  CompatibilityChange,
+  CompatibilityResult,
+  AttributeResult,
+  TypeSystemPlugin,
+} from './mfe';
