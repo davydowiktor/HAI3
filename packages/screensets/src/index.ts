@@ -67,6 +67,7 @@ export {
 // MFE (Microfrontend) Support
 // ============================================================================
 
+// Type System Plugin
 export type {
   JSONSchema,
   ValidationError,
@@ -76,3 +77,24 @@ export type {
   AttributeResult,
   TypeSystemPlugin,
 } from './mfe';
+
+// MFE TypeScript Interfaces
+export type {
+  MfeEntry,
+  MfeEntryMF,
+  ExtensionDomain,
+  Extension,
+  SharedProperty,
+  Action,
+  ActionsChain,
+  LifecycleStage,
+  LifecycleHook,
+  MfManifest,
+  SharedDependencyConfig,
+} from './mfe';
+
+// HAI3 Type ID Constants and GTS Schemas
+export { HAI3_CORE_TYPE_IDS, HAI3_LIFECYCLE_STAGE_IDS, HAI3_MF_TYPE_IDS, mfeGtsSchemas } from './mfe';
+
+// NOTE: GTS Plugin is NOT re-exported here to avoid pulling in @globaltypesystem/gts-ts
+// for consumers who don't need it. Import directly from '@hai3/screensets/plugins/gts'
