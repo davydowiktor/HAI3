@@ -25,8 +25,6 @@ The loading process must handle network failures, validation [errors](./mfe-erro
 
 **MfeLoader**: An internal implementation component that loads MFE bundles using Module Federation 2.0.
 
-**ManifestFetcher**: A strategy interface for resolving MfManifest instances from their type IDs.
-
 ---
 
 ## Decisions
@@ -150,25 +148,48 @@ Each handler's `canHandle()` method (inherited from base class) uses the type sy
 // HAI3's default MF handler - handles MfeEntryMF
 class MfeHandlerMF extends MfeHandler<MfeEntryMF, MfeBridge> {
   readonly bridgeFactory = new MfeBridgeFactoryDefault();
+  private readonly manifestCache: ManifestCache;
 
   constructor(typeSystem: TypeSystemPlugin) {
     // Pass the base type ID this handler handles
     super(typeSystem, 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~');
+    // ManifestCache is created internally - not passed in
+    this.manifestCache = new ManifestCache();
   }
 
   // canHandle() inherited from base class uses:
   // this.typeSystem.isTypeOf(entryTypeId, this.handledBaseTypeId)
 
   async load(entry: MfeEntryMF): Promise<MfeEntryLifecycle> {
-    // Module Federation loading logic
+    // Resolve manifest from entry - manifest info is embedded in MfeEntryMF
+    // or referenced by type ID and resolved internally
     const manifest = await this.resolveManifest(entry.manifest);
+    // Cache manifest for reuse by other entries from same remote
+    this.manifestCache.cacheManifest(manifest);
     const container = await this.loadRemoteContainer(manifest);
     const moduleFactory = await container.get(entry.exposedModule);
     return moduleFactory();
   }
 
+  private async resolveManifest(manifestRef: string | MfManifest): Promise<MfManifest> {
+    // If inline manifest object, use directly
+    if (typeof manifestRef !== 'string') {
+      return manifestRef;
+    }
+    // If type ID reference, check cache first
+    const cached = this.manifestCache.getManifest(manifestRef);
+    if (cached) {
+      return cached;
+    }
+    // Manifest must be provided inline or already cached from previous entry
+    throw new MfeLoadError(
+      `Manifest '${manifestRef}' not found. Provide manifest inline in MfeEntryMF or ensure another entry from the same remote was loaded first.`,
+      manifestRef
+    );
+  }
+
   async preload(entries: MfeEntryMF[]): Promise<void> {
-    // Preload manifests and containers
+    // Preload containers for registered manifests
   }
 }
 
@@ -370,89 +391,78 @@ class MfeLoader {
 }
 ```
 
-### Decision 12: Manifest Fetching Strategy
+<a name="decision-12"></a>
+### Decision 12: Manifest as Internal Implementation Detail of MfeHandlerMF
 
-The MfeLoader requires a strategy for fetching MfManifest instances from their type IDs.
+MfManifest is NOT a first-class citizen of the MFE system. It is an **internal implementation detail** of the Module Federation handler (`MfeHandlerMF`). Other handler types (iframe, ESM) would not use manifests at all.
 
-#### Manifest Fetching Design
+**Key Principle**: The ScreensetsRegistry does NOT expose `registerManifest()` publicly. When an Extension references an MfeEntryMF, the handler internally resolves and caches the manifest.
+
+#### Internal Manifest Registry (Private to MfeHandlerMF)
 
 ```typescript
-// packages/screensets/src/mfe/loader/manifest-fetcher.ts
+// packages/screensets/src/mfe/handler/mf-handler.ts (INTERNAL)
 
-interface ManifestFetcher {
-  fetch(manifestTypeId: string): Promise<MfManifest>;
-}
-
-class UrlManifestFetcher implements ManifestFetcher {
-  constructor(
-    private readonly urlResolver: (manifestTypeId: string) => string,
-    private readonly fetchOptions?: RequestInit
-  ) {}
-
-  async fetch(manifestTypeId: string): Promise<MfManifest> {
-    const url = this.urlResolver(manifestTypeId);
-    const response = await fetch(url, this.fetchOptions);
-    if (!response.ok) {
-      throw new MfeLoadError(`Failed to fetch manifest: ${response.status}`, manifestTypeId);
-    }
-    return response.json();
-  }
-}
-
-class RegistryManifestFetcher implements ManifestFetcher {
+/**
+ * Internal registry for MfManifest instances.
+ * Used only by MfeHandlerMF - not exposed publicly.
+ */
+class ManifestCache {
   private readonly manifests = new Map<string, MfManifest>();
+  private readonly containers = new Map<string, Container>();
 
-  register(manifest: MfManifest): void {
+  /** Cache a manifest for reuse */
+  cacheManifest(manifest: MfManifest): void {
     this.manifests.set(manifest.id, manifest);
   }
 
-  async fetch(manifestTypeId: string): Promise<MfManifest> {
-    const manifest = this.manifests.get(manifestTypeId);
-    if (!manifest) {
-      throw new MfeLoadError(`Manifest not found in registry`, manifestTypeId);
-    }
-    return manifest;
+  /** Get a cached manifest by ID */
+  getManifest(manifestId: string): MfManifest | undefined {
+    return this.manifests.get(manifestId);
   }
-}
 
-class CompositeManifestFetcher implements ManifestFetcher {
-  constructor(private readonly fetchers: ManifestFetcher[]) {}
+  /** Cache a loaded container */
+  cacheContainer(remoteName: string, container: Container): void {
+    this.containers.set(remoteName, container);
+  }
 
-  async fetch(manifestTypeId: string): Promise<MfManifest> {
-    for (const fetcher of this.fetchers) {
-      try {
-        return await fetcher.fetch(manifestTypeId);
-      } catch {
-        continue;
-      }
-    }
-    throw new MfeLoadError(`Manifest not found by any fetcher`, manifestTypeId);
+  /** Get a cached container */
+  getContainer(remoteName: string): Container | undefined {
+    return this.containers.get(remoteName);
   }
 }
 ```
 
-#### Usage Example
+#### How Manifests are Resolved
+
+When `loadExtension()` is called for an extension referencing MfeEntryMF:
+
+1. MfeHandlerMF receives the entry with `manifest` field (a type ID or inline manifest)
+2. Handler resolves the manifest internally (from cache or by parsing the entry)
+3. Handler loads the Module Federation container
+4. Manifest is cached for subsequent loads of entries from the same remote
 
 ```typescript
-// URL-based fetching
-const loader = new MfeLoader(typeSystem, {
-  manifestFetcher: new UrlManifestFetcher(
-    (typeId) => `https://mfe-registry.example.com/manifests/${encodeURIComponent(typeId)}.json`
-  ),
+// Application registers extension (manifest info is embedded in MfeEntryMF)
+runtime.registerExtension({
+  id: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1~',
+  domain: 'gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1~',
+  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1~',
+  uiMeta: { title: 'Analytics Dashboard' },
 });
 
-// Pre-registered manifests
-const registryFetcher = new RegistryManifestFetcher();
-registryFetcher.register(analyticsManifest);
+// Loading is handled by MfeHandlerMF internally
+await runtime.loadExtension(extensionId);  // Handler resolves manifest from entry
 
-// Composite strategy (try registry first, then URL)
-const loader = new MfeLoader(typeSystem, {
-  manifestFetcher: new CompositeManifestFetcher([
-    registryFetcher,
-    new UrlManifestFetcher((typeId) => `https://cdn.example.com/manifests/${typeId}.json`),
-  ]),
-});
+// Mount to DOM
+await runtime.mountExtension(extensionId, container);
 ```
+
+**Note**: The MfeEntryMF type includes a `manifest` field that can be:
+- A manifest type ID reference (resolved from a manifest registry or API)
+- An inline manifest object with remoteEntry and remoteName
+
+How the manifest data is obtained (backend API, static config, etc.) is outside MFE system scope. The MfeEntryMF carries the manifest reference, and MfeHandlerMF resolves it internally.
 
 ---
 
@@ -463,7 +473,7 @@ const loader = new MfeLoader(typeSystem, {
 | Type System plugin complexity | Provide comprehensive GTS plugin as reference implementation |
 | Contract validation overhead | Cache validation results, validate once at registration |
 | Module Federation bundle size | Tree-shaking, shared dependencies, lazy loading |
-| Manifest discovery | Multiple fetching strategies (registry, URL, composite) |
+| Manifest availability | Clear error messages when manifest not registered |
 | Dynamic registration race conditions | Sequential registration with async/await, event-based coordination |
 
 ## Testing Strategy

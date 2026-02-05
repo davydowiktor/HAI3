@@ -2,7 +2,7 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 1 Complete - In Progress
+**Current Status**: Phase 2 Complete - GTS Plugin Implemented
 
 ---
 
@@ -24,7 +24,7 @@
 
 ### 1.2 Define Plugin Method Signatures
 
-- [x] 1.2.1 Define type ID operation method signatures (`isValidTypeId`, `buildTypeId`, `parseTypeId`)
+- [x] 1.2.1 Define type ID operation method signatures (`isValidTypeId`, `parseTypeId`) - Note: `buildTypeId` omitted because GTS type IDs are consumed but never programmatically generated; all type IDs are defined as string constants
 - [x] 1.2.2 Define schema registry method signatures (`registerSchema`, `validateInstance`, `getSchema`)
 - [x] 1.2.3 Define query method signature (`query`)
 - [x] 1.2.4 Define required compatibility method signature (`checkCompatibility`)
@@ -36,42 +36,48 @@
 
 ## Phase 2: GTS Plugin Implementation
 
-**Goal**: Implement the GTS plugin as the default Type System implementation.
+**Goal**: Implement the GTS plugin as the default Type System implementation using the REAL `@globaltypesystem/gts-ts` package.
+
+**Status**: COMPLETE (RE-IMPLEMENTED)
 
 ### 2.1 Create GTS Plugin
 
-- [ ] 2.1.1 Create `packages/screensets/src/mfe/plugins/gts/index.ts`
-- [ ] 2.1.2 Implement `isValidTypeId()` to validate GTS type ID format
-- [ ] 2.1.3 Implement `buildTypeId()` to construct GTS type IDs
-- [ ] 2.1.4 Implement `parseTypeId()` to parse GTS type ID into components (returns generic object)
-- [ ] 2.1.5 Implement `registerSchema()` using internal GtsStore
-- [ ] 2.1.6 Implement `validateInstance()` using internal GtsStore
-- [ ] 2.1.7 Implement `getSchema()` using internal GtsStore
-- [ ] 2.1.8 Implement `query()` using GtsQuery
-- [ ] 2.1.9 Implement `checkCompatibility()` using Gts.checkCompatibility()
-- [ ] 2.1.10 Implement `getAttribute()` for dynamic schema resolution
+- [x] 2.1.1 Create `packages/screensets/src/mfe/plugins/gts/index.ts`
+- [x] 2.1.2 Implement `isValidTypeId()` using standalone `isValidGtsID()` function
+- [x] 2.1.3 Implement `parseTypeId()` using standalone `parseGtsID()` function (returns ParseResult with segments array)
+- [x] 2.1.4 Implement `registerSchema()` using `GtsStore.register(entity)` with `createJsonEntity()`
+- [x] 2.1.5 Implement `validateInstance()` using `GtsStore.validateInstance(gtsId)`
+- [x] 2.1.6 Implement `getSchema()` using `GtsStore.get(typeId)` returning JsonEntity
+- [x] 2.1.7 Implement `query()` using `GtsQuery.query(store, pattern, limit)`
+- [x] 2.1.8 Implement `checkCompatibility()` using `GtsStore.checkCompatibility()`
+- [x] 2.1.9 Implement `getAttribute()` using `GtsStore.getAttribute()`
+- [x] 2.1.10 Import from `@globaltypesystem/gts-ts`: `isValidGtsID`, `parseGtsID`, `GtsStore`, `GtsQuery`, `createJsonEntity`
+- [x] 2.1.11 Register all first-class citizen schemas during construction (built-in approach)
 
-**Traceability**: Requirement "Type System Plugin Abstraction" - GTS plugin as default implementation
+Note: `buildTypeId()` was intentionally omitted from the plugin interface because GTS type IDs are consumed (validated, parsed) but never programmatically generated at runtime. All type IDs are defined as string constants.
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - GTS plugin as default implementation, spec line 21
 
 ### 2.2 Export GTS Plugin
 
-- [ ] 2.2.1 Export `createGtsPlugin()` factory function
-- [ ] 2.2.2 Export `gtsPlugin` singleton instance
-- [ ] 2.2.3 Configure package.json exports for `@hai3/screensets/plugins/gts`
-- [ ] 2.2.4 Add peer dependency on `@globaltypesystem/gts-ts`
+- [x] 2.2.1 Export `createGtsPlugin()` factory function
+- [x] 2.2.2 Export `gtsPlugin` singleton instance
+- [x] 2.2.3 Configure package.json exports for `@hai3/screensets/plugins/gts`
+- [x] 2.2.4 Add `@globaltypesystem/gts-ts` as a proper dependency (NOT optional)
 
 **Traceability**: Requirement "Type System Plugin Abstraction" - GTS plugin as default implementation
 
 ### 2.3 GTS Plugin Tests
 
-- [ ] 2.3.1 Test `isValidTypeId()` accepts valid GTS type IDs
-- [ ] 2.3.2 Test `isValidTypeId()` rejects invalid formats (missing segments, no tilde, no version prefix)
-- [ ] 2.3.3 Test `buildTypeId()` creates correct GTS format
-- [ ] 2.3.4 Test `parseTypeId()` returns correct components
-- [ ] 2.3.5 Test schema registration and validation
-- [ ] 2.3.6 Test query operations
-- [ ] 2.3.7 Test `checkCompatibility()` returns proper CompatibilityResult
-- [ ] 2.3.8 Test `getAttribute()` resolves attributes correctly
+- [x] 2.3.1 Test `isValidTypeId()` accepts valid GTS type IDs
+- [x] 2.3.2 Test `isValidTypeId()` rejects invalid formats (missing segments, no tilde, no version prefix)
+- [x] 2.3.3 Test `parseTypeId()` returns correct components
+- [x] 2.3.4 Test schema registration and validation
+- [x] 2.3.5 Test query operations
+- [x] 2.3.6 Test `checkCompatibility()` returns proper CompatibilityResult
+- [x] 2.3.7 Test `getAttribute()` resolves attributes correctly
+
+Note: `buildTypeId()` test was removed because the method was intentionally omitted from the interface. GTS type IDs are consumed but never programmatically generated.
 
 **Traceability**: Requirement "Type System Plugin Abstraction" - GTS plugin as default implementation, GTS type ID validation
 
@@ -119,15 +125,15 @@
 
 **Traceability**: Requirement "Type System Plugin Abstraction" - HAI3 type registration via plugin
 
-### 3.3 HAI3 Type Registration
+### 3.3 HAI3 Type Constants (Reference Only)
 
-- [ ] 3.3.1 Define `HAI3_CORE_TYPE_IDS` constant with 8 core GTS type IDs
-- [ ] 3.3.2 Define `HAI3_MF_TYPE_IDS` constant with 2 Module Federation GTS type IDs
-- [ ] 3.3.3 Implement `registerHai3Types(plugin)` function
-- [ ] 3.3.4 Register all 10 schemas (8 core + 2 MF) using `plugin.registerSchema()`
-- [ ] 3.3.5 Return combined type IDs for runtime use
+- [ ] 3.3.1 Define `HAI3_CORE_TYPE_IDS` constant with 8 core GTS type IDs (reference only)
+- [ ] 3.3.2 Define `HAI3_MF_TYPE_IDS` constant with 2 Module Federation GTS type IDs (reference only)
+- [ ] 3.3.3 Define `HAI3_LIFECYCLE_STAGE_IDS` constant with 4 default lifecycle stage GTS type IDs (reference only)
+- [ ] 3.3.4 Document that all first-class schemas are built into GTS plugin during construction (no registerHai3Types function needed)
+- [ ] 3.3.5 Export type ID constants from `@hai3/screensets` for convenience
 
-**Traceability**: Requirement "Type System Plugin Abstraction" - HAI3 type registration via plugin
+**Traceability**: Requirement "Type System Plugin Abstraction" - HAI3 type availability via plugin (built-in)
 
 ---
 
@@ -148,7 +154,7 @@
 
 - [ ] 4.2.1 Create `ScreensetsRegistry` class
 - [ ] 4.2.2 Store plugin reference as `readonly typeSystem`
-- [ ] 4.2.3 Call `registerHai3Types(plugin)` on initialization
+- [ ] 4.2.3 Verify first-class schemas are available (built into plugin during construction)
 - [ ] 4.2.4 Throw error if plugin is missing
 
 **Traceability**: Requirement "Type System Plugin Abstraction" - Plugin requirement at initialization
@@ -206,26 +212,36 @@
 
 ---
 
-## Phase 6: Dynamic uiMeta Validation
+## Phase 6: Dynamic uiMeta Validation via Pre-registered Domain Schemas
 
-**Goal**: Implement runtime validation of Extension's uiMeta against domain's extensionsUiMeta.
+**Goal**: Implement runtime validation of Extension's uiMeta against domain's extensionsUiMeta using the pre-registration pattern.
 
-### 6.1 uiMeta Validation Implementation
+### 6.1 Domain Schema Pre-registration
 
-- [ ] 6.1.1 Implement `validateExtensionUiMeta(plugin, extension)` function
-- [ ] 6.1.2 Resolve domain's extensionsUiMeta via `plugin.getAttribute()`
-- [ ] 6.1.3 Handle attribute resolution failure with clear error message
-- [ ] 6.1.4 Validate extension.uiMeta against resolved schema
-- [ ] 6.1.5 Transform validation errors to include uiMeta context
+- [ ] 6.1.1 Implement domain registration to pre-register extensionsUiMeta schema with convention-based ID
+- [ ] 6.1.2 Use convention-based ID format: `{domainId}@extensionsUiMeta`
+- [ ] 6.1.3 Register extensionsUiMeta schema with $id containing the convention-based ID
 
-**Traceability**: Requirement "Dynamic uiMeta Validation" - uiMeta validation via attribute selector
+**Traceability**: Requirement "Dynamic uiMeta Validation" - Domain registration pre-registers extensionsUiMeta schema
 
-### 6.2 uiMeta Validation Tests
+### 6.2 uiMeta Validation Implementation
 
-- [ ] 6.2.1 Test successful uiMeta validation
-- [ ] 6.2.2 Test uiMeta validation failure
-- [ ] 6.2.3 Test uiMeta validation with derived domains
-- [ ] 6.2.4 Test attribute resolution failure handling
+- [ ] 6.2.1 Implement `validateExtensionUiMeta(plugin, extension)` function
+- [ ] 6.2.2 Build convention-based schema ID from extension.domain
+- [ ] 6.2.3 Create unique instance ID for extension's uiMeta
+- [ ] 6.2.4 Register uiMeta instance with $schema pointing to pre-registered schema
+- [ ] 6.2.5 Validate using standard `validateInstance()` via GTS store
+- [ ] 6.2.6 Transform validation errors to include uiMeta context
+
+**Traceability**: Requirement "Dynamic uiMeta Validation" - uiMeta validation via pre-registered domain schemas
+
+### 6.3 uiMeta Validation Tests
+
+- [ ] 6.3.1 Test successful uiMeta validation
+- [ ] 6.3.2 Test uiMeta validation failure
+- [ ] 6.3.3 Test uiMeta validation with derived domains
+- [ ] 6.3.4 Test pre-registered schema is available after domain registration
+- [ ] 6.3.5 Test convention-based schema ID format
 
 **Traceability**: Requirement "Dynamic uiMeta Validation" - all scenarios
 
@@ -484,30 +500,36 @@
 ### 13.2 MFE Actions
 
 - [ ] 13.2.1 Create `packages/framework/src/plugins/microfrontends/actions.ts`
-- [ ] 13.2.2 Implement `mountExtension(extensionId)` action - emits `'mfe/mountRequested'` event
-- [ ] 13.2.3 Implement `handleMfeHostAction(extensionId, actionTypeId, payload)` action
-- [ ] 13.2.4 Export actions as `mfeActions` from plugin
+- [ ] 13.2.2 Implement `loadExtension(extensionId)` action - emits `'mfe/loadRequested'` event
+- [ ] 13.2.3 Implement `preloadExtension(extensionId)` action - emits `'mfe/preloadRequested'` event
+- [ ] 13.2.4 Implement `mountExtension(extensionId)` action - emits `'mfe/mountRequested'` event
+- [ ] 13.2.5 Implement `handleMfeHostAction(extensionId, actionTypeId, payload)` action
+- [ ] 13.2.6 Export actions as `mfeActions` from plugin
 
-**Traceability**: Requirement "MFE Actions" - Mount and host action (navigation is handled by mounting on screen domain)
+**Traceability**: Requirement "MFE Actions" - Load, preload, mount, and host action
 
 ### 13.3 MFE Effects
 
 - [ ] 13.3.1 Create `packages/framework/src/plugins/microfrontends/effects.ts`
-- [ ] 13.3.2 Implement mount effect - subscribes to `'mfe/mountRequested'`, calls `runtime.mountExtension()` (screen domain mount = navigation)
-- [ ] 13.3.3 Implement host action effect - handles load_ext/unload_ext for popup, sidebar, overlay, and custom domains
-- [ ] 13.3.4 Implement unmount effect - cleans up on domain unload
+- [ ] 13.3.2 Implement load effect - subscribes to `'mfe/loadRequested'`, calls `runtime.loadExtension()`
+- [ ] 13.3.3 Implement preload effect - subscribes to `'mfe/preloadRequested'`, calls `runtime.preloadExtension()`
+- [ ] 13.3.4 Implement mount effect - subscribes to `'mfe/mountRequested'`, calls `runtime.mountExtension()` (auto-loads if needed)
+- [ ] 13.3.5 Implement host action effect - handles load_ext/unload_ext for popup, sidebar, overlay, and custom domains
+- [ ] 13.3.6 Implement unmount effect - cleans up on domain unload
 
 **Traceability**: Requirement "MFE Effects" - Event handlers and runtime calls
 
 ### 13.4 MFE Slice
 
 - [ ] 13.4.1 Create `packages/framework/src/plugins/microfrontends/slice.ts`
-- [ ] 13.4.2 Define `MfeState` interface with load states per entry type ID
-- [ ] 13.4.3 Implement `setLoading`, `setLoaded`, `setError` reducers
-- [ ] 13.4.4 Implement `selectMfeLoadState(state, entryTypeId)` selector
-- [ ] 13.4.5 Implement `selectMfeError(state, entryTypeId)` selector
+- [ ] 13.4.2 Define `MfeState` interface with load and mount states per extension ID
+- [ ] 13.4.3 Implement `setLoading`, `setBundleLoaded`, `setError` reducers for load state
+- [ ] 13.4.4 Implement `setMounting`, `setMounted`, `setUnmounted` reducers for mount state
+- [ ] 13.4.5 Implement `selectMfeLoadState(state, extensionId)` selector (idle/loading/loaded/error)
+- [ ] 13.4.6 Implement `selectMfeMountState(state, extensionId)` selector (unmounted/mounting/mounted/error)
+- [ ] 13.4.7 Implement `selectMfeError(state, extensionId)` selector
 
-**Traceability**: Requirement "MFE Load State Tracking" - State management
+**Traceability**: Requirement "MFE Load State Tracking" - State management (separate load and mount states)
 
 ### 13.5 ShadowDomContainer Component
 
@@ -686,37 +708,36 @@
 
 ---
 
-## Phase 17: MFE Registry
+## Phase 17: MFE Handler Internal Caching
 
-**Goal**: Implement MFE registry for manifest and entry tracking.
+**Goal**: Implement internal caching for MfeHandlerMF. MfManifest is internal to MfeHandlerMF. See [Manifest as Internal Implementation Detail](./design/mfe-loading.md#decision-12-manifest-as-internal-implementation-detail-of-mfehandlermf).
 
-### 17.1 MFE Registry
+### 17.1 Internal ManifestCache (MfeHandlerMF only)
 
-- [ ] 17.1.1 Create `packages/screensets/src/mfe/registry/index.ts`
-- [ ] 17.1.2 Implement `microfrontendRegistry` singleton
-- [ ] 17.1.3 Implement `getManifest(manifestTypeId)` method
-- [ ] 17.1.4 Implement `getEntry(entryTypeId)` method
-- [ ] 17.1.5 Implement `registerManifest(manifest)` method
+- [ ] 17.1.1 Create internal `ManifestCache` class within `packages/screensets/src/mfe/handler/mf-handler.ts`
+- [ ] 17.1.2 Implement in-memory manifest caching for reuse across entries
+- [ ] 17.1.3 Implement container caching per remoteName
+- [ ] 17.1.4 Cache manifests resolved from MfeEntryMF during load
 
-**Traceability**: Requirement "MFE Registry Integration"
+**Traceability**: Design Decision 12 in mfe-loading.md
 
-### 17.2 MfeHandlerMF Internal Manifest Resolution
+### 17.2 MfeHandlerMF Manifest Resolution
 
-- [ ] 17.2.1 Implement internal `fetchManifestInstance` in MfeHandlerMF
-- [ ] 17.2.2 Add manifest caching within MfeHandlerMF
-- [ ] 17.2.3 Add registry lookup integration (optional, implementation detail)
+- [ ] 17.2.1 Implement manifest resolution from MfeEntryMF.manifest field
+- [ ] 17.2.2 Support manifest as inline object OR type ID reference
+- [ ] 17.2.3 Cache resolved manifests for entries from same remote
+- [ ] 17.2.4 Clear error messaging if manifest resolution fails
 
 **Traceability**: Requirement "MFE Loading via MfeEntryMF and MfManifest"
 
-Note: Manifest resolution is an **internal implementation detail** of MfeHandlerMF, not a public architectural abstraction. Different handlers (iframe, ESM) would have completely different internal mechanisms.
+### 17.3 Handler Caching Tests
 
-### 17.3 Registry Tests
+- [ ] 17.3.1 Test manifest caching reuses data for multiple entries from same remote
+- [ ] 17.3.2 Test container caching avoids redundant script loads
+- [ ] 17.3.3 Test manifest resolution from inline MfeEntryMF.manifest
+- [ ] 17.3.4 Test manifest resolution from type ID reference
 
-- [ ] 17.3.1 Test microfrontendRegistry manifest registration and lookup
-- [ ] 17.3.2 Test microfrontendRegistry entry queries
-- [ ] 17.3.3 Test MfeHandlerMF internal manifest resolution
-
-**Traceability**: Requirement "MFE Registry Integration"
+**Traceability**: Design Decision 12 in mfe-loading.md
 
 ---
 
@@ -765,189 +786,150 @@ Note: Manifest resolution is an **internal implementation detail** of MfeHandler
 - [ ] 19.1.1 Implement `registerExtension(extension): Promise<void>` method
 - [ ] 19.1.2 Implement extension validation against GTS schema
 - [ ] 19.1.3 Implement domain existence check (must be registered first)
-- [ ] 19.1.4 Implement entry resolution (from cache or provider)
+- [ ] 19.1.4 Implement contract validation (entry vs domain)
 - [ ] 19.1.5 Implement `unregisterExtension(extensionId): Promise<void>` method
 - [ ] 19.1.6 Implement auto-unmount if MFE is currently mounted
 - [ ] 19.1.7 Implement `registerDomain(domain): Promise<void>` method
 - [ ] 19.1.8 Implement `unregisterDomain(domainId): Promise<void>` method
 - [ ] 19.1.9 Implement cascade unregister of extensions in domain
 
+Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshExtensionsFromBackend`, or `fetchInstance` methods. Entity fetching is outside MFE system scope.
+
 **Traceability**: Requirement "Dynamic Registration Model" - all scenarios
 
-### 19.2 Extension Mounting API
+### 19.2 Extension Loading API
 
-- [ ] 19.2.1 Implement `mountExtension(extensionId, container): Promise<MfeBridgeConnection>` method
-- [ ] 19.2.2 Verify extension is registered before mounting
-- [ ] 19.2.3 Integrate with MfeHandler for bundle loading
-- [ ] 19.2.4 Create bridge connection on mount
-- [ ] 19.2.5 Register with RuntimeCoordinator
-- [ ] 19.2.6 Implement `unmountExtension(extensionId): Promise<void>` method
-- [ ] 19.2.7 Dispose bridge and unregister from coordinator
-- [ ] 19.2.8 Keep extension registered after unmount
+- [ ] 19.2.1 Implement `loadExtension(extensionId): Promise<void>` method
+- [ ] 19.2.2 Verify extension is registered before loading
+- [ ] 19.2.3 Resolve entry from extension, find appropriate MfeHandler
+- [ ] 19.2.4 Call handler.load(entry) to fetch and initialize bundle
+- [ ] 19.2.5 Cache loaded lifecycle for mounting
+- [ ] 19.2.6 Emit `extensionLoaded` event
+- [ ] 19.2.7 Implement `preloadExtension(extensionId): Promise<void>` method
+- [ ] 19.2.8 Same as loadExtension but semantically for preloading
+- [ ] 19.2.9 Use handler.preload() if available for batch optimization
 
-**Traceability**: Requirement "Dynamic Registration Model" - mountExtension/unmountExtension scenarios
+**Traceability**: Requirement "ScreensetsRegistry Dynamic API" - loadExtension/preloadExtension scenarios
 
-### 19.3 Registration Events
+### 19.3 Extension Mounting API
 
-- [ ] 19.3.1 Implement `emit(event, data)` method on ScreensetsRegistry
-- [ ] 19.3.2 Emit `extensionRegistered` event with `{ extensionId }`
-- [ ] 19.3.3 Emit `extensionUnregistered` event with `{ extensionId }`
-- [ ] 19.3.4 Emit `domainRegistered` event with `{ domainId }`
-- [ ] 19.3.5 Emit `domainUnregistered` event with `{ domainId }`
-- [ ] 19.3.6 Implement `on(event, callback)` and `off(event, callback)` for subscriptions
+- [ ] 19.3.1 Implement `mountExtension(extensionId, container): Promise<MfeBridgeConnection>` method
+- [ ] 19.3.2 If extension not loaded, call loadExtension first (auto-load)
+- [ ] 19.3.3 Create bridge connection via handler.bridgeFactory
+- [ ] 19.3.4 Register with RuntimeCoordinator
+- [ ] 19.3.5 Call lifecycle.mount(container, bridge)
+- [ ] 19.3.6 Emit `extensionMounted` event
+- [ ] 19.3.7 Implement `unmountExtension(extensionId): Promise<void>` method
+- [ ] 19.3.8 Call lifecycle.unmount(container)
+- [ ] 19.3.9 Dispose bridge and unregister from coordinator
+- [ ] 19.3.10 Keep extension registered and bundle loaded after unmount
+- [ ] 19.3.11 Emit `extensionUnmounted` event
+
+**Traceability**: Requirement "ScreensetsRegistry Dynamic API" - mountExtension/unmountExtension scenarios
+
+### 19.4 Registration Events
+
+- [ ] 19.4.1 Implement `emit(event, data)` method on ScreensetsRegistry
+- [ ] 19.4.2 Emit `extensionRegistered` event with `{ extensionId }`
+- [ ] 19.4.3 Emit `extensionUnregistered` event with `{ extensionId }`
+- [ ] 19.4.4 Emit `domainRegistered` event with `{ domainId }`
+- [ ] 19.4.5 Emit `domainUnregistered` event with `{ domainId }`
+- [ ] 19.4.6 Emit `extensionLoaded` event with `{ extensionId }`
+- [ ] 19.4.7 Emit `extensionMounted` event with `{ extensionId }`
+- [ ] 19.4.8 Emit `extensionUnmounted` event with `{ extensionId }`
+- [ ] 19.4.9 Implement `on(event, callback)` and `off(event, callback)` for subscriptions
 
 **Traceability**: Requirement "ScreensetsRegistry Dynamic API" - Registration events
 
-### 19.4 Dynamic Registration Tests
+### 19.5 Dynamic Registration Tests
 
-- [ ] 19.4.1 Test registerExtension after runtime initialization
-- [ ] 19.4.2 Test registerExtension fails if domain not registered
-- [ ] 19.4.3 Test unregisterExtension unmounts MFE if mounted
-- [ ] 19.4.4 Test unregisterExtension is idempotent
-- [ ] 19.4.5 Test registerDomain at any time
-- [ ] 19.4.6 Test unregisterDomain cascades to extensions
-- [ ] 19.4.7 Test mountExtension requires extension to be registered
-- [ ] 19.4.8 Test unmountExtension keeps extension registered
-- [ ] 19.4.9 Test registration events are emitted correctly
-- [ ] 19.4.10 Test hot-swap: unregister + register with same ID
+- [ ] 19.5.1 Test registerExtension after runtime initialization
+- [ ] 19.5.2 Test registerExtension fails if domain not registered
+- [ ] 19.5.3 Test unregisterExtension unmounts MFE if mounted
+- [ ] 19.5.4 Test unregisterExtension is idempotent
+- [ ] 19.5.5 Test registerDomain at any time
+- [ ] 19.5.6 Test unregisterDomain cascades to extensions
+- [ ] 19.5.7 Test loadExtension requires extension to be registered
+- [ ] 19.5.8 Test loadExtension caches bundle for mounting
+- [ ] 19.5.9 Test preloadExtension has same behavior as loadExtension
+- [ ] 19.5.10 Test mountExtension auto-loads if not loaded
+- [ ] 19.5.11 Test mountExtension requires extension to be registered
+- [ ] 19.5.12 Test unmountExtension keeps extension registered and bundle loaded
+- [ ] 19.5.13 Test registration events are emitted correctly
+- [ ] 19.5.14 Test hot-swap: unregister + register with same ID
 
-**Traceability**: Requirement "Dynamic Registration Model" - all scenarios
-
----
-
-## Phase 20: TypeInstanceProvider
-
-**Goal**: Implement TypeInstanceProvider interface for future backend integration.
-
-### 20.1 TypeInstanceProvider Interface
-
-- [ ] 20.1.1 Create `packages/screensets/src/mfe/provider/types.ts`
-- [ ] 20.1.2 Define `TypeInstanceProvider` interface
-- [ ] 20.1.3 Define `InstanceUpdate` interface with type, typeId, instance
-- [ ] 20.1.4 Export interfaces from `@hai3/screensets`
-
-**Traceability**: Requirement "TypeInstanceProvider Interface" - interface definition
-
-### 20.2 InMemoryTypeInstanceProvider
-
-- [ ] 20.2.1 Create `packages/screensets/src/mfe/provider/InMemoryTypeInstanceProvider.ts`
-- [ ] 20.2.2 Implement `fetchExtensions(): Promise<Extension[]>`
-- [ ] 20.2.3 Implement `fetchDomains(): Promise<ExtensionDomain[]>`
-- [ ] 20.2.4 Implement `fetchInstance<T>(typeId): Promise<T | undefined>`
-- [ ] 20.2.5 Implement `subscribeToUpdates(callback): () => void`
-- [ ] 20.2.6 Implement `registerExtension(extension)` manual registration
-- [ ] 20.2.7 Implement `registerDomain(domain)` manual registration
-- [ ] 20.2.8 Implement `registerInstance(typeId, instance)` manual registration
-- [ ] 20.2.9 Notify subscribers on registration
-
-**Traceability**: Requirement "TypeInstanceProvider Interface" - InMemoryTypeInstanceProvider
-
-### 20.3 Runtime Provider Integration
-
-- [ ] 20.3.1 Implement `setTypeInstanceProvider(provider)` on ScreensetsRegistry
-- [ ] 20.3.2 Subscribe to provider updates on set
-- [ ] 20.3.3 Auto-register new extensions/domains from provider
-- [ ] 20.3.4 Auto-unregister removed extensions/domains from provider
-- [ ] 20.3.5 Implement `refreshExtensionsFromBackend(): Promise<void>`
-- [ ] 20.3.6 Fetch domains first, then extensions
-- [ ] 20.3.7 Skip already-registered items
-- [ ] 20.3.8 Throw error if no provider configured
-
-**Traceability**: Requirement "TypeInstanceProvider Interface" - runtime integration
-
-### 20.4 Entry Resolution with Provider
-
-- [ ] 20.4.1 Implement `resolveEntry(entryId): Promise<MfeEntry>` private method
-- [ ] 20.4.2 Try local cache first
-- [ ] 20.4.3 Fall back to provider.fetchInstance if available
-- [ ] 20.4.4 Cache fetched entries locally
-- [ ] 20.4.5 Throw error if entry not found anywhere
-
-**Traceability**: Requirement "TypeInstanceProvider Interface" - resolve entry from provider
-
-### 20.5 TypeInstanceProvider Tests
-
-- [ ] 20.5.1 Test InMemoryTypeInstanceProvider fetch methods
-- [ ] 20.5.2 Test InMemoryTypeInstanceProvider subscription notifications
-- [ ] 20.5.3 Test setTypeInstanceProvider configures runtime
-- [ ] 20.5.4 Test auto-registration from provider updates
-- [ ] 20.5.5 Test refreshExtensionsFromBackend fetches and registers
-- [ ] 20.5.6 Test refreshExtensionsFromBackend throws without provider
-- [ ] 20.5.7 Test resolveEntry uses cache first
-- [ ] 20.5.8 Test resolveEntry falls back to provider
-
-**Traceability**: Requirement "TypeInstanceProvider Interface" - all scenarios
+**Traceability**: Requirement "Dynamic Registration Model", "ScreensetsRegistry Dynamic API" - all scenarios
 
 ---
 
-## Phase 21: Framework Dynamic Registration Actions
+## Phase 20: Framework Dynamic Registration Actions
 
 **Goal**: Add dynamic registration actions to @hai3/framework microfrontends plugin.
 
-### 21.1 Dynamic Registration Actions
+### 20.1 Dynamic Registration Actions
 
-- [ ] 21.1.1 Add `registerExtension(extension)` action to mfeActions
-- [ ] 21.1.2 Emit `'mfe/registerExtensionRequested'` event
-- [ ] 21.1.3 Add `unregisterExtension(extensionId)` action to mfeActions
-- [ ] 21.1.4 Emit `'mfe/unregisterExtensionRequested'` event
-- [ ] 21.1.5 Add `refreshExtensions()` action to mfeActions
-- [ ] 21.1.6 Emit `'mfe/refreshExtensionsRequested'` event
+- [ ] 20.1.1 Add `registerExtension(extension)` action to mfeActions
+- [ ] 20.1.2 Emit `'mfe/registerExtensionRequested'` event
+- [ ] 20.1.3 Add `unregisterExtension(extensionId)` action to mfeActions
+- [ ] 20.1.4 Emit `'mfe/unregisterExtensionRequested'` event
+- [ ] 20.1.5 Add `registerDomain(domain)` action to mfeActions
+- [ ] 20.1.6 Emit `'mfe/registerDomainRequested'` event
+- [ ] 20.1.7 Add `unregisterDomain(domainId)` action to mfeActions
+- [ ] 20.1.8 Emit `'mfe/unregisterDomainRequested'` event
+- [ ] 20.1.9 Verify `loadExtension(extensionId)` and `preloadExtension(extensionId)` actions exist (from Phase 13.2)
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - actions
 
-### 21.2 Dynamic Registration Effects
+### 20.2 Dynamic Registration Effects
 
-- [ ] 21.2.1 Handle `'mfe/registerExtensionRequested'` event
-- [ ] 21.2.2 Call `runtime.registerExtension()` in effect
-- [ ] 21.2.3 Dispatch `setExtensionRegistering` before call
-- [ ] 21.2.4 Dispatch `setExtensionRegistered` on success
-- [ ] 21.2.5 Dispatch `setExtensionError` on failure
-- [ ] 21.2.6 Handle `'mfe/unregisterExtensionRequested'` event
-- [ ] 21.2.7 Call `runtime.unregisterExtension()` in effect
-- [ ] 21.2.8 Handle `'mfe/refreshExtensionsRequested'` event
-- [ ] 21.2.9 Call `runtime.refreshExtensionsFromBackend()` in effect
+- [ ] 20.2.1 Handle `'mfe/registerExtensionRequested'` event
+- [ ] 20.2.2 Call `runtime.registerExtension()` in effect
+- [ ] 20.2.3 Dispatch `setExtensionRegistering` before call
+- [ ] 20.2.4 Dispatch `setExtensionRegistered` on success
+- [ ] 20.2.5 Dispatch `setExtensionError` on failure
+- [ ] 20.2.6 Handle `'mfe/unregisterExtensionRequested'` event
+- [ ] 20.2.7 Call `runtime.unregisterExtension()` in effect
+- [ ] 20.2.8 Handle `'mfe/registerDomainRequested'` event
+- [ ] 20.2.9 Call `runtime.registerDomain()` in effect
+- [ ] 20.2.10 Handle `'mfe/unregisterDomainRequested'` event
+- [ ] 20.2.11 Call `runtime.unregisterDomain()` in effect
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - effects
 
-### 21.3 Extension Registration Slice
+### 20.3 Extension Registration Slice
 
-- [ ] 21.3.1 Add `extensionStates: Record<string, ExtensionRegistrationState>` to mfeSlice
-- [ ] 21.3.2 Define `ExtensionRegistrationState`: 'unregistered' | 'registering' | 'registered' | 'error'
-- [ ] 21.3.3 Add `setExtensionRegistering` reducer
-- [ ] 21.3.4 Add `setExtensionRegistered` reducer
-- [ ] 21.3.5 Add `setExtensionUnregistered` reducer
-- [ ] 21.3.6 Add `setExtensionError` reducer
-- [ ] 21.3.7 Add `selectExtensionState(state, extensionId)` selector
-- [ ] 21.3.8 Add `selectRegisteredExtensions(state)` selector
+- [ ] 20.3.1 Add `extensionStates: Record<string, ExtensionRegistrationState>` to mfeSlice
+- [ ] 20.3.2 Define `ExtensionRegistrationState`: 'unregistered' | 'registering' | 'registered' | 'error'
+- [ ] 20.3.3 Add `setExtensionRegistering` reducer
+- [ ] 20.3.4 Add `setExtensionRegistered` reducer
+- [ ] 20.3.5 Add `setExtensionUnregistered` reducer
+- [ ] 20.3.6 Add `setExtensionError` reducer
+- [ ] 20.3.7 Add `selectExtensionState(state, extensionId)` selector
+- [ ] 20.3.8 Add `selectRegisteredExtensions(state)` selector
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - slice
 
-### 21.4 TypeInstanceProvider Runtime Setup
+### 20.4 Extension Events Hook
 
-- [ ] 21.4.1 Document that TypeInstanceProvider is set via `runtime.setTypeInstanceProvider()` at runtime, NOT via plugin config
-
-**Traceability**: Requirement "Dynamic Registration Support in Framework" - runtime provider setup (no-config)
-
-### 21.5 Extension Events Hook
-
-- [ ] 21.5.1 Create `useExtensionEvents(domainId)` hook
-- [ ] 21.5.2 Subscribe to runtime's `extensionRegistered` event
-- [ ] 21.5.3 Subscribe to runtime's `extensionUnregistered` event
-- [ ] 21.5.4 Filter events by domainId
-- [ ] 21.5.5 Return current extensions for domain
-- [ ] 21.5.6 Trigger re-render on changes
+- [ ] 20.4.1 Create `useExtensionEvents(domainId)` hook
+- [ ] 20.4.2 Subscribe to runtime's `extensionRegistered` event
+- [ ] 20.4.3 Subscribe to runtime's `extensionUnregistered` event
+- [ ] 20.4.4 Filter events by domainId
+- [ ] 20.4.5 Return current extensions for domain
+- [ ] 20.4.6 Trigger re-render on changes
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - events hook
 
-### 21.6 Framework Dynamic Registration Tests
+### 20.5 Framework Dynamic Registration Tests
 
-- [ ] 21.6.1 Test registerExtension action emits event
-- [ ] 21.6.2 Test registerExtension effect calls runtime
-- [ ] 21.6.3 Test unregisterExtension action and effect
-- [ ] 21.6.4 Test refreshExtensions action and effect
-- [ ] 21.6.5 Test slice state transitions
-- [ ] 21.6.6 Test selectExtensionState selector
-- [ ] 21.6.7 Test selectRegisteredExtensions selector
-- [ ] 21.6.8 Test useExtensionEvents hook
+- [ ] 20.5.1 Test registerExtension action emits event
+- [ ] 20.5.2 Test registerExtension effect calls runtime
+- [ ] 20.5.3 Test unregisterExtension action and effect
+- [ ] 20.5.4 Test registerDomain action and effect
+- [ ] 20.5.5 Test unregisterDomain action and effect
+- [ ] 20.5.6 Test slice state transitions
+- [ ] 20.5.7 Test selectExtensionState selector
+- [ ] 20.5.8 Test selectRegisteredExtensions selector
+- [ ] 20.5.9 Test useExtensionEvents hook
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - all scenarios

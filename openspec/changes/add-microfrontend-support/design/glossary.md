@@ -7,19 +7,19 @@ This document defines key terms used throughout the MFE system design documents.
 ## Core Concepts
 
 ### Microfrontend (MFE)
-A Microfrontend (MFE) is an independently developed, deployed, and versioned UI component that can be loaded into a parent application at runtime. HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation - each MFE instance gets its own runtime, and even multiple instances of the same MFE entry are isolated from each other. Custom handlers can implement different isolation strategies for internal MFEs. Communication happens only through defined contracts via the MfeBridge. Throughout these documents, "MFE" is used as the standard abbreviation after the first occurrence.
+A Microfrontend (MFE) is an independently developed, deployed, and versioned UI component that can be loaded into a parent application at runtime. Communication happens only through defined contracts via the MfeBridge. Throughout these documents, "MFE" is used as the standard abbreviation after the first occurrence. See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for isolation model details.
 
 ### Domain (ExtensionDomain)
 An extension point where MFE instances can be mounted. Domains can exist at **any level of the hierarchy** - the host application can define domains, and MFEs themselves can define their own domains for nested extensions. This enables hierarchical composition where an MFE acts as both an extension (to its parent's domain) and a domain provider (for its own child extensions). Domains define the contract with extensions by declaring shared properties, supported action types, and UI metadata schemas. See [mfe-domain.md](./mfe-domain.md).
 
 ### Extension
-A binding that connects an MFE entry to a specific domain, creating a concrete MFE instance. With the default handler, each extension registration creates an isolated instance - the same MFE entry mounted twice results in two isolated runtime instances. Custom handlers may allow sharing for internal MFEs. Extensions include UI metadata that must conform to the domain's schema and are registered dynamically at runtime. See [mfe-domain.md](./mfe-domain.md#extension).
+A binding that connects an MFE entry to a specific domain, creating a concrete MFE instance. Extensions include UI metadata that must conform to the domain's schema and are registered dynamically at runtime. See [mfe-domain.md](./mfe-domain.md#extension). For isolation model, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
 
 ### Entry (MfeEntry)
 The contract that an MFE declares with its hosting domain. Specifies required/optional properties and bidirectional action capabilities. MfeEntry is abstract; derived types (like MfeEntryMF) add loader-specific fields. See [mfe-entry-mf.md](./mfe-entry-mf.md).
 
 ### Bridge (MfeBridge)
-The communication channel between an MFE instance and its parent domain. Provides methods for subscribing to shared properties and sending action requests to the domain. With HAI3's default handler, each MFE **instance** receives its own bridge instance - this supports instance-level isolation. Custom handlers can create bridges with different isolation characteristics. See [mfe-api.md](./mfe-api.md).
+The communication channel between an MFE instance and its parent domain. Provides methods for subscribing to shared properties and sending action requests to the domain. See [mfe-api.md](./mfe-api.md). For isolation model, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
 
 ---
 
@@ -27,6 +27,12 @@ The communication channel between an MFE instance and its parent domain. Provide
 
 ### Action
 A typed message with a target (domain or extension), self-identifying type ID, optional payload, and optional timeout override. Actions are the units of communication in action chains. See [mfe-actions.md](./mfe-actions.md).
+
+**Terminology Note - Domain vs Extension Actions:**
+- **`actions`** (on ExtensionDomain): Action type IDs the domain can send TO extensions in this domain
+- **`extensionsActions`** (on ExtensionDomain): Action type IDs extensions can send TO this domain
+- **`actions`** (on MfeEntry): Action type IDs the MFE can send TO its domain
+- **`domainActions`** (on MfeEntry): Action type IDs the MFE can receive FROM its domain
 
 ### ActionsChain
 A linked structure of actions with `next` (on success) and `fallback` (on failure) branches. Enables declarative action workflows where the outcome of one action determines which action executes next. See [mfe-actions.md](./mfe-actions.md).
@@ -55,7 +61,7 @@ An abstract class that handles loading MFE bundles for specific entry types. Han
 An abstract factory that creates bridge instances for specific entry types. Each handler has an associated bridge factory. Custom handlers can provide rich bridges with additional services (routing, API clients, etc.).
 
 ### ActionsChainsMediator
-The runtime component that routes action chains to their targets and handles success/failure branching. Validates action types against domain contracts before delivery. Each isolated runtime has its own mediator instance. See [mfe-actions.md](./mfe-actions.md).
+The runtime component that routes action chains to their targets and handles success/failure branching. Validates action types against domain contracts before delivery. Each isolated runtime has its own mediator instance. **Note**: Always use the full name "ActionsChainsMediator" (not abbreviated) to maintain clarity. See [mfe-actions.md](./mfe-actions.md).
 
 ---
 

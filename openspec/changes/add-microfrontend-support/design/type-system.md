@@ -11,34 +11,15 @@ This document covers the Type System Plugin architecture and contract validation
 
 ## Context
 
-HAI3 needs to support microfrontend (MFE) architecture where independent applications can be composed into a parent application. HAI3's default handler enforces instance-level isolation where each MFE **instance** gets its own HAI3 state instance. Custom handlers can implement different isolation strategies for internal MFEs. Communication between parent and MFE instance must be explicit, type-safe, and controlled.
+The type system for MFE contracts is abstracted through a **Type System Plugin** interface, allowing different type system implementations while shipping GTS as the default. The @hai3/screensets package treats **type IDs as opaque strings** - all type ID understanding is delegated to the TypeSystemPlugin.
 
-The type system for MFE contracts is abstracted through a **Type System Plugin** interface, allowing different type system implementations while shipping GTS as the default.
-
-### Key Principle: Opaque Type IDs
-
-The @hai3/screensets package treats **type IDs as opaque strings**. All type ID understanding (parsing, format validation, building) is delegated to the TypeSystemPlugin. When metadata about a type ID is needed, call plugin methods (`parseTypeId`, `getAttribute`, etc.) directly.
-
-### Stakeholders
-
-- **HAI3 Parent Application**: Defines extension domains and orchestrates MFE instance communication (parent can be host or another MFE)
-- **MFE Vendors**: Create independently deployable extensions
-- **End Users**: Experience seamless integration of multiple MFE instances
-- **Type System Providers**: Implement Type System plugin interface for custom type systems
-
-### Constraints
-
-- Instance-level state isolation (default): With HAI3's default handler, no direct state access between parent and MFE instance (or between MFE instances). Custom handlers can relax this for internal MFEs.
-- Type safety: All communication contracts defined via pluggable Type System
-- Security: MFE instances cannot access parent internals or sibling instance internals (enforced by default handler; custom handlers for internal MFEs may allow sharing)
-- Performance: Lazy loading of MFE bundles
-- Plugin requirement: Type System plugin must be provided at initialization
+See [MFE System Overview](./overview.md) for architecture details.
 
 ## Goals / Non-Goals
 
 ### Goals
 
-1. **Instance-Level State Isolation (Default)**: HAI3's default handler enforces that each MFE instance has its own HAI3 state instance. Custom handlers can implement different isolation strategies.
+1. **Instance-Level State Isolation (Default)**: HAI3's default handler enforces instance-level isolation. See [Runtime Isolation](./overview.md#runtime-isolation-default-behavior) for details.
 2. **Symmetric Contracts**: Clear bidirectional communication contracts
 3. **Contract Validation**: Compile-time and runtime validation of compatibility
 4. **Mediated Actions**: Centralized action chain delivery through ActionsChainsMediator
@@ -48,12 +29,13 @@ The @hai3/screensets package treats **type IDs as opaque strings**. All type ID 
 
 ### Non-Goals
 
-1. **Direct State Sharing (default)**: With HAI3's default handler, no shared Redux store between parent and MFE instance. Custom handlers may allow sharing for internal MFEs.
+1. **Direct State Sharing (default)**: See [Runtime Isolation](./overview.md#runtime-isolation-default-behavior) for isolation model
 2. **Event Bus Bridging**: No automatic event propagation across boundaries
 3. **Hot Module Replacement**: MFE updates require reload (but hot-swap of extensions IS supported)
 4. **Version Negotiation**: Single version per MFE entry
 5. **Multiple Concurrent Plugins**: Only one Type System plugin per runtime instance
 6. **Static Extension Registry**: Extensions are NOT known at initialization time (dynamic registration is the model)
+7. **Entity Fetching**: Outside MFE system scope. See [System Boundary](./overview.md#system-boundary).
 
 ---
 
@@ -148,6 +130,10 @@ interface AttributeResult {
  *
  * The screensets package treats type IDs as OPAQUE STRINGS.
  * All type ID understanding is delegated to the plugin.
+ *
+ * Note: buildTypeId() is intentionally omitted. GTS type IDs are consumed
+ * (validated, parsed) but never programmatically generated at runtime.
+ * All type IDs are defined as string constants.
  */
 interface TypeSystemPlugin {
   /** Plugin identifier */
@@ -163,12 +149,6 @@ interface TypeSystemPlugin {
    * Used before any operation that requires a valid type ID.
    */
   isValidTypeId(id: string): boolean;
-
-  /**
-   * Build a type ID from plugin-specific options.
-   * The options object is plugin-specific and opaque to screensets.
-   */
-  buildTypeId(options: Record<string, unknown>): string;
 
   /**
    * Parse a type ID into plugin-specific components.
@@ -194,13 +174,6 @@ interface TypeSystemPlugin {
    * Validate an instance against the schema for a type ID
    */
   validateInstance(typeId: string, instance: unknown): ValidationResult;
-
-  /**
-   * Validate an instance directly against a provided schema.
-   * Used for dynamic validation where the schema doesn't have a stable type ID
-   * (e.g., validating Extension.uiMeta against domain.extensionsUiMeta).
-   */
-  validateAgainstSchema(schema: JSONSchema, instance: unknown): ValidationResult;
 
   /**
    * Get the schema registered for a type ID
@@ -249,8 +222,18 @@ The GTS plugin implements `TypeSystemPlugin` using `@globaltypesystem/gts-ts`. F
 
 ```typescript
 // packages/screensets/src/mfe/plugins/gts/index.ts
-import { Gts, GtsStore, GtsQuery } from '@globaltypesystem/gts-ts';
-import type { TypeSystemPlugin, ValidationResult } from '../types';
+import {
+  isValidGtsID,
+  parseGtsID,
+  GtsStore,
+  GtsQuery,
+  createJsonEntity,
+  type GtsIDSegment,
+  type ParseResult,
+  type ValidationResult as GtsValidationResult,
+  type CompatibilityResult as GtsCompatibilityResult,
+} from '@globaltypesystem/gts-ts';
+import type { TypeSystemPlugin, ValidationResult, CompatibilityResult } from '../types';
 import { mfeGtsSchemas } from '../../schemas/gts-schemas';
 
 /**
@@ -292,75 +275,82 @@ export function createGtsPlugin(): TypeSystemPlugin {
   ];
 
   for (const schema of firstClassSchemas) {
-    const typeId = extractTypeIdFromSchema(schema);
-    gtsStore.register(typeId, schema);
+    // createJsonEntity wraps the schema as a JsonEntity for registration
+    const entity = createJsonEntity(schema);
+    gtsStore.register(entity);
   }
 
   return {
     name: 'gts',
     version: '1.0.0',
 
-    // Type ID operations
+    // Type ID operations - using standalone functions from gts-ts
     isValidTypeId(id: string): boolean {
-      return Gts.isValidGtsID(id);
+      return isValidGtsID(id);
     },
 
-    buildTypeId(options: Record<string, unknown>): string {
-      return Gts.buildGtsID(options);
-    },
+    // Note: buildTypeId() is intentionally omitted. GTS type IDs are consumed
+    // (validated, parsed) but never programmatically generated at runtime.
+    // All type IDs are defined as string constants.
 
     parseTypeId(id: string): Record<string, unknown> {
-      // GTS-specific parsing - returns vendor, package, namespace, type, version
-      const parsed = Gts.parseGtsID(id);
+      // parseGtsID returns ParseResult { ok, segments, error }
+      // segments is an array of GtsIDSegment
+      const result: ParseResult = parseGtsID(id);
+      if (!result.ok || result.segments.length === 0) {
+        throw new Error(result.error ?? `Invalid GTS ID: ${id}`);
+      }
+      // Return the first segment's components (primary type identifier)
+      const segment: GtsIDSegment = result.segments[0];
       return {
-        vendor: parsed.vendor,
-        package: parsed.package,
-        namespace: parsed.namespace,
-        type: parsed.type,
-        version: parsed.version,
-        qualifier: parsed.qualifier,
+        vendor: segment.vendor,
+        package: segment.package,
+        namespace: segment.namespace,
+        type: segment.type,
+        verMajor: segment.verMajor,
+        verMinor: segment.verMinor,
+        // For derived types, include additional segments
+        segments: result.segments,
       };
     },
 
     // Schema registry - for vendor/dynamic schemas only
     // First-class schemas are already registered during construction
     registerSchema(schema: JSONSchema): void {
-      const typeId = extractTypeIdFromSchema(schema);
-      gtsStore.register(typeId, schema);
+      const entity = createJsonEntity(schema);
+      gtsStore.register(entity);
     },
 
     validateInstance(typeId: string, instance: unknown): ValidationResult {
-      const result = gtsStore.validate(typeId, instance);
-      return {
-        valid: result.valid,
-        errors: result.errors.map(e => ({
-          path: e.instancePath,
-          message: e.message,
-          keyword: e.keyword,
-        })),
-      };
-    },
+      // GtsStore.validateInstance takes just the gtsId string
+      // The instance must already be registered in the store
+      // For validating arbitrary instances, we need to register them first
+      const instanceEntity = createJsonEntity(instance);
+      gtsStore.register(instanceEntity);
 
-    validateAgainstSchema(schema: JSONSchema, instance: unknown): ValidationResult {
-      // Use a temporary in-memory validator without registering to the store
-      const result = Gts.validateAgainstSchema(schema, instance);
+      const result: GtsValidationResult = gtsStore.validateInstance(typeId);
       return {
-        valid: result.valid,
-        errors: result.errors.map(e => ({
-          path: e.instancePath,
-          message: e.message,
-          keyword: e.keyword,
-        })),
+        valid: result.ok && (result.valid ?? false),
+        errors: result.error ? [{
+          path: '',
+          message: result.error,
+          keyword: 'validation',
+        }] : [],
       };
     },
 
     getSchema(typeId: string): JSONSchema | undefined {
-      return gtsStore.getSchema(typeId);
+      // GtsStore.get() returns JsonEntity | undefined
+      const entity = gtsStore.get(typeId);
+      if (!entity) return undefined;
+      // JsonEntity.content contains the actual schema/instance data
+      return entity.content as JSONSchema;
     },
 
-    // Query
+    // Query - using GtsQuery.query() static method
     query(pattern: string, limit?: number): string[] {
-      return GtsQuery.search(gtsStore, pattern, { limit });
+      const result = GtsQuery.query(gtsStore, pattern, limit);
+      return result;
     },
 
     // Type Hierarchy
@@ -371,9 +361,25 @@ export function createGtsPlugin(): TypeSystemPlugin {
       return typeId.startsWith(baseTypeId) || typeId === baseTypeId;
     },
 
-    // Compatibility (REQUIRED)
-    checkCompatibility(oldTypeId: string, newTypeId: string) {
-      return Gts.checkCompatibility(gtsStore, oldTypeId, newTypeId);
+    // Compatibility (REQUIRED) - checkCompatibility is on GtsStore
+    checkCompatibility(oldTypeId: string, newTypeId: string): CompatibilityResult {
+      const result: GtsCompatibilityResult = gtsStore.checkCompatibility(oldTypeId, newTypeId);
+      return {
+        compatible: result.compatible,
+        breaking: !result.compatible && result.errors.length > 0,
+        changes: [
+          ...result.errors.map(e => ({
+            type: 'removed' as const,
+            path: '',
+            description: e,
+          })),
+          ...result.warnings.map(w => ({
+            type: 'modified' as const,
+            path: '',
+            description: w,
+          })),
+        ],
+      };
     },
 
     // Attribute Access (REQUIRED for dynamic schema resolution)
@@ -615,10 +621,11 @@ When an action instance uses this derived type ID, the mediator:
 plugin.registerSchema(acmeDataUpdatedSchema);
 plugin.registerSchema(acmeChartWidgetEntrySchema);
 
-// 2. Register vendor's instances
-registry.registerManifest(acmeManifest);
-registry.registerEntry(acmeChartWidgetEntry);
+// 2. Register vendor's extensions (which reference entries)
+// Extensions reference MfeEntryMF which contains manifest info internally
 registry.registerExtension(acmeChartExtension);
+// The extension.entry references the MfeEntryMF type ID
+// MfeHandlerMF resolves the manifest from the entry when loading
 ```
 
 ### Decision 6: ScreensetsRegistry Configuration
@@ -738,12 +745,11 @@ const app = createHAI3()
 // All registration happens dynamically at runtime via actions:
 // - mfeActions.registerDomain({ domain })
 // - mfeActions.registerExtension({ extension })
-// - mfeActions.registerManifest({ manifest })
 
 // Or via runtime API:
 // - runtime.registerDomain(domain)
 // - runtime.registerExtension(extension)
-// - runtime.registerManifest(manifest)
+// Note: Manifest is internal to MfeHandlerMF - no public registerManifest()
 
 // Example: Register base domains dynamically after app initialization
 eventBus.on('app/ready', () => {
@@ -838,53 +844,79 @@ function validateContract(
 }
 ```
 
-### Decision 9: Dynamic uiMeta Validation via Attribute Selector
+### Decision 9: Dynamic uiMeta Validation via Pre-registered Domain Schemas
 
 **Problem:** An `Extension` instance has a `domain` field containing a type ID reference, and its `uiMeta` property must conform to that domain's `extensionsUiMeta` schema. This cannot be expressed as a static JSON Schema constraint because the domain reference is a dynamic value.
 
-**Solution:** Use the plugin's `getAttribute()` method to resolve the domain's `extensionsUiMeta` schema at runtime.
+**Solution:** When a domain is registered, also pre-register its `extensionsUiMeta` schema with a convention-based ID. Then use standard `validateInstance()` to validate extension uiMeta.
 
-**Implementation:**
+**Pre-registration Pattern:**
+
+When registering a domain, its `extensionsUiMeta` schema is also registered with a convention-based ID:
+
+```typescript
+// When registering a domain, also register its extensionsUiMeta schema
+registerDomain(domain: ExtensionDomain): void {
+  // Register the domain itself
+  gtsStore.register(createJsonEntity(domain));
+
+  // Pre-register extensionsUiMeta schema for later validation
+  if (domain.extensionsUiMeta) {
+    const uiMetaSchema = {
+      $id: `gts://${domain.id}@extensionsUiMeta`,
+      ...domain.extensionsUiMeta
+    };
+    gtsStore.register(createJsonEntity(uiMetaSchema));
+  }
+}
+```
+
+**Validation Implementation:**
 
 ```typescript
 /**
  * Validate Extension's uiMeta against its domain's extensionsUiMeta schema
+ * Uses the pre-registered schema pattern instead of validateAgainstSchema()
  */
 function validateExtensionUiMeta(
   plugin: TypeSystemPlugin,
   extension: Extension
 ): ValidationResult {
-  // 1. Get the domain's extensionsUiMeta schema using getAttribute
-  const schemaResult = plugin.getAttribute(extension.domain, 'extensionsUiMeta');
+  // 1. Build the convention-based schema ID
+  const uiMetaSchemaId = `${extension.domain}@extensionsUiMeta`;
 
-  if (!schemaResult.resolved) {
-    return {
-      valid: false,
-      errors: [{
-        path: 'domain',
-        message: `Cannot resolve extensionsUiMeta from domain '${extension.domain}'`,
-        keyword: 'x-gts-attr',
-      }],
-    };
-  }
+  // 2. Create a unique instance ID for this extension's uiMeta
+  const instanceId = `${extension.id}@uiMeta`;
 
-  // 2. The resolved value is the JSON Schema for uiMeta
-  const extensionsUiMetaSchema = schemaResult.value as JSONSchema;
+  // 3. Register the uiMeta instance with $schema pointing to the pre-registered schema
+  const instance = {
+    $id: `gts://${instanceId}`,
+    $schema: `gts://${uiMetaSchemaId}`,
+    ...extension.uiMeta
+  };
+  gtsStore.register(createJsonEntity(instance));
 
-  // 3. Validate extension.uiMeta directly against the resolved schema
-  const result = plugin.validateAgainstSchema(extensionsUiMetaSchema, extension.uiMeta);
+  // 4. Validate using standard validateInstance
+  const result = gtsStore.validateInstance(instanceId);
 
-  // 4. Transform errors to include context
+  // 5. Transform errors to include context
   return {
-    valid: result.valid,
-    errors: result.errors.map(e => ({
-      ...e,
-      path: `uiMeta.${e.path}`,
-      message: `uiMeta validation failed against ${extension.domain}@extensionsUiMeta: ${e.message}`,
-    })),
+    valid: result.ok && (result.valid ?? false),
+    errors: result.error ? [{
+      path: 'uiMeta',
+      message: `uiMeta validation failed against ${extension.domain}@extensionsUiMeta: ${result.error}`,
+      keyword: 'validation',
+    }] : [],
   };
 }
 ```
+
+**Benefits of Pre-registration Pattern:**
+
+1. **No `validateAgainstSchema()` needed** - Uses only standard GTS operations
+2. **Consistent with GTS model** - All validation happens through registered schemas
+3. **Convention-based IDs** - `{domainId}@extensionsUiMeta` provides predictable schema lookup
+4. **Single validation path** - All validation uses `validateInstance()`, simplifying the plugin interface
 
 **Integration Point:**
 

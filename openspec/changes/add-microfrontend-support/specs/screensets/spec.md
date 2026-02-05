@@ -8,11 +8,14 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 
 - **WHEN** @hai3/screensets is imported
 - **THEN** the package SHALL export a `TypeSystemPlugin` interface
-- **AND** the interface SHALL define type ID operations (`isValidTypeId`, `buildTypeId`, `parseTypeId`)
+- **AND** the interface SHALL define type ID operations (`isValidTypeId`, `parseTypeId`)
 - **AND** the interface SHALL define schema registry operations (`registerSchema`, `validateInstance`, `getSchema`)
 - **AND** the interface SHALL define query operations (`query`)
+- **AND** the interface SHALL define type hierarchy operations (`isTypeOf`)
 - **AND** the interface SHALL define required compatibility checking (`checkCompatibility`)
 - **AND** the interface SHALL define attribute access (`getAttribute`) for dynamic schema resolution
+- **AND** the interface SHALL NOT define `buildTypeId` (GTS type IDs are consumed but never programmatically generated; all type IDs are defined as string constants)
+- **AND** the interface SHALL NOT define `validateAgainstSchema` (use pre-registered schemas pattern instead)
 
 #### Scenario: GTS plugin as default implementation
 
@@ -59,11 +62,11 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 - **AND** the runtime SHALL use the plugin for schema validation
 - **AND** initialization without a plugin SHALL throw an error
 
-#### Scenario: HAI3 type registration via plugin
+#### Scenario: HAI3 type availability via plugin
 
 - **WHEN** the ScreensetsRegistry initializes with a plugin
-- **THEN** the runtime SHALL register HAI3 MFE types via `plugin.registerSchema()`
-- **AND** registered types SHALL include 8 core types:
+- **THEN** first-class HAI3 MFE types SHALL be built into the GTS plugin during construction, NOT registered at runtime
+- **AND** available types SHALL include 8 core types:
   - `gts.hai3.screensets.mfe.entry.v1~` (MfeEntry - Abstract Base)
   - `gts.hai3.screensets.ext.domain.v1~` (ExtensionDomain)
   - `gts.hai3.screensets.ext.extension.v1~` (Extension)
@@ -102,13 +105,21 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 
 The system SHALL validate Extension's uiMeta against its domain's extensionsUiMeta schema at runtime.
 
-#### Scenario: uiMeta validation via attribute selector
+#### Scenario: uiMeta validation via pre-registered domain schemas
 
 - **WHEN** registering an extension binding
-- **THEN** the ScreensetsRegistry SHALL resolve the domain's extensionsUiMeta via `plugin.getAttribute()`
-- **AND** the runtime SHALL validate extension.uiMeta against the resolved schema
+- **THEN** the ScreensetsRegistry SHALL use the pre-registered domain's extensionsUiMeta schema
+- **AND** the schema SHALL have convention-based ID: `{domainId}@extensionsUiMeta`
+- **AND** the runtime SHALL validate extension.uiMeta against the pre-registered schema via `validateInstance()`
 - **AND** validation failure SHALL prevent extension registration
 - **AND** error message SHALL identify the uiMeta validation failure
+
+#### Scenario: Domain registration pre-registers extensionsUiMeta schema
+
+- **WHEN** registering an ExtensionDomain
+- **THEN** the ScreensetsRegistry SHALL pre-register the domain's extensionsUiMeta schema
+- **AND** the schema SHALL be registered with ID: `{domainId}@extensionsUiMeta`
+- **AND** the pre-registered schema SHALL be available for extension uiMeta validation
 
 #### Scenario: uiMeta validation with derived domains
 
@@ -172,12 +183,11 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **WHEN** a host defines an extension domain
 - **THEN** the domain SHALL conform to `ExtensionDomain` TypeScript interface
 - **AND** the domain SHALL have an `id` field (string)
-- **AND** the domain SHALL specify sharedProperties, actions, domainActions, extensionsActions, and extensionsUiMeta
+- **AND** the domain SHALL specify sharedProperties, actions, extensionsActions, and extensionsUiMeta
 - **AND** the domain SHALL specify `defaultActionTimeout` (REQUIRED, number in milliseconds)
 - **AND** sharedProperties SHALL reference SharedProperty type IDs
-- **AND** `actions` SHALL list HAI3 actions this domain supports (e.g., `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_UNLOAD_EXT`)
-- **AND** `domainActions` SHALL reference Action type IDs the domain can emit to extensions
-- **AND** `extensionsActions` SHALL reference Action type IDs the domain can receive from extensions
+- **AND** `actions` SHALL list Action type IDs the domain can send TO extensions (e.g., `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_UNLOAD_EXT`, plus any domain-specific actions)
+- **AND** `extensionsActions` SHALL list Action type IDs extensions can send TO this domain
 - **AND** extensionsUiMeta SHALL be a valid JSON Schema
 - **AND** derived domains MAY narrow extensionsUiMeta through GTS type inheritance
 
@@ -293,34 +303,13 @@ The system SHALL validate that MFE entries are compatible with extension domains
 
 ### Requirement: Instance-Level Isolation (Default Behavior, Framework-Agnostic)
 
-With HAI3's default handler (MfeHandlerMF), each MFE instance SHALL have its own isolated runtime, including TypeSystemPlugin instance. Custom handlers MAY implement different isolation strategies for internal MFEs. MFEs are framework-agnostic - the host uses React but MFEs can use any UI framework.
+With HAI3's default handler (MfeHandlerMF), each MFE instance SHALL have its own isolated runtime. See [Runtime Isolation](../../design/overview.md#runtime-isolation-default-behavior) for the complete isolation model.
 
 #### Scenario: MFE runtime isolation (default handler)
 
 - **WHEN** an MFE is loaded and mounted using the default handler (MfeHandlerMF)
-- **THEN** the MFE SHALL receive its own @hai3/screensets instance
-- **AND** the MFE SHALL receive its own TypeSystemPlugin instance
-- **AND** the MFE's TypeSystemPlugin SHALL have its own isolated schema registry
-- **AND** the MFE SHALL receive its own HAI3 state instance
+- **THEN** the MFE SHALL have its own isolated runtime (screensets, TypeSystemPlugin, state)
 - **AND** the MFE MAY use any UI framework (Vue 3, Angular, Svelte, React, etc.)
-- **AND** custom handlers MAY implement different isolation strategies for internal MFEs
-
-#### Scenario: TypeSystemPlugin isolation (security, default handler)
-
-- **WHEN** an MFE attempts to query its TypeSystemPlugin
-- **THEN** calling `plugin.query('gts.*')` SHALL only return types registered in that MFE's own registry
-- **AND** the MFE SHALL NOT be able to discover host's registered types
-- **AND** the MFE SHALL NOT be able to discover other MFE's registered types
-- **AND** this isolation prevents information leakage about host internal structure
-- **AND** custom handlers for internal MFEs MAY relax this isolation when security is not a concern
-
-#### Scenario: Host state isolation (default handler)
-
-- **WHEN** an MFE is mounted in the host using the default handler
-- **THEN** the host state SHALL NOT be modified by MFE state changes
-- **AND** the host SHALL NOT have direct access to MFE state
-- **AND** the host TypeSystemPlugin SHALL NOT be accessible from MFE code
-- **AND** custom handlers for internal MFEs MAY allow controlled state sharing
 
 #### Scenario: Shared properties propagation via MfeBridge
 
@@ -328,15 +317,6 @@ With HAI3's default handler (MfeHandlerMF), each MFE instance SHALL have its own
 - **THEN** properties SHALL be passed via MfeBridge interface only
 - **AND** properties SHALL be updated when host values change
 - **AND** MFE SHALL NOT modify shared properties directly
-- **AND** internal coordination SHALL use private RuntimeCoordinator (not exposed to MFE)
-
-#### Scenario: Framework agnostic MFE
-
-- **WHEN** a vendor creates an MFE using Vue 3
-- **THEN** the MFE SHALL be mountable into a React host
-- **AND** the MFE SHALL receive MfeBridge for communication
-- **AND** the MFE SHALL NOT require React or ReactDOM dependencies
-- **AND** Module Federation SHALL NOT share React/ReactDOM as singletons
 
 ### Requirement: Actions Chain Mediation
 
@@ -951,7 +931,7 @@ Action timeouts SHALL be configured explicitly in type definitions, not as impli
 
 ### Requirement: Dynamic Registration Model
 
-The system SHALL support dynamic registration of extensions, domains, and MFEs at any time during the application lifecycle, not just at initialization. This enables runtime configuration, feature flags, and backend-driven extensibility.
+The system SHALL support dynamic registration of extensions, domains, and MFEs at any time during the application lifecycle, not just at initialization. Entity fetching is outside MFE system scope. See [System Boundary](../../design/overview.md#system-boundary).
 
 #### Scenario: Register extension dynamically after user action
 
@@ -963,10 +943,10 @@ The system SHALL support dynamic registration of extensions, domains, and MFEs a
 
 #### Scenario: Register extension after backend API response
 
-- **WHEN** extensions configuration is fetched from backend API
-- **THEN** the system SHALL allow registering multiple extensions sequentially
-- **AND** the system SHALL support `runtime.refreshExtensionsFromBackend()` for bulk sync
+- **WHEN** application code fetches extensions configuration from backend API
+- **THEN** application code SHALL call `runtime.registerExtension()` for each fetched extension
 - **AND** newly registered extensions SHALL be immediately available
+- **AND** the MFE system SHALL NOT provide fetch methods (fetching is application responsibility)
 
 #### Scenario: Unregister extension when user disables feature
 
@@ -1017,50 +997,6 @@ The system SHALL support dynamic registration of extensions, domains, and MFEs a
 - **AND** the MFE SHALL be unmounted from the container
 - **AND** the extension SHALL remain registered for future mounting
 
-### Requirement: TypeInstanceProvider Interface
-
-The system SHALL define a TypeInstanceProvider interface for fetching GTS type instances from a backend API. The current implementation uses in-memory registry, with future implementations supporting backend API calls.
-
-#### Scenario: TypeInstanceProvider interface definition
-
-- **WHEN** importing `@hai3/screensets`
-- **THEN** the package SHALL export `TypeInstanceProvider` interface
-- **AND** the interface SHALL define `fetchExtensions(): Promise<Extension[]>`
-- **AND** the interface SHALL define `fetchDomains(): Promise<ExtensionDomain[]>`
-- **AND** the interface SHALL define `fetchInstance<T>(typeId: string): Promise<T | undefined>`
-- **AND** the interface SHALL define `subscribeToUpdates(callback): () => void`
-
-#### Scenario: InMemoryTypeInstanceProvider implementation
-
-- **WHEN** using in-memory storage (current implementation)
-- **THEN** `InMemoryTypeInstanceProvider` SHALL implement `TypeInstanceProvider`
-- **AND** it SHALL provide `registerExtension()`, `registerDomain()`, `registerInstance()` methods
-- **AND** it SHALL notify subscribers when instances are added/updated/removed
-
-#### Scenario: Set type instance provider on runtime
-
-- **WHEN** configuring the runtime for backend integration
-- **THEN** `runtime.setTypeInstanceProvider(provider)` SHALL configure the provider
-- **AND** the runtime SHALL subscribe to provider updates
-- **AND** new extensions/domains from provider SHALL be auto-registered
-- **AND** removed extensions/domains from provider SHALL be auto-unregistered
-
-#### Scenario: Refresh extensions from backend
-
-- **WHEN** calling `runtime.refreshExtensionsFromBackend()`
-- **THEN** the runtime SHALL fetch all domains from provider first
-- **AND** the runtime SHALL register any new domains
-- **AND** the runtime SHALL fetch all extensions from provider
-- **AND** the runtime SHALL register any new extensions
-- **AND** an error SHALL be thrown if no provider is configured
-
-#### Scenario: Resolve entry from provider
-
-- **WHEN** an extension references an entry not in local cache
-- **THEN** the runtime SHALL call `provider.fetchInstance<MfeEntry>(entryId)`
-- **AND** if found, the entry SHALL be cached locally
-- **AND** if not found, an error SHALL be thrown
-
 ### Requirement: ScreensetsRegistry Dynamic API
 
 The ScreensetsRegistry SHALL provide a complete API for dynamic registration and lifecycle management.
@@ -1079,7 +1015,7 @@ The ScreensetsRegistry SHALL provide a complete API for dynamic registration and
 
 - **WHEN** calling `runtime.unregisterExtension(extensionId)`
 - **THEN** the method SHALL return `Promise<void>`
-- **AND** if extension is mounted, the MFE SHALL be unloaded first
+- **AND** if extension is mounted, the MFE SHALL be unmounted first
 - **AND** the extension SHALL be removed from registry
 - **AND** the extension SHALL be removed from domain's extension set
 - **AND** the operation SHALL be idempotent (no error if already unregistered)
@@ -1100,14 +1036,34 @@ The ScreensetsRegistry SHALL provide a complete API for dynamic registration and
 - **AND** the domain SHALL be removed from registry
 - **AND** the operation SHALL be idempotent
 
+#### Scenario: ScreensetsRegistry loadExtension method
+
+- **WHEN** calling `runtime.loadExtension(extensionId)`
+- **THEN** the method SHALL return `Promise<void>`
+- **AND** the extension MUST be registered
+- **AND** the MFE bundle SHALL be loaded via the appropriate MfeHandler
+- **AND** the loaded lifecycle SHALL be cached for mounting
+- **AND** the MFE SHALL NOT be mounted to DOM (loading only)
+- **AND** subsequent load calls SHALL be no-ops if already loaded
+
+#### Scenario: ScreensetsRegistry preloadExtension method
+
+- **WHEN** calling `runtime.preloadExtension(extensionId)`
+- **THEN** the method SHALL return `Promise<void>`
+- **AND** the extension MUST be registered
+- **AND** the behavior SHALL be identical to loadExtension
+- **AND** this method SHALL be used semantically for preloading (e.g., on hover)
+- **AND** the handler MAY use batch optimization via `handler.preload()` if available
+
 #### Scenario: ScreensetsRegistry mountExtension method
 
 - **WHEN** calling `runtime.mountExtension(extensionId, container)`
 - **THEN** the method SHALL return `Promise<MfeBridgeConnection>`
 - **AND** the extension MUST be registered
-- **AND** the MFE bundle SHALL be loaded via MfeHandler
+- **AND** if extension is not loaded, it SHALL be loaded automatically
 - **AND** a bridge SHALL be created and connected
 - **AND** the runtime SHALL be registered with coordinator
+- **AND** the MFE lifecycle.mount() SHALL be called with container and bridge
 
 #### Scenario: ScreensetsRegistry unmountExtension method
 
@@ -1116,6 +1072,16 @@ The ScreensetsRegistry SHALL provide a complete API for dynamic registration and
 - **AND** the bridge SHALL be disposed
 - **AND** the runtime SHALL be unregistered from coordinator
 - **AND** the extension SHALL remain registered
+- **AND** the bundle SHALL remain loaded (cached for remounting)
+
+#### Scenario: Load vs mount distinction
+
+Loading fetches the bundle; mounting renders to DOM. See [Load vs Mount](../../design/registry-runtime.md#load-vs-mount) for details.
+
+- **WHEN** understanding the difference between load and mount
+- **THEN** `loadExtension()` SHALL fetch and initialize the JavaScript bundle only
+- **AND** `mountExtension()` SHALL render the loaded extension to a DOM container
+- **AND** an extension CAN be loaded but not mounted (preloading scenario)
 
 #### Scenario: Registration events
 
@@ -1125,4 +1091,7 @@ The ScreensetsRegistry SHALL provide a complete API for dynamic registration and
   - `extensionUnregistered` with `{ extensionId: string }`
   - `domainRegistered` with `{ domainId: string }`
   - `domainUnregistered` with `{ domainId: string }`
+  - `extensionLoaded` with `{ extensionId: string }`
+  - `extensionMounted` with `{ extensionId: string }`
+  - `extensionUnmounted` with `{ extensionId: string }`
 - **AND** external systems MAY subscribe to these events for coordination

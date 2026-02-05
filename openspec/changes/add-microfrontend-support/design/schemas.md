@@ -45,28 +45,26 @@ The base contract type for all MFE entries. Derived types add loader-specific fi
   "type": "object",
   "properties": {
     "id": {
-      "x-gts-ref": "/$id",
-      "$comment": "The GTS type ID for this instance"
+      "x-gts-ref": "/$id"
     },
     "requiredProperties": {
       "type": "array",
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.shared_property.v1~*" },
-      "$comment": "SharedProperty type IDs that MUST be provided by the domain"
+      "$comment": "SharedProperty type IDs REQUIRED by the MFE"
     },
     "optionalProperties": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.ext.shared_property.v1~*" },
-      "$comment": "SharedProperty type IDs that MAY be provided by the domain"
+      "items": { "x-gts-ref": "gts.hai3.screensets.ext.shared_property.v1~*" }
     },
     "actions": {
       "type": "array",
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
-      "$comment": "Action type IDs this MFE can send (when targeting its domain)"
+      "$comment": "Actions MFE can send to its domain"
     },
     "domainActions": {
       "type": "array",
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
-      "$comment": "Action type IDs this MFE can receive (when targeted by actions chains)"
+      "$comment": "Actions MFE can receive"
     }
   },
   "required": ["id", "requiredProperties", "actions", "domainActions"]
@@ -174,12 +172,9 @@ Represents a typed value passed from host to MFE.
   "type": "object",
   "properties": {
     "id": {
-      "x-gts-ref": "/$id",
-      "$comment": "The GTS type ID for this shared property"
+      "x-gts-ref": "/$id"
     },
-    "value": {
-      "$comment": "The shared property value"
-    }
+    "value": {}
   },
   "required": ["id", "value"]
 }
@@ -259,12 +254,10 @@ Represents a lifecycle event that can trigger actions chains.
   "type": "object",
   "properties": {
     "id": {
-      "x-gts-ref": "/$id",
-      "$comment": "The GTS type ID for this lifecycle stage"
+      "x-gts-ref": "/$id"
     },
     "description": {
-      "type": "string",
-      "$comment": "Human-readable description of when this stage triggers"
+      "type": "string"
     }
   },
   "required": ["id"]
@@ -310,40 +303,35 @@ Module Federation configuration for loading MFE bundles.
   "type": "object",
   "properties": {
     "id": {
-      "x-gts-ref": "/$id",
-      "$comment": "The GTS type ID for this instance"
+      "x-gts-ref": "/$id"
     },
     "remoteEntry": {
       "type": "string",
-      "format": "uri",
-      "$comment": "URL to the remoteEntry.js file"
+      "format": "uri"
     },
     "remoteName": {
       "type": "string",
-      "minLength": 1,
-      "$comment": "Module Federation container name"
+      "minLength": 1
     },
     "sharedDependencies": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "$comment": "Package name (e.g., 'react', 'lodash')" },
-          "requiredVersion": { "type": "string", "$comment": "Semver range (e.g., '^18.0.0')" },
+          "name": { "type": "string" },
+          "requiredVersion": { "type": "string" },
           "singleton": {
             "type": "boolean",
             "default": false,
-            "$comment": "If true, share single instance. Default false = isolated instances."
+            "$comment": "Default false = isolated instances per MFE"
           }
         },
         "required": ["name", "requiredVersion"]
-      },
-      "$comment": "Dependencies to share for bundle optimization"
+      }
     },
     "entries": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~*" },
-      "$comment": "Convenience field for discovery - lists MfeEntryMF type IDs"
+      "items": { "x-gts-ref": "gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~*" }
     }
   },
   "required": ["id", "remoteEntry", "remoteName"]

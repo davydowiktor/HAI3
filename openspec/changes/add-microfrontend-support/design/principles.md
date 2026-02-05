@@ -13,9 +13,9 @@ This document covers the core architectural principles for the MFE system.
 ## Core Principles
 
 1. **Thin Public Contracts** - The public interface is minimal and stable
-2. **Instance-Level Runtime Isolation (Default)** - HAI3's default handler enforces isolation where each MFE instance has its own isolated runtime. Custom handlers can implement different isolation strategies.
-3. **Extensibility via Handlers** - Companies extend via custom handlers, not core changes. This includes custom isolation strategies.
-4. **MFE Independence (Default)** - With HAI3's default handler, each MFE instance takes full responsibility for its own needs; custom handlers can allow resource sharing for internal MFEs
+2. **Instance-Level Runtime Isolation (Default)** - HAI3's default handler enforces instance-level isolation. See [Runtime Isolation](./overview.md#runtime-isolation-default-behavior) for details.
+3. **Extensibility via Handlers** - Companies extend via custom handlers, not core changes
+4. **MFE Independence (Default)** - Each MFE instance takes full responsibility for its own needs
 5. **Hierarchical Composition** - Domains can exist at any level; MFEs can be both extensions and domain providers
 
 ---
@@ -70,13 +70,7 @@ See [MFE Loading - Decision 10](./mfe-loading.md#decision-10-mfehandler-abstract
                    +------------------+
 ```
 
-With HAI3's default handler, each MFE **instance** has:
-- **Own API services**: Makes its own API requests
-- **Own router**: Manages its own internal navigation
-- **Own state**: Isolated state container (isolated from other instances, even of the same MFE entry)
-- **Full responsibility**: MFE developers control their stack
-
-Custom handlers can choose to share some of these resources between internal MFE instances when isolation is not required.
+With HAI3's default handler, each MFE instance has its own API services, router, and state. See [Runtime Isolation](./overview.md#runtime-isolation-default-behavior) for the complete isolation model.
 
 ### The Trade-off and Solution
 

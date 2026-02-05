@@ -16,6 +16,11 @@
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js",
       "require": "./dist/types.cjs"
+    },
+    "./plugins/gts": {
+      "types": "./dist/mfe/plugins/gts/index.d.ts",
+      "import": "./dist/mfe/plugins/gts/index.js",
+      "require": "./dist/mfe/plugins/gts/index.cjs"
     }
   },
   "files": [
@@ -27,12 +32,13 @@
     "build": "tsup",
     "type-check": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@globaltypesystem/gts-ts": "^1.0.0"
+  },
   "devDependencies": {
     "tsup": "^8.0.0",
     "typescript": "^5.4.2"
   },
-  "peerDependencies": {},
   "publishConfig": {
     "access": "public"
   },

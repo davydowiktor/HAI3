@@ -10,13 +10,7 @@ MfManifest is a standalone configuration type that contains Module Federation-sp
 
 Multiple MfeEntryMF instances can reference the same MfManifest when they are exposed modules from the same federated container.
 
-**Important**: MfManifest is **specific to the Module Federation handler** (`MfeHandlerMF`). It is NOT a universal concept for all MFE handlers. Other handler implementations (iframe, ESM, etc.) would have their own internal mechanisms for resolving loading configuration:
-
-- **MfeHandlerMF**: Uses MfManifest to resolve remoteEntry URL and container settings
-- **MfeHandlerIframe**: Would use iframe URLs directly from entry - no manifest concept
-- **MfeHandlerEsm**: Would use import maps or module specifiers - no manifest concept
-
-The manifest is an **internal implementation detail** of how Module Federation loading works, referenced by the `MfeEntryMF.manifest` field.
+**Important**: MfManifest is internal to MfeHandlerMF. See [Manifest as Internal Implementation Detail](./mfe-loading.md#decision-12-manifest-as-internal-implementation-detail-of-mfehandlermf) for the rationale and how manifests are resolved.
 
 ## Definition
 
@@ -165,8 +159,8 @@ const analyticsManifest: MfManifest = {
     // { name: '@hai3/screensets', requiredVersion: '^1.0.0', singleton: false },
   ],
   entries: [
-    'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
-    'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.metrics.v1',
+    'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1~',
+    'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.metrics.v1~',
   ],
 };
 ```

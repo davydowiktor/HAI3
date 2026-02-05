@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     types: 'src/types.ts',
+    'mfe/plugins/gts/index': 'src/mfe/plugins/gts/index.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,

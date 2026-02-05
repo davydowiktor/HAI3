@@ -15,6 +15,10 @@ The MFE system allows independent UI components (microfrontends) to be loaded in
 - New features can be added without redeploying the parent
 - **Hierarchical composition** - MFEs can define their own domains for nested extensions
 
+<a name="system-boundary"></a>
+**System Boundary:**
+The MFE system's scope is **registration and lifecycle**, NOT fetching. How MFE entities (manifests, entries, extensions, domains) are obtained from backends is **outside the MFE system scope**. Application code is responsible for fetching entities and calling registration methods. Entities become the MFE system's concern only AFTER they are registered.
+
 ---
 
 ## Core Concepts
@@ -115,6 +119,7 @@ The [MfManifest](./mfe-manifest.md) tells the handler where to find the MFE bund
 
 ---
 
+<a name="runtime-isolation-default-behavior"></a>
 ## Runtime Isolation (Default Behavior)
 
 HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation. Custom handlers can implement different isolation strategies based on their requirements.

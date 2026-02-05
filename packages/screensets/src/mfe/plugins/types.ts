@@ -122,18 +122,13 @@ export interface TypeSystemPlugin {
   isValidTypeId(id: string): boolean;
 
   /**
-   * Build a type ID from plugin-specific options.
-   * The options object is plugin-specific and opaque to screensets.
-   *
-   * @param options - Plugin-specific options for building a type ID
-   * @returns A valid type ID string
-   */
-  buildTypeId(options: Record<string, unknown>): string;
-
-  /**
    * Parse a type ID into plugin-specific components.
    * Returns a generic object - the structure is plugin-defined.
    * Use this when you need metadata about a type ID.
+   *
+   * Note: buildTypeId() is intentionally omitted. GTS type IDs are consumed
+   * (validated, parsed) but never programmatically generated at runtime.
+   * All type IDs are defined as string constants.
    *
    * @param id - Type ID to parse
    * @returns Plugin-specific metadata object
@@ -164,17 +159,6 @@ export interface TypeSystemPlugin {
    * @returns Validation result with errors if validation failed
    */
   validateInstance(typeId: string, instance: unknown): ValidationResult;
-
-  /**
-   * Validate an instance directly against a provided schema.
-   * Used for dynamic validation where the schema doesn't have a stable type ID
-   * (e.g., validating Extension.uiMeta against domain.extensionsUiMeta).
-   *
-   * @param schema - JSON Schema to validate against
-   * @param instance - Instance to validate
-   * @returns Validation result with errors if validation failed
-   */
-  validateAgainstSchema(schema: JSONSchema, instance: unknown): ValidationResult;
 
   /**
    * Get the schema registered for a type ID.

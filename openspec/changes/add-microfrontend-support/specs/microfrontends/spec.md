@@ -39,68 +39,72 @@ const app = createHAI3()
 
 ### Requirement: Dynamic MFE Registration
 
-The system SHALL support dynamic registration of MFE manifests, extensions, and domains at runtime. There is NO static configuration - all registration is dynamic.
+The system SHALL support dynamic registration of MFE extensions and domains at runtime. There is NO static configuration - all registration is dynamic.
 
-#### Scenario: Register MFE manifest at runtime
-
-```typescript
-import { mfeActions } from '@hai3/framework';
-import { type MfManifest, type GtsTypeId } from '@hai3/screensets';
-
-// Register manifest dynamically at runtime (e.g., after loading from backend)
-const manifest: MfManifest = {
-  id: 'gts.hai3.screensets.mfe.mf.v1~acme.analytics.mfe.manifest.v1' as GtsTypeId,
-  remoteEntry: 'https://mfe.example.com/analytics/remoteEntry.js',
-  remoteName: 'acme_analytics',
-};
-
-mfeActions.registerManifest(manifest);
-// Emits: 'mfe/registerManifestRequested' with { manifest }
-// Effect calls: runtime.registerManifest(manifest)
-```
-
-- **WHEN** registering an MFE manifest
-- **THEN** it SHALL be registered dynamically at runtime
-- **AND** it SHALL NOT be configured statically at plugin initialization
-- **AND** the runtime SHALL validate the manifest against GTS schema
+**Important**: MfManifest is internal to MfeHandlerMF. See [Manifest as Internal Implementation Detail](../../design/mfe-loading.md#decision-12-manifest-as-internal-implementation-detail-of-mfehandlermf).
 
 #### Scenario: Dynamic MFE isolation principles (default handler)
 
-```typescript
-// MFE isolation is enforced by the default handler (MfeHandlerMF)
-// With the default handler, each MFE instance gets:
-// - Its own @hai3/screensets instance (NOT shared)
-// - Its own TypeSystemPlugin instance (NOT shared)
-// - Its own state container (NOT shared)
-// - Framework agnostic - can use any UI framework
-
-// Stateless utilities (lodash, date-fns) MAY be shared for bundle optimization
-// This is handled by Module Federation sharedDependencies in MfManifest
-// Custom handlers for internal MFEs may implement different isolation strategies
-```
+HAI3's default handler enforces instance-level isolation. See [Runtime Isolation](../../design/overview.md#runtime-isolation-default-behavior) for the complete isolation model.
 
 - **WHEN** loading an MFE with the default handler
-- **THEN** `@hai3/screensets` SHALL NOT be shared as singleton (each MFE instance gets its own isolated runtime instance)
-- **AND** `@globaltypesystem/gts-ts` SHALL NOT be shared (isolated TypeSystemPlugin)
-- **AND** React/ReactDOM SHALL NOT be shared (MFEs are framework-agnostic)
-- **AND** no singletons SHALL be used by design
+- **THEN** each MFE instance SHALL have its own isolated runtime
 - **AND** only stateless utilities (lodash, date-fns) MAY be shared for bundle optimization
-- **AND** custom handlers MAY configure different sharing strategies for internal MFEs
 
 ### Requirement: MFE Actions
 
 The system SHALL provide MFE actions that emit events only, following HAI3 Flux pattern (no async, return void).
 
-#### Scenario: Load MFE action
+#### Scenario: Load MFE bundle action
 
 ```typescript
 import { mfeActions } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
-// MfeEntryMF type ID - derived from gts.hai3.screensets.mfe.entry.v1~
-const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
+// Extension type ID
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
 
-// Action emits event, returns void
+// Action emits event, returns void - loads JS bundle only
+mfeActions.loadExtension(ANALYTICS_EXTENSION_ID);
+// Emits: 'mfe/loadRequested' with { extensionId }
+```
+
+- **WHEN** calling `loadExtension` action
+- **THEN** it SHALL emit `'mfe/loadRequested'` event with `extensionId`
+- **AND** it SHALL return `void` (no Promise)
+- **AND** it SHALL NOT perform any async operations
+- **AND** the effect SHALL call `runtime.loadExtension()` to fetch the JS bundle
+
+#### Scenario: Preload MFE bundle action
+
+```typescript
+import { mfeActions } from '@hai3/framework';
+import { type GtsTypeId } from '@hai3/screensets';
+
+// Extension type ID
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+
+// Action emits event for preloading - fetch bundle before user navigates
+mfeActions.preloadExtension(ANALYTICS_EXTENSION_ID);
+// Emits: 'mfe/preloadRequested' with { extensionId }
+```
+
+- **WHEN** calling `preloadExtension` action
+- **THEN** it SHALL emit `'mfe/preloadRequested'` event with `extensionId`
+- **AND** it SHALL return `void` (no Promise)
+- **AND** the effect SHALL call `runtime.preloadExtension()` to fetch the JS bundle
+- **AND** this is semantically for preloading (e.g., on hover)
+
+#### Scenario: Mount MFE action
+
+```typescript
+import { mfeActions } from '@hai3/framework';
+import { type GtsTypeId } from '@hai3/screensets';
+
+// Extension type ID
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+
+// Action emits event, returns void - mounts to DOM (auto-loads if needed)
 mfeActions.mountExtension(ANALYTICS_EXTENSION_ID);
 // Emits: 'mfe/mountRequested' with { extensionId }
 ```
@@ -109,6 +113,7 @@ mfeActions.mountExtension(ANALYTICS_EXTENSION_ID);
 - **THEN** it SHALL emit `'mfe/mountRequested'` event with `extensionId`
 - **AND** it SHALL return `void` (no Promise)
 - **AND** it SHALL NOT perform any async operations
+- **AND** the effect SHALL call `runtime.mountExtension()` (which auto-loads if needed)
 
 #### Scenario: Handle MFE host action
 
@@ -128,6 +133,52 @@ mfeActions.handleMfeHostAction(extensionId, actionTypeId, payload);
 
 The system SHALL provide MFE effects that subscribe to events, call ScreensetsRegistry methods, and dispatch to slices.
 
+#### Scenario: Load effect handles loadRequested event
+
+```typescript
+import { ScreensetsRegistry } from '@hai3/screensets';
+
+// Effect subscribes to event, calls runtime, dispatches to slice
+// extensionId is Extension type: gts.hai3.screensets.ext.extension.v1~...
+eventBus.on('mfe/loadRequested', async ({ extensionId }) => {
+  dispatch(mfeSlice.actions.setLoading({ extensionId }));
+  try {
+    await runtime.loadExtension(extensionId);
+    dispatch(mfeSlice.actions.setBundleLoaded({ extensionId }));
+  } catch (error) {
+    dispatch(mfeSlice.actions.setError({ extensionId, error: error.message }));
+  }
+});
+```
+
+- **WHEN** `'mfe/loadRequested'` event is emitted
+- **THEN** the effect SHALL dispatch `setLoading` to mfeSlice
+- **AND** the effect SHALL call `runtime.loadExtension()` to fetch the JS bundle
+- **AND** on success, the effect SHALL dispatch `setBundleLoaded`
+- **AND** on failure, the effect SHALL dispatch `setError`
+- **AND** the bundle is loaded but NOT mounted to DOM
+
+#### Scenario: Preload effect handles preloadRequested event
+
+```typescript
+// Effect for preloading - similar to load but fires in background
+eventBus.on('mfe/preloadRequested', async ({ extensionId }) => {
+  try {
+    await runtime.preloadExtension(extensionId);
+    dispatch(mfeSlice.actions.setBundleLoaded({ extensionId }));
+  } catch (error) {
+    // Preload failures are logged but don't block UI
+    console.warn(`Failed to preload ${extensionId}:`, error);
+  }
+});
+```
+
+- **WHEN** `'mfe/preloadRequested'` event is emitted
+- **THEN** the effect SHALL call `runtime.preloadExtension()` to fetch the JS bundle
+- **AND** on success, the effect SHALL dispatch `setBundleLoaded`
+- **AND** on failure, the effect SHALL log a warning (non-blocking)
+- **AND** preload SHALL NOT show loading UI to user
+
 #### Scenario: Mount effect handles mountRequested event
 
 ```typescript
@@ -136,10 +187,10 @@ import { ScreensetsRegistry } from '@hai3/screensets';
 // Effect subscribes to event, calls runtime, dispatches to slice
 // extensionId is Extension type: gts.hai3.screensets.ext.extension.v1~...
 eventBus.on('mfe/mountRequested', async ({ extensionId }) => {
-  dispatch(mfeSlice.actions.setLoading({ extensionId }));
+  dispatch(mfeSlice.actions.setMounting({ extensionId }));
   try {
     await runtime.mountExtension(extensionId, container);
-    dispatch(mfeSlice.actions.setLoaded({ extensionId }));
+    dispatch(mfeSlice.actions.setMounted({ extensionId }));
   } catch (error) {
     dispatch(mfeSlice.actions.setError({ extensionId, error: error.message }));
   }
@@ -147,9 +198,9 @@ eventBus.on('mfe/mountRequested', async ({ extensionId }) => {
 ```
 
 - **WHEN** `'mfe/mountRequested'` event is emitted
-- **THEN** the effect SHALL dispatch `setLoading` to mfeSlice
-- **AND** the effect SHALL call `runtime.mountExtension()`
-- **AND** on success, the effect SHALL dispatch `setLoaded`
+- **THEN** the effect SHALL dispatch `setMounting` to mfeSlice
+- **AND** the effect SHALL call `runtime.mountExtension()` (which auto-loads if needed)
+- **AND** on success, the effect SHALL dispatch `setMounted`
 - **AND** on failure, the effect SHALL dispatch `setError`
 - **AND** the effect SHALL NOT call any actions (prevents loops)
 
@@ -176,31 +227,47 @@ eventBus.on('mfe/hostActionRequested', async ({ extensionId, actionTypeId, paylo
 
 ### Requirement: MFE Load State Tracking
 
-The system SHALL track MFE load states via a Redux slice using GTS type IDs.
+The system SHALL track MFE load and mount states via a Redux slice using extension IDs.
 
 #### Scenario: Query MFE load state
 
 ```typescript
-import { selectMfeLoadState, selectMfeError } from '@hai3/framework';
+import { selectMfeLoadState, selectMfeMountState, selectMfeError } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
-// MfeEntryMF type ID - derived from gts.hai3.screensets.mfe.entry.v1~
-const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
+// Extension type ID
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
 
+// Load state tracks bundle loading
 const loadState = useAppSelector((state) =>
-  selectMfeLoadState(state, MFE_ANALYTICS_ENTRY)
+  selectMfeLoadState(state, ANALYTICS_EXTENSION_ID)
 );
 // 'idle' | 'loading' | 'loaded' | 'error'
 
+// Mount state tracks DOM mounting
+const mountState = useAppSelector((state) =>
+  selectMfeMountState(state, ANALYTICS_EXTENSION_ID)
+);
+// 'unmounted' | 'mounting' | 'mounted' | 'error'
+
 const error = useAppSelector((state) =>
-  selectMfeError(state, MFE_ANALYTICS_ENTRY)
+  selectMfeError(state, ANALYTICS_EXTENSION_ID)
 );
 ```
 
 - **WHEN** querying MFE load state
-- **THEN** `selectMfeLoadState()` SHALL accept an MfeEntryMF GTS type ID
-- **AND** valid states SHALL be: 'idle', 'loading', 'loaded', 'error'
-- **AND** `selectMfeError()` SHALL return the error if state is 'error'
+- **THEN** `selectMfeLoadState()` SHALL accept an extension GTS type ID
+- **AND** load states SHALL be: 'idle', 'loading', 'loaded', 'error'
+- **AND** `selectMfeMountState()` SHALL return mount states: 'unmounted', 'mounting', 'mounted', 'error'
+- **AND** `selectMfeError()` SHALL return the error if either state is 'error'
+
+#### Scenario: Load vs mount state distinction
+
+- **WHEN** tracking MFE lifecycle
+- **THEN** load state SHALL track JavaScript bundle loading
+- **AND** mount state SHALL track DOM rendering
+- **AND** an extension CAN be 'loaded' but 'unmounted' (preloaded scenario)
+- **AND** an extension CANNOT be 'mounted' without being 'loaded' first
 
 ### Requirement: MFE Container Component
 
@@ -489,7 +556,7 @@ const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mf
 
 ### Requirement: MFE Preloading
 
-The system SHALL support preloading MFE bundles before navigation using GTS type IDs.
+The system SHALL support preloading MFE bundles before navigation using extension IDs. Preloading loads the JS bundle without mounting to DOM.
 
 #### Scenario: Preload on menu hover
 
@@ -497,23 +564,24 @@ The system SHALL support preloading MFE bundles before navigation using GTS type
 import { mfeActions } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
-// MfeEntryMF type ID - derived from gts.hai3.screensets.mfe.entry.v1~
-const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
+// Extension type ID
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
 
 // Preload is triggered via action, not static configuration
 // On click, mount the extension on its screen domain (which navigates to it)
 <MenuItem
   onMouseEnter={() => mfeActions.preloadExtension(ANALYTICS_EXTENSION_ID)}
-  onClick={() => mfeActions.mountExtension({ extensionId: ANALYTICS_EXTENSION_ID })}
+  onClick={() => mfeActions.mountExtension(ANALYTICS_EXTENSION_ID)}
 >
   Analytics
 </MenuItem>
 ```
 
 - **WHEN** preloading an MFE
-- **THEN** the preload action SHALL start the MFE fetch dynamically
-- **AND** the bundle SHALL be cached for instant navigation
-- **AND** preload SHALL NOT mount the MFE
+- **THEN** the preload action SHALL call `runtime.preloadExtension()` to fetch the JS bundle
+- **AND** the bundle SHALL be cached for instant mounting
+- **AND** preload SHALL NOT mount the MFE to DOM
+- **AND** subsequent mount calls SHALL be instant (bundle already loaded)
 
 #### Scenario: Immediate preload on app initialization
 
@@ -537,41 +605,54 @@ eventBus.on('app/ready', () => {
 - **WHEN** preloading MFEs on app startup
 - **THEN** the preload action SHALL be triggered dynamically (e.g., in an effect)
 - **AND** the MFE bundles SHALL be fetched in the background
-- **AND** navigation to those MFEs SHALL be instant
+- **AND** mounting to those MFEs SHALL be instant (bundles already loaded)
 
-### Requirement: MFE Registry Integration
+#### Scenario: Load vs preload distinction
 
-The system SHALL register loaded MFE definitions with `microfrontendRegistry` for querying by GTS type ID.
+Loading fetches the bundle; mounting renders to DOM. See [Load vs Mount](../../design/registry-runtime.md#load-vs-mount) for details.
 
-#### Scenario: Query loaded MFEs
+- **WHEN** using loadExtension vs preloadExtension
+- **THEN** both SHALL fetch and cache the JS bundle
+- **AND** loadExtension SHALL show loading UI (via slice state)
+- **AND** preloadExtension SHALL NOT show loading UI (silent background fetch)
+
+### Requirement: ScreensetsRegistry Query Methods
+
+The system SHALL provide query methods on ScreensetsRegistry for querying registered extensions and domains by GTS type ID.
+
+#### Scenario: Query registered extensions and domains
 
 ```typescript
-import { microfrontendRegistry, type GtsTypeId, parseGtsId } from '@hai3/screensets';
+import { type GtsTypeId, parseGtsId } from '@hai3/screensets';
 
-// MfManifest type ID - contains Module Federation config
-const ANALYTICS_MANIFEST = 'gts.hai3.screensets.mfe.mf.v1~acme.analytics.mfe.manifest.v1' as GtsTypeId;
+// Query extension by type ID
+const ANALYTICS_EXTENSION = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+const extension = runtime.getExtension(ANALYTICS_EXTENSION);
+console.log(extension?.domain);     // Domain type ID
+console.log(extension?.entry);      // Entry type ID (MfeEntryMF)
+console.log(extension?.uiMeta);     // UI metadata
 
-// After manifest is loaded
-const manifest = microfrontendRegistry.getManifest(ANALYTICS_MANIFEST);
-console.log(manifest?.remoteName);  // 'acme_analytics'
-console.log(manifest?.remoteEntry); // URL to remoteEntry.js
-console.log(manifest?.entries);     // List of MfeEntryMF type IDs
+// Query domain by type ID
+const SCREEN_DOMAIN = 'gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1~' as GtsTypeId;
+const domain = runtime.getDomain(SCREEN_DOMAIN);
+console.log(domain?.sharedProperties);  // List of shared property type IDs
 
-// Query by entry type ID
-const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
-const entry = microfrontendRegistry.getEntry(MFE_ANALYTICS_ENTRY);
-console.log(entry?.manifest);       // References MfManifest type ID
-console.log(entry?.exposedModule);  // './Dashboard'
+// Query all extensions for a domain
+const extensions = runtime.getExtensionsForDomain(SCREEN_DOMAIN);
+console.log(extensions.length);  // Number of extensions registered for this domain
 
 // Parse vendor info from GTS type
-const parsed = parseGtsId(ANALYTICS_MANIFEST);
-console.log(parsed.vendor); // 'hai3' (base type vendor)
+const parsed = parseGtsId(ANALYTICS_EXTENSION);
+console.log(parsed.vendor); // 'acme' (extension vendor)
 ```
 
-- **WHEN** an MFE manifest is loaded
-- **THEN** its definition SHALL be registered in `microfrontendRegistry`
-- **AND** the registry SHALL be queryable by MfManifest or MfeEntryMF GTS type ID
+- **WHEN** querying the ScreensetsRegistry
+- **THEN** `getExtension(extensionId)` SHALL return the registered extension or undefined
+- **AND** `getDomain(domainId)` SHALL return the registered domain or undefined
+- **AND** `getExtensionsForDomain(domainId)` SHALL return all extensions for that domain
 - **AND** `parseGtsId()` SHALL extract vendor and other metadata
+
+**Note**: MfManifest is internal to MfeHandlerMF. See [Manifest as Internal Implementation Detail](../../design/mfe-loading.md#decision-12-manifest-as-internal-implementation-detail-of-mfehandlermf).
 
 ### Requirement: MFE Version Validation
 
@@ -595,14 +676,13 @@ The system SHALL validate shared dependency versions between host and MFE.
 import { type GtsTypeId, MfeVersionMismatchError } from '@hai3/screensets';
 
 // If host uses React 18.x and MFE built with React 17.x:
-// The runtime validates versions when loading a dynamically registered manifest
+// The handler validates shared dependency versions when loading the MFE bundle
 try {
-  // Manifest is loaded dynamically - not configured statically
-  const manifest = await fetchManifestFromBackend('vendor.legacy');
-  await runtime.registerManifest(manifest);
+  // Load extension - MfeHandlerMF resolves manifest internally from MfeEntryMF
+  await runtime.loadExtension(extensionId);
 } catch (error) {
   if (error instanceof MfeVersionMismatchError) {
-    console.log(`MFE manifest ${error.manifestTypeId} has incompatible deps`);
+    console.log(`MFE entry ${error.entryTypeId} has incompatible deps`);
   }
 }
 ```
@@ -698,22 +778,6 @@ mfeActions.unregisterExtension('gts.hai3.screensets.ext.extension.v1~acme.user.w
 - **AND** the effect SHALL call `runtime.unregisterExtension()`
 - **AND** if MFE is mounted, it SHALL be unmounted first
 
-#### Scenario: Refresh extensions from backend via action
-
-```typescript
-import { mfeActions } from '@hai3/framework';
-
-// After user login, refresh all extensions from backend
-mfeActions.refreshExtensions();
-// Emits: 'mfe/refreshExtensionsRequested'
-// Effect calls: runtime.refreshExtensionsFromBackend()
-```
-
-- **WHEN** calling `mfeActions.refreshExtensions()`
-- **THEN** it SHALL emit `'mfe/refreshExtensionsRequested'` event
-- **AND** the effect SHALL call `runtime.refreshExtensionsFromBackend()`
-- **AND** it SHALL dispatch loading/success/error states to slice
-
 #### Scenario: Track extension registration state in slice
 
 ```typescript
@@ -735,38 +799,38 @@ const registeredExtensions = useAppSelector(selectRegisteredExtensions);
 - **THEN** `selectExtensionState()` SHALL return registration status
 - **AND** `selectRegisteredExtensions()` SHALL return list of registered extension IDs
 
-#### Scenario: Configure TypeInstanceProvider at runtime
+#### Scenario: Register extensions from backend (application responsibility)
 
 ```typescript
 import { mfeActions } from '@hai3/framework';
-import { InMemoryTypeInstanceProvider, BackendTypeInstanceProvider } from '@hai3/screensets';
 
 // App is created WITHOUT static configuration
 const app = createHAI3()
   .use(microfrontends())  // No configuration - just enables MFE capabilities
   .build();
 
-// TypeInstanceProvider is set dynamically at runtime
-// This can be done in response to user login, configuration load, etc.
+// Entity fetching is OUTSIDE MFE system scope - application handles this
+eventBus.on('auth/loginSuccess', async ({ token }) => {
+  // Application code fetches entities from backend
+  const response = await fetch('/api/extensions', {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const { domains, extensions } = await response.json();
 
-// Current: in-memory provider (set during app initialization)
-runtime.setTypeInstanceProvider(new InMemoryTypeInstanceProvider());
-
-// Future: backend provider (set after authentication)
-eventBus.on('auth/loginSuccess', ({ token }) => {
-  runtime.setTypeInstanceProvider(new BackendTypeInstanceProvider({
-    apiUrl: '/api/extensions',
-    authToken: () => token,
-  }));
-  // Refresh extensions from the new provider
-  mfeActions.refreshExtensions();
+  // MFE system only handles registration of already-fetched entities
+  for (const domain of domains) {
+    mfeActions.registerDomain(domain);
+  }
+  for (const extension of extensions) {
+    mfeActions.registerExtension(extension);
+  }
 });
 ```
 
-- **WHEN** setting a TypeInstanceProvider
-- **THEN** it SHALL be set dynamically at runtime via `runtime.setTypeInstanceProvider()`
-- **AND** it SHALL NOT be passed as static plugin configuration
-- **AND** the provider SHALL enable dynamic extension discovery
+- **WHEN** entities need to be loaded from backend
+- **THEN** application code SHALL fetch entities (outside MFE system scope)
+- **AND** application code SHALL call `registerDomain()` / `registerExtension()` for each entity
+- **AND** the MFE system SHALL NOT provide fetch/refresh methods
 
 #### Scenario: Listen to registration events
 

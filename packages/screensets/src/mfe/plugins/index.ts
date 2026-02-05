@@ -13,3 +13,6 @@ export type {
   AttributeResult,
   TypeSystemPlugin,
 } from './types';
+
+// GTS plugin (default implementation)
+export { createGtsPlugin, gtsPlugin } from './gts';

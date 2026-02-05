@@ -13,19 +13,7 @@ This document covers the ExtensionDomain and Extension types and their usage in 
 
 ## Context
 
-ExtensionDomain defines an extension point where MFE instances can be mounted. Domains can exist at **any level of the hierarchy**:
-
-1. The **host application** can define domains (e.g., sidebar, popup, screen, overlay)
-2. An **MFE itself** can define its own domains for nested extensions
-3. An MFE can be **both** - an extension to its parent's domain AND a domain provider for its own children
-
-This hierarchical composition enables deeply nested structures where each MFE instance can host additional MFE instances.
-
-The domain defines the contract with [extensions](#extension) by declaring:
-- What [shared properties](./mfe-shared-property.md) are provided to MFEs in this domain
-- What [action types](./mfe-actions.md) can target extensions in this domain
-- What action types extensions can send (when targeting this domain)
-- The schema for extension UI metadata (validated against `uiMeta` in [Extension](#extension))
+ExtensionDomain defines an extension point where MFE instances can be mounted. Domains can exist at any level of the hierarchy. See [MFE System Overview](./overview.md) for architecture details.
 
 ---
 
@@ -222,8 +210,6 @@ The ActionsChainsMediator handles these semantics when processing actions. See [
 **Extension**: A GTS type that binds an MfeEntry to an ExtensionDomain, creating a concrete MFE instance. It includes UI metadata that must conform to the domain's `extensionsUiMeta` schema.
 
 Extension is the binding type that connects an [MFE entry](./mfe-entry-mf.md) to an extension domain, creating a concrete MFE **instance**. While MfeEntry defines what an MFE can do (its contract) and ExtensionDomain defines where MFE instances can mount (the slot), Extension creates the actual instance by specifying which entry mounts into which domain, along with UI metadata specific to that mounting.
-
-**Instance-level isolation (default)**: With HAI3's default handler (`MfeHandlerMF`), each Extension creates an isolated MFE instance. Mounting the same MFE entry twice (via two different Extension registrations) creates two completely independent runtime instances - they cannot access each other's state, styles, or internal data. Custom handlers can implement different isolation strategies (e.g., allowing internal MFE instances to share resources).
 
 Extensions are registered dynamically at runtime and can be added/removed at any time during the application lifecycle.
 

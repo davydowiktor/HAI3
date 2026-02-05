@@ -16,21 +16,7 @@ This document covers the ScreensetsRegistry runtime isolation model, action chai
 
 ### Decision 13: Instance-Level Isolation (Framework-Agnostic, Default Behavior)
 
-HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation by default. Each MFE **instance** runs with its own isolated runtime - even multiple instances of the **same** MFE entry are isolated from each other. Custom handlers can implement different strategies:
-
-- Own @hai3/screensets instance
-- Own TypeSystemPlugin instance (with own schema registry)
-- Own @hai3/state container
-- Can use ANY UI framework (Vue 3, Angular, Svelte, etc.)
-
-The host uses React, but MFEs are NOT required to use React.
-
-**Example (default behavior)**: If "ChartWidget" MFE entry is mounted twice (Extension A and Extension B), each instance has its own isolated runtime. Instance A cannot access Instance B's state, even though they share the same MFE entry code.
-
-**Custom handlers can implement different isolation strategies:**
-- Strict isolation (like default) - recommended for 3rd-party MFEs
-- Shared state between internal MFE instances for coordination
-- Hybrid approaches based on enterprise requirements
+See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for the isolation model overview.
 
 **Architecture:**
 ```
@@ -61,52 +47,7 @@ The host uses React, but MFEs are NOT required to use React.
 
 ### Decision 14: Framework-Agnostic Isolation Model (Default Behavior)
 
-**What**: HAI3's default handler enforces complete isolation by default where each MFE **instance** has its own runtime. This isolation applies even between multiple instances of the same MFE entry. Each MFE instance can use ANY UI framework. Custom handlers can implement different isolation strategies for internal MFEs.
-
-**Why Complete GTS Isolation is the Default**:
-
-With the default handler, GTS/TypeSystemPlugin isolation is enforced because:
-1. MFEs could call `plugin.query('gts.*')` and discover ALL registered types (security violation)
-2. MFEs could learn about host's internal domain structure
-3. MFEs should ONLY know about their own contract with the host domain
-
-**Custom handlers for internal MFEs** may choose to relax this isolation when security is not a concern (e.g., all MFEs are from the same trusted codebase).
-
-**Internal Runtime Coordination**:
-
-```typescript
-// INTERNAL: Not exposed to MFE code
-const runtimeConnections = new WeakMap<Element, RuntimeConnection>();
-
-interface RuntimeConnection {
-  hostRuntime: ScreensetsRegistry;
-  bridges: Map<string, MfeBridgeConnection>;
-}
-
-// WHAT MFE CODE SEES: Only the MfeBridge interface
-interface MfeBridge {
-  readonly entryTypeId: string;
-  readonly domainId: string;
-  requestHostAction(actionTypeId: string, payload?: unknown): Promise<void>;
-  subscribeToProperty(propertyTypeId: string, callback: (value: unknown) => void): () => void;
-  getProperty(propertyTypeId: string): unknown;
-  subscribeToAllProperties(callback: (properties: Map<string, unknown>) => void): () => void;
-}
-```
-
-**Module Federation Shared Configuration**:
-
-```javascript
-// Host and ALL MFEs config
-shared: {
-  'react': { requiredVersion: '^18.0.0', singleton: false },
-  'react-dom': { requiredVersion: '^18.0.0', singleton: false },
-  '@globaltypesystem/gts-ts': { requiredVersion: '^1.0.0', singleton: false },
-  '@hai3/screensets': { requiredVersion: '^1.0.0', singleton: false },
-  'lodash': { requiredVersion: '^4.17.0', singleton: true },
-  'date-fns': { requiredVersion: '^2.30.0', singleton: true },
-}
-```
+See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for the complete isolation model, Module Federation configuration, and recommendations.
 
 **Class-Based ScreensetsRegistry**:
 
@@ -319,15 +260,23 @@ function injectStylesheet(shadowRoot: ShadowRoot, css: string, id?: string): voi
 
 **Why**:
 - Extensions are NOT known at app initialization time
-- GTS types and instances will be obtained from backend API in the future
 - Enables runtime configuration, feature flags, and permission-based extensibility
+
+**Boundary**: The MFE system's scope is **registration and lifecycle**, NOT fetching. How entities are obtained from backends is outside the MFE system scope. Entities become the MFE system's concern only AFTER they are registered.
 
 #### ScreensetsRegistry Dynamic API
 
 ```typescript
 class ScreensetsRegistry {
+  // === Type System ===
+
+  /** The Type System plugin instance */
+  public readonly typeSystem: TypeSystemPlugin;
+
+  // === Dynamic Registration (anytime during runtime) ===
+
   async registerExtension(extension: Extension): Promise<void> {
-    // Validate, verify domain exists, resolve entry, validate contract, validate uiMeta, register
+    // Validate, verify domain exists, validate contract, validate uiMeta, register
     // Trigger 'init' lifecycle stage
   }
 
@@ -346,14 +295,33 @@ class ScreensetsRegistry {
     // Unregister all extensions first, remove domain, emit event
   }
 
+  // === Bundle Loading (MFE system responsibility) ===
+
+  async loadExtension(extensionId: string): Promise<void> {
+    // Get extension, resolve entry, find handler via registry
+    // Load bundle using handler.load(entry)
+    // Cache loaded lifecycle for mounting
+    // Does NOT mount to DOM
+  }
+
+  async preloadExtension(extensionId: string): Promise<void> {
+    // Same as loadExtension but semantically for preloading
+    // Useful for hover preload before user clicks
+    // Uses handler.preload() if available for batch optimization
+  }
+
+  // === Mounting (lifecycle) ===
+
   async mountExtension(extensionId: string, container: Element): Promise<MfeBridgeConnection> {
-    // Get handler, load bundle, create bridge, register runtime, mount
+    // If not loaded, load first
+    // Create bridge, register runtime, mount
     // Trigger 'activated' lifecycle stage
   }
 
   async unmountExtension(extensionId: string): Promise<void> {
     // Trigger 'deactivated' lifecycle stage
     // Dispose bridge, unregister runtime, update state
+    // Does NOT unload bundle (stays cached for remounting)
   }
 
   // === Lifecycle Stage Triggering ===
@@ -369,31 +337,25 @@ class ScreensetsRegistry {
   async triggerDomainOwnLifecycleStage(domainId: string, stageId: string): Promise<void> {
     // Trigger custom lifecycle stage for the domain itself
   }
+
+  // === Events ===
+
+  on(event: string, callback: Function): void {
+    // Subscribe to registry events
+  }
+
+  off(event: string, callback: Function): void {
+    // Unsubscribe from registry events
+  }
 }
 ```
 
-#### TypeInstanceProvider Interface
+**System Boundary:** Entity fetching is outside MFE system scope. See [System Boundary](./overview.md#system-boundary) for details.
 
-```typescript
-interface TypeInstanceProvider {
-  fetchExtensions(): Promise<Extension[]>;
-  fetchDomains(): Promise<ExtensionDomain[]>;
-  fetchInstance<T>(typeId: string): Promise<T | undefined>;
-  subscribeToUpdates(callback: (update: InstanceUpdate) => void): () => void;
-}
+<a name="load-vs-mount"></a>
+**Load vs Mount:** Loading fetches the JavaScript bundle; mounting renders to DOM. An extension can be loaded but not mounted (preloading scenario). `mountExtension()` auto-loads if not already loaded. `unmountExtension()` does NOT unload the bundle (stays cached for remounting).
 
-interface InstanceUpdate {
-  type: 'added' | 'updated' | 'removed';
-  typeId: string;
-  instance?: unknown;
-}
-
-class InMemoryTypeInstanceProvider implements TypeInstanceProvider {
-  registerExtension(extension: Extension): void;
-  registerDomain(domain: ExtensionDomain): void;
-  registerInstance(typeId: string, instance: unknown): void;
-}
-```
+**Manifest Handling:** MfManifest is internal to MfeHandlerMF. See [Manifest as Internal Implementation Detail](./mfe-loading.md#decision-12-manifest-as-internal-implementation-detail-of-mfehandlermf) for details.
 
 #### Usage Examples
 
@@ -411,13 +373,21 @@ settingsButton.onClick = async () => {
   const bridge = await runtime.mountExtension(extensionId, container);
 };
 
-// Registration after backend API response
+// Registration after backend API response (application handles fetching)
 async function onUserLogin(user: User) {
-  runtime.setTypeInstanceProvider(new BackendTypeInstanceProvider({
-    apiUrl: '/api/extensions',
-    authToken: user.token,
-  }));
-  await runtime.refreshExtensionsFromBackend();
+  // Application code fetches entities - this is OUTSIDE MFE system scope
+  const response = await fetch('/api/extensions', {
+    headers: { 'Authorization': `Bearer ${user.token}` }
+  });
+  const { domains, extensions } = await response.json();
+
+  // MFE system only handles registration of already-fetched entities
+  for (const domain of domains) {
+    await runtime.registerDomain(domain);
+  }
+  for (const extension of extensions) {
+    await runtime.registerExtension(extension);
+  }
 }
 
 // Domain-level shared property updates

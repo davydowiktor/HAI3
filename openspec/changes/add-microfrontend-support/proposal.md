@@ -6,7 +6,7 @@ HAI3 applications need to compose functionality from multiple independently depl
 
 1. **Independent Deployment**: MFEs can be deployed separately from the parent application
 2. **Vendor Extensibility**: Third parties can create extensions without modifying parent code, using ANY UI framework (Vue 3, Angular, Svelte, etc.)
-3. **Instance-Level Runtime Isolation (Default)**: HAI3's default handler (`MfeHandlerMF`) enforces isolation - each MFE instance maintains its own isolated runtime (state, TypeSystemPlugin, schema registry). Custom handlers can implement different isolation strategies based on their requirements.
+3. **Instance-Level Runtime Isolation (Default)**: HAI3's default handler enforces instance-level isolation. See [Runtime Isolation](./design/overview.md#runtime-isolation-default-behavior) for details.
 4. **Type-Safe Contracts**: Each runtime has its own TypeSystemPlugin instance - MFE instances cannot discover parent or sibling schemas
 5. **Framework Agnostic**: Parent uses React, but MFEs can use any framework - no React/ReactDOM dependency for MFEs
 6. **Dynamic Registration**: Extensions and MFEs can be registered at ANY time during runtime, not just at app initialization - enabling runtime configuration, feature flags, and backend-driven extensibility
@@ -36,26 +36,11 @@ const app = createHAI3()
 
 ### Core Architecture
 
-HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation as the default strategy. Custom handlers can implement different isolation strategies (including shared state) for internal MFEs when needed.
-
-**With the default handler, each MFE instance has its own FULLY ISOLATED runtime:**
-- Own `@hai3/screensets` instance (NOT singleton)
-- Own `TypeSystemPlugin` instance (NOT singleton) with isolated schema registry
-- Own `@hai3/state` container
-- Can use ANY UI framework (parent uses React, MFEs can use Vue 3, Angular, Svelte, etc.)
-
-**Instance-level isolation (default behavior)**: If the same MFE entry is mounted twice (in two different extensions), HAI3's default handler creates isolated runtimes. Instance A of "ChartWidget" cannot access Instance B of "ChartWidget".
-
-**Custom handler flexibility**: Custom handlers (e.g., `MfeHandlerAcme`) can implement different isolation strategies:
-- **Strict isolation** (like default) - recommended for 3rd-party/vendor MFEs (security)
-- **Shared state** between instances - for internal MFEs that need coordination
-- **Hybrid approaches** - isolate some resources, share others
+HAI3's default handler enforces instance-level isolation. See [Runtime Isolation](./design/overview.md#runtime-isolation-default-behavior) for the complete isolation model, including recommendations for 3rd-party vs internal MFEs.
 
 Communication happens ONLY through the explicit contract (MfeBridge interface):
 - **Shared properties** (parent to child, read-only)
 - **Actions chain** delivered by ActionsChainsMediator to targets
-
-Internal runtime coordination (between parent and MFE instance runtimes) uses PRIVATE mechanisms not exposed to MFE code.
 
 **Hierarchical domains**: Domains can exist at ANY level. An MFE can be an extension to its parent's domain, define its OWN domains for nested MFEs, or both simultaneously.
 
@@ -75,14 +60,12 @@ The @hai3/screensets package abstracts the Type System as a **pluggable dependen
 interface TypeSystemPlugin {
   // Type ID operations
   isValidTypeId(id: string): boolean;
-  buildTypeId(options: Record<string, unknown>): string;
   parseTypeId(id: string): Record<string, unknown>;
 
   // Schema registry (for vendor/dynamic schemas only)
   // First-class citizen schemas are built into the plugin
   registerSchema(schema: JSONSchema): void;  // Type ID extracted from schema.$id
   validateInstance(typeId: string, instance: unknown): ValidationResult;
-  validateAgainstSchema(schema: JSONSchema, instance: unknown): ValidationResult;  // Direct schema validation
   getSchema(typeId: string): JSONSchema | undefined;
 
   // Query
@@ -145,21 +128,18 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 | `MfeHandler<TEntry, TBridge>` | `bridgeFactory, canHandle(entryTypeId), load(entry), preload?(entry), priority?` | Abstract handler class for different entry types |
 | `LoadedMfe` | `lifecycle, entry, unload()` | Result of loading an MFE bundle |
 
-**Note on MfeEntry Design:** MfeEntry is a **pure contract** type (abstract base) that defines ONLY the communication contract (properties, actions). Derived types like `MfeEntryMF` add handler-specific fields. This separation ensures the same entry contract works with any handler and allows future handlers (ESM, Import Maps) to add their own derived types.
+### Intentionally Omitted Methods and Design Notes
 
-**Note on MfeEntryLifecycle Design:** MfeEntryLifecycle is the **lifecycle interface** that all MFE entries must implement. The name focuses on lifecycle semantics (mount/unmount) rather than implementation details like "Export" or "Module". This interface:
-- Defines framework-agnostic lifecycle methods any MFE entry must implement
-- Is extensible for future lifecycle methods (onSuspend, onResume, etc.)
-- Allows MFEs to be written in any UI framework (React, Vue, Angular, Svelte, Vanilla JS)
-- Maintains a consistent loading contract with the host
+The following methods and patterns were intentionally omitted from the design:
 
-**Note on MfeHandler Extensibility:** The `MfeHandler` abstract class, `MfeBridgeFactory`, and handler registry enable companies to:
-- Create custom derived entry types (e.g., `MfeEntryAcme`) with richer contracts (translations, preload assets, feature flags)
-- Register custom handlers to handle their entry types
-- Create custom bridge factories that inject shared services (router, API client) into bridges for internal MFEs
-- Keep "static knowledge about MFEs" in their handlers, not HAI3 core
+**Omitted TypeSystemPlugin Methods:**
+- **`validateAgainstSchema`**: Use pre-registered domain schemas pattern instead. When a domain is registered, its `extensionsUiMeta` is pre-registered with a convention-based ID (`{domainId}@extensionsUiMeta`), enabling standard `validateInstance()` for all validation.
+- **`buildTypeId`**: GTS type IDs are consumed (validated, parsed) but never programmatically generated at runtime. All type IDs are defined as string constants, making a builder method unnecessary.
 
-This solves the tension between 3rd-party vendors (who need thin, stable contracts and thin bridges) and enterprises (who want richer integration for internal MFEs with rich bridges). See `design/mfe-loading.md` for the MfeHandler abstract class and `design/principles.md` for the extensibility principle.
+**Type Design Rationale:**
+- **MfeEntry**: A pure contract type (abstract base) defining ONLY the communication contract (properties, actions). Derived types like `MfeEntryMF` add handler-specific fields. This ensures the same entry contract works with any handler and allows future handlers (ESM, Import Maps) to add their own derived types.
+- **MfeEntryLifecycle**: The lifecycle interface all MFE entries must implement. The name focuses on lifecycle semantics (mount/unmount) rather than implementation details. It defines framework-agnostic methods, is extensible for future lifecycle methods (onSuspend, onResume), and allows MFEs to be written in any UI framework.
+- **MfeHandler Extensibility**: The `MfeHandler` abstract class, `MfeBridgeFactory`, and handler registry enable companies to create custom derived entry types with richer contracts, register custom handlers, and create custom bridge factories that inject shared services. This solves the tension between 3rd-party vendors (thin, stable contracts) and enterprises (richer integration for internal MFEs). See `design/mfe-loading.md` and `design/principles.md` for details.
 
 ### GTS Type ID Format
 
@@ -270,10 +250,11 @@ domain.actions            is subset of  entry.domainActions
 
 ### Dynamic uiMeta Validation
 
-An `Extension`'s `uiMeta` must conform to its domain's `extensionsUiMeta` schema. Since the domain reference is dynamic, this validation uses the plugin's attribute accessor at runtime:
-- The ScreensetsRegistry calls `plugin.getAttribute(extension.domain, 'extensionsUiMeta')` to resolve the schema
-- Then validates `extension.uiMeta` against the resolved schema
-- See Decision 8 in `design/type-system.md` for implementation details
+An `Extension`'s `uiMeta` must conform to its domain's `extensionsUiMeta` schema. Since the domain reference is dynamic, this validation uses the **pre-registered domain schemas pattern**:
+- When a domain is registered, its `extensionsUiMeta` is pre-registered with a convention-based ID: `{domainId}@extensionsUiMeta`
+- The ScreensetsRegistry validates `extension.uiMeta` against the pre-registered schema via standard `validateInstance()`
+- This avoids the need for a separate `validateAgainstSchema()` method
+- See Decision 9 in `design/type-system.md` for implementation details
 
 ### Explicit Timeout Configuration
 
@@ -395,81 +376,62 @@ interface LoadExtPayload {
 **ScreensetsRegistry API:**
 ```typescript
 interface ScreensetsRegistry {
+  // === Type System ===
+
+  /** The Type System plugin instance */
+  readonly typeSystem: TypeSystemPlugin;
+
   // === Dynamic Registration (anytime during runtime) ===
 
-  /** Register extension dynamically - can be called at any time */
-  registerExtension(extension: Extension): Promise<void>;
-
-  /** Unregister extension dynamically */
-  unregisterExtension(extensionId: string): Promise<void>;
-
   /** Register domain dynamically - can be called at any time */
-  registerDomain(domain: ExtensionDomain): Promise<void>;
+  registerDomain(domain: ExtensionDomain): void;
 
   /** Unregister domain dynamically */
-  unregisterDomain(domainId: string): Promise<void>;
+  unregisterDomain(domainId: string): void;
 
-  // === Handler Registry (for custom entry types) ===
+  /** Register extension dynamically - can be called at any time */
+  registerExtension(extension: Extension): void;
 
-  /** Register an MFE handler for custom entry types */
-  registerHandler(handler: MfeHandler): void;
+  /** Unregister extension dynamically */
+  unregisterExtension(extensionId: string): void;
 
-  /** Unregister an MFE handler by handled base type ID */
-  unregisterHandler(handledBaseTypeId: string): void;
+  // === Bundle Loading (MFE system responsibility) ===
 
-  // === MFE Loading (on-demand) ===
+  /** Load MFE bundle on demand - fetches and initializes the JS bundle via MfeHandler */
+  loadExtension(extensionId: string): Promise<void>;
 
-  /** Mount extension on demand - uses handler registry to find appropriate handler */
+  /** Preload MFE bundle for performance - fetches bundle without mounting */
+  preloadExtension(extensionId: string): Promise<void>;
+
+  // === Mounting (lifecycle) ===
+
+  /** Mount loaded extension to DOM container - extension must be loaded first */
   mountExtension(extensionId: string, container: Element): Promise<MfeBridgeConnection>;
 
-  /** Unmount extension */
+  /** Unmount extension from DOM */
   unmountExtension(extensionId: string): Promise<void>;
 
-  // === Type Instance Provider (future backend integration) ===
+  // === Events ===
 
-  /** Set the provider for fetching GTS type instances from backend */
-  setTypeInstanceProvider(provider: TypeInstanceProvider): void;
+  /** Subscribe to registry events */
+  on(event: string, callback: Function): void;
 
-  /** Refresh extensions from backend - triggers provider.fetchExtensions() */
-  refreshExtensionsFromBackend(): Promise<void>;
+  /** Unsubscribe from registry events */
+  off(event: string, callback: Function): void;
 }
 ```
 
+**Load vs Mount Distinction:** Loading fetches the bundle; mounting renders to DOM. See [Load vs Mount](./design/registry-runtime.md#load-vs-mount) for the complete API documentation.
+
+**System Boundary:** Entity fetching is outside MFE system scope. See [System Boundary](./design/overview.md#system-boundary) for the distinction between fetching GTS entities and loading MFE bundles.
+
 **Use Cases for Dynamic Registration:**
 1. **Feature Flags**: Register extensions based on user feature flags fetched after login
-2. **Backend Configuration**: GTS types and instances fetched from backend API
+2. **Backend Configuration**: Application fetches GTS types and instances from backend API, then registers them
 3. **User Actions**: User enables/disables features at runtime (e.g., toggle a widget)
 4. **Lazy Loading**: Mount extensions on-demand when user navigates to specific screens
 5. **Hot-Swap**: Replace extension implementation at runtime (e.g., A/B testing)
 6. **Permission Changes**: Register/unregister extensions when user permissions change
-
-**TypeInstanceProvider Interface (Future Backend Integration):**
-```typescript
-/**
- * Provider for fetching GTS type instances from backend.
- * Current implementation: in-memory registry
- * Future: backend API calls
- */
-interface TypeInstanceProvider {
-  /** Fetch all available extensions from backend */
-  fetchExtensions(): Promise<Extension[]>;
-
-  /** Fetch all available domains from backend */
-  fetchDomains(): Promise<ExtensionDomain[]>;
-
-  /** Fetch specific type instance by ID */
-  fetchInstance<T>(typeId: string): Promise<T | undefined>;
-
-  /** Subscribe to instance updates (real-time sync) */
-  subscribeToUpdates(callback: (update: InstanceUpdate) => void): () => void;
-}
-
-interface InstanceUpdate {
-  type: 'added' | 'updated' | 'removed';
-  typeId: string;
-  instance?: unknown;
-}
-```
 
 ## Impact
 
@@ -510,5 +472,4 @@ Note: HAI3 is in alpha stage. Backward-incompatible interface changes are expect
 5. GTS plugin registers all first-class schemas during construction (no separate initialization step)
 6. Support runtime registration of extensions, domains, and MFEs at any time
 7. Propagate plugin through @hai3/framework layers
-8. Add TypeInstanceProvider interface for future backend integration
-9. Update documentation and examples
+8. Update documentation and examples
