@@ -98,24 +98,36 @@ describe('GTS Plugin', () => {
     });
 
     it('validates instance with required fields', () => {
+      // GTS-native validation approach:
+      // 1. Register the instance
+      // 2. Validate by instance ID only
       const instance = {
-        id: 'gts.test.app.mfe.test_entry.v1~',
+        id: 'gts.hai3.screensets.mfe.entry.v1~test.app.mfe.test_entry.v1',
         requiredProperties: [],
         actions: [],
         domainActions: [],
       };
-      const result = plugin.validateInstance(HAI3_CORE_TYPE_IDS.mfeEntry, instance);
+      // Step 1: Register the instance
+      plugin.register(instance);
+      // Step 2: Validate by instance ID (gts-ts extracts schema ID automatically)
+      const result = plugin.validateInstance(instance.id);
       expect(result.valid).toBe(true);
       expect(result.errors).toEqual([]);
     });
 
     it('fails validation for missing required field', () => {
+      // GTS-native validation approach:
+      // 1. Register the instance
+      // 2. Validate by instance ID only
       const instance = {
-        id: 'gts.test.app.mfe.test_entry.v1~',
+        id: 'gts.hai3.screensets.mfe.entry.v1~test.app.mfe.invalid_entry.v1',
         requiredProperties: [],
         // Missing: actions, domainActions
       };
-      const result = plugin.validateInstance(HAI3_CORE_TYPE_IDS.mfeEntry, instance);
+      // Step 1: Register the instance
+      plugin.register(instance);
+      // Step 2: Validate by instance ID (gts-ts extracts schema ID automatically)
+      const result = plugin.validateInstance(instance.id);
       expect(result.valid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });

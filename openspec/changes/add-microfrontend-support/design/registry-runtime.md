@@ -73,7 +73,12 @@ class ScreensetsRegistry {
   }
 
   registerDomain(domain: ExtensionDomain): void {
-    const validation = this.typeSystem.validateInstance('gts.hai3.screensets.ext.domain.v1~', domain);
+    // 1. Register the domain as a GTS entity
+    this.typeSystem.register(domain);
+
+    // 2. Validate the registered domain instance by its ID
+    // Note: domain.id does NOT end with ~ (it's an instance ID, not a schema ID)
+    const validation = this.typeSystem.validateInstance(domain.id);
     if (!validation.valid) throw new DomainValidationError(validation.errors);
 
     this.domains.set(domain.id, {
@@ -124,7 +129,11 @@ class ScreensetsRegistry {
   mountExtension(extensionId: string, container: Element): Promise<MfeBridgeConnection> {
     const extension = this.extensions.get(extensionId)?.extension;
     if (!extension) throw new Error(`Extension '${extensionId}' not registered`);
-    const validation = this.typeSystem.validateInstance('gts.hai3.screensets.ext.extension.v1~', extension);
+
+    // Extension was already registered and validated during registerExtension()
+    // Re-validate the registered instance by its ID (optional, for safety)
+    // Note: extensionId does NOT end with ~ (it's an instance ID)
+    const validation = this.typeSystem.validateInstance(extensionId);
     if (!validation.valid) throw new ExtensionValidationError(validation.errors);
 
     const domainState = this.domains.get(extension.domain);
@@ -134,8 +143,8 @@ class ScreensetsRegistry {
     const contractResult = validateContract(entry, domainState.domain);
     if (!contractResult.valid) throw new ContractValidationError(contractResult.errors);
 
-    const uiMetaResult = validateExtensionUiMeta(this.typeSystem, extension);
-    if (!uiMetaResult.valid) throw new UiMetaValidationError(uiMetaResult.errors);
+    const typeResult = validateExtensionType(this.typeSystem, domainState.domain, extension);
+    if (!typeResult.valid) throw new ExtensionTypeError(typeResult.errors);
 
     const instanceId = generateInstanceId();
     const bridge = this.createBridge(domainState, entry, instanceId);
@@ -150,7 +159,11 @@ class ScreensetsRegistry {
   async executeActionsChain(chain: ActionsChain): Promise<ChainResult> {
     const { target, type, payload } = chain.action;
 
-    const validation = this.typeSystem.validateInstance(type, payload);
+    // For action payload validation, we register and validate the action itself
+    // Note: Action instances have a `type` field (self-reference) instead of `id`
+    // The action's type field serves as its instance identifier
+    this.typeSystem.register(chain.action);
+    const validation = this.typeSystem.validateInstance(type);
     if (!validation.valid) return this.handleChainFailure(chain, validation.errors);
 
     try {
@@ -278,7 +291,7 @@ class ScreensetsRegistry {
   // === Dynamic Registration (anytime during runtime) ===
 
   async registerExtension(extension: Extension): Promise<void> {
-    // Validate, verify domain exists, validate contract, validate uiMeta, register
+    // Validate, verify domain exists, validate contract, verify type hierarchy, register
     // Trigger 'init' lifecycle stage
   }
 
@@ -364,11 +377,15 @@ class ScreensetsRegistry {
 ```typescript
 // Dynamic registration after user action
 settingsButton.onClick = async () => {
+  // Extension using derived type that includes domain-specific fields
+  // Note: Instance IDs do NOT end with ~ (only schema IDs do)
   await runtime.registerExtension({
-    id: 'gts.hai3.screensets.ext.extension.v1~acme.user.widgets.analytics_widget.v1~',
-    domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~',
-    entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1~',
-    uiMeta: { title: 'Analytics', size: 'medium' },
+    id: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1',
+    domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
+    entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+    // Domain-specific fields from derived Extension type (no uiMeta wrapper)
+    title: 'Analytics',
+    size: 'medium',
   });
 
   const container = document.getElementById('widget-slot-1');

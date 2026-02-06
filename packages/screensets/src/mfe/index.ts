@@ -62,4 +62,19 @@ export type {
   ContractValidationResult,
 } from './validation/contract';
 export { validateContract, formatContractErrors } from './validation/contract';
-export { validateExtensionUiMeta } from './validation/uimeta';
+export { validateExtensionType } from './validation/extension-type';
+
+// Error Classes
+export {
+  MfeError,
+  MfeLoadError,
+  ContractValidationError,
+  ExtensionTypeError,
+  ChainExecutionError,
+  MfeVersionMismatchError,
+  MfeTypeConformanceError,
+  DomainValidationError,
+  ExtensionValidationError,
+  UnsupportedDomainActionError,
+  UnsupportedLifecycleStageError,
+} from './errors';

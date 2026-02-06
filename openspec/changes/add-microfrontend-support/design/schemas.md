@@ -99,10 +99,10 @@ Defines an extension point where MFEs can be mounted.
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
       "$comment": "Action type IDs extensions can send when targeting this domain"
     },
-    "extensionsUiMetaTypeId": {
+    "extensionsTypeId": {
       "type": "string",
-      "x-gts-ref": "*",
-      "$comment": "Optional reference to a GTS type ID. If specified, extensions' uiMeta must validate against this type."
+      "x-gts-ref": "gts.hai3.screensets.ext.extension.v1~*",
+      "$comment": "Optional reference to a derived Extension type ID. If specified, extensions must use types that derive from this type."
     },
     "defaultActionTimeout": {
       "type": "number",
@@ -131,7 +131,7 @@ Defines an extension point where MFEs can be mounted.
 
 ### Extension Schema
 
-Binds an MFE entry to a domain.
+Binds an MFE entry to a domain. Domain-specific fields are defined in derived Extension schemas.
 
 ```json
 {
@@ -151,17 +151,14 @@ Binds an MFE entry to a domain.
       "x-gts-ref": "gts.hai3.screensets.mfe.entry.v1~*",
       "$comment": "MfeEntry type ID to mount"
     },
-    "uiMeta": {
-      "type": "object",
-      "$comment": "Must conform to the type referenced by domain's extensionsUiMetaTypeId, if specified"
-    },
     "lifecycle": {
       "type": "array",
       "items": { "type": "object", "$ref": "gts://gts.hai3.screensets.ext.lifecycle_hook.v1~" },
       "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
     }
   },
-  "required": ["id", "domain", "entry"]
+  "required": ["id", "domain", "entry"],
+  "$comment": "Domain-specific fields are defined in derived Extension schemas. Domains may specify extensionsTypeId to require extensions use a derived type."
 }
 ```
 
@@ -376,11 +373,7 @@ Module Federation implementation extending the base MfeEntry.
 
 **Key Principle**: First-class citizen schemas are built into the GTS plugin. No explicit registration is needed.
 
-**Rationale:**
-1. **First-class types define system capabilities** - MfeEntry, ExtensionDomain, Action, etc. establish the contract model
-2. **Well-known at compile time** - These types are fixed parts of the HAI3 architecture
-3. **Changes require code changes** - Modifying these schemas requires updating the screensets package
-4. **Vendors extend, not replace** - Third parties can only create derived types within these boundaries
+For the detailed rationale and implementation, see [Decision 4: Built-in First-Class Citizen Schemas in type-system.md](./type-system.md#decision-4-built-in-first-class-citizen-schemas).
 
 **Built-in types (registered during GTS plugin construction):**
 - Core types (8): MfeEntry, ExtensionDomain, Extension, SharedProperty, Action, ActionsChain, LifecycleStage, LifecycleHook

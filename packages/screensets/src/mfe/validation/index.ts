@@ -1,7 +1,7 @@
 /**
  * MFE Validation
  *
- * Validation utilities for MFE contracts and metadata.
+ * Validation utilities for MFE contracts and type hierarchy.
  *
  * @packageDocumentation
  */
@@ -15,5 +15,5 @@ export {
   type ContractErrorType,
 } from './contract';
 
-// uiMeta validation
-export { validateExtensionUiMeta } from './uimeta';
+// Extension type validation (replaces uiMeta validation)
+export { validateExtensionType } from './extension-type';

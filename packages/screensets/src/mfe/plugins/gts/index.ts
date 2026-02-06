@@ -4,6 +4,14 @@
  * Implements TypeSystemPlugin using @globaltypesystem/gts-ts.
  * First-class citizen schemas are registered during plugin construction.
  *
+ * GTS-Native Validation Model:
+ * - All runtime entities (schemas AND instances) must be registered with gtsStore
+ * - Validation happens on registered instances by their instance ID
+ * - Schema IDs end with `~` (e.g., `gts.hai3.screensets.ext.extension.v1~`)
+ * - Instance IDs do NOT end with `~` (e.g., `gts.hai3.screensets.ext.extension.v1~acme.widget.v1`)
+ * - gts-ts extracts the schema ID from the chained instance ID automatically
+ * - gts-ts uses Ajv INTERNALLY - we do NOT need Ajv as a direct dependency
+ *
  * @packageDocumentation
  */
 
@@ -107,65 +115,6 @@ export function createGtsPlugin(): TypeSystemPlugin {
       gtsStore.register(entity);
     },
 
-    validateInstance(typeId: string, instance: unknown): ValidationResult {
-      try {
-        // Check if schema exists
-        const schema = gtsStore.get(typeId);
-        if (!schema) {
-          return {
-            valid: false,
-            errors: [
-              {
-                path: '',
-                message: `Schema not found for type: ${typeId}`,
-                keyword: 'schema-not-found',
-              },
-            ],
-          };
-        }
-
-        // Create a temporary instance entity derived from the schema type
-        // Use timestamp to create unique derived type ID
-        // Format: baseTypeId + hai3.screensets.temp.inst_<timestamp>.v1~
-        const timestamp = Date.now();
-        const tempInstanceId = `${typeId}hai3.screensets.temp.inst_${timestamp}.v1~`;
-
-        const instanceEntity: JsonEntity = createJsonEntity({
-          $id: `gts://${tempInstanceId}`,
-          $schema: `gts://${typeId}`,
-          ...(typeof instance === 'object' && instance !== null ? instance : {}),
-        });
-
-        gtsStore.register(instanceEntity);
-
-        const result: GtsValidationResult = gtsStore.validateInstance(tempInstanceId);
-
-        return {
-          valid: result.ok && (result.valid ?? false),
-          errors: result.error
-            ? [
-                {
-                  path: '',
-                  message: result.error,
-                  keyword: 'validation',
-                },
-              ]
-            : [],
-        };
-      } catch (error) {
-        return {
-          valid: false,
-          errors: [
-            {
-              path: '',
-              message: `Validation error: ${error instanceof Error ? error.message : String(error)}`,
-              keyword: 'validation-error',
-            },
-          ],
-        };
-      }
-    },
-
     getSchema(typeId: string): JSONSchema | undefined {
       // GtsStore.get() returns JsonEntity | undefined
       const entity = gtsStore.get(typeId);
@@ -174,10 +123,46 @@ export function createGtsPlugin(): TypeSystemPlugin {
       return entity.content as JSONSchema;
     },
 
+    // Instance registration (GTS-native approach)
+    register(entity: unknown): void {
+      // Wrap the entity in a JsonEntity for gts-ts
+      // gts-ts requires all entities to be wrapped as JsonEntity
+      // For instances, the entity must have an `id` field
+      const jsonEntity: JsonEntity = createJsonEntity(entity);
+      gtsStore.register(jsonEntity);
+    },
+
+    // Validate a registered instance by its instance ID
+    validateInstance(instanceId: string): ValidationResult {
+      // GtsStore.validateInstance takes the instance ID (NOT schema ID)
+      // gts-ts extracts the schema ID from the chained instance ID:
+      // - Instance ID: gts.hai3.screensets.ext.extension.v1~acme.widget.v1
+      // - Schema ID:   gts.hai3.screensets.ext.extension.v1~ (extracted automatically)
+      const result: GtsValidationResult = gtsStore.validateInstance(instanceId);
+      return {
+        valid: result.ok && (result.valid ?? false),
+        errors: result.error
+          ? [
+              {
+                path: '',
+                message: result.error,
+                keyword: 'validation',
+              },
+            ]
+          : [],
+      };
+    },
+
     // Query - using GtsQuery.query() static method
     query(pattern: string, limit?: number): string[] {
       const result: GtsQueryResult = GtsQuery.query(gtsStore, pattern, limit);
-      return result.items || [];
+      // GtsQuery returns full entity objects, extract type IDs
+      return (result.items || []).map((item: { $id?: string }) => {
+        if (typeof item === 'string') return item;
+        // Extract ID from $id field, removing 'gts://' prefix
+        const id = item.$id || '';
+        return id.startsWith('gts://') ? id.slice(6) : id;
+      });
     },
 
     // Type Hierarchy
@@ -191,20 +176,20 @@ export function createGtsPlugin(): TypeSystemPlugin {
     // Compatibility (REQUIRED) - checkCompatibility is on GtsStore
     checkCompatibility(oldTypeId: string, newTypeId: string): CompatibilityResult {
       const result: GtsCompatibilityResult = gtsStore.checkCompatibility(oldTypeId, newTypeId);
-      const errors = result.errors || [];
-      const warnings = result.warnings || [];
+      const backwardErrors = result.backward_errors || [];
+      const forwardErrors = result.forward_errors || [];
 
       return {
-        compatible: result.compatible,
-        breaking: !result.compatible && errors.length > 0,
+        compatible: result.is_fully_compatible,
+        breaking: !result.is_fully_compatible && backwardErrors.length > 0,
         changes: [
-          ...errors.map((e) => ({
+          ...backwardErrors.map((e: string) => ({
             type: 'removed' as const,
             path: '',
             description: e,
           })),
-          ...warnings.map((w) => ({
-            type: 'modified' as const,
+          ...forwardErrors.map((w: string) => ({
+            type: 'added' as const,
             path: '',
             description: w,
           })),

@@ -11,6 +11,9 @@ import type { LifecycleHook } from './lifecycle';
 /**
  * Binds an MFE entry to an extension domain
  * GTS Type: gts.hai3.screensets.ext.extension.v1~
+ *
+ * Domain-specific fields are defined in derived Extension types.
+ * If domain.extensionsTypeId is specified, extension must use a type deriving from it.
  */
 export interface Extension {
   /** The GTS type ID for this extension */
@@ -19,12 +22,7 @@ export interface Extension {
   domain: string;
   /** MfeEntry type ID to mount */
   entry: string;
-  /**
-   * Optional UI metadata instance.
-   * If domain has extensionsUiMetaTypeId, this must conform to that schema.
-   * Validated using plugin.validateInstance(domain.extensionsUiMetaTypeId, uiMeta).
-   */
-  uiMeta?: Record<string, unknown>;
   /** Optional lifecycle hooks - explicitly declared actions for each stage */
   lifecycle?: LifecycleHook[];
+  // Domain-specific fields are added via derived types, not defined here
 }

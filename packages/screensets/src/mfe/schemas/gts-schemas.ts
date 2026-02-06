@@ -77,9 +77,10 @@ export const extensionDomainSchema: JSONSchema = {
       items: { 'x-gts-ref': 'gts.hai3.screensets.ext.action.v1~*' },
       $comment: 'Action type IDs extensions can send when targeting this domain',
     },
-    extensionsUiMetaTypeId: {
+    extensionsTypeId: {
       type: 'string',
-      $comment: 'Optional GTS type ID reference for extension uiMeta schema validation. Uses standard plugin.validateInstance(typeId, instance).',
+      'x-gts-ref': 'gts.hai3.screensets.ext.extension.v1~*',
+      $comment: 'Optional reference to a derived Extension type ID. If specified, extensions must use types that derive from this type.',
     },
     defaultActionTimeout: {
       type: 'number',
@@ -118,6 +119,7 @@ export const extensionDomainSchema: JSONSchema = {
 /**
  * Extension Schema
  * Binds an MFE entry to a domain
+ * Domain-specific fields are defined in derived Extension types.
  */
 export const extensionSchema: JSONSchema = {
   $id: 'gts://gts.hai3.screensets.ext.extension.v1~',
@@ -136,10 +138,6 @@ export const extensionSchema: JSONSchema = {
       'x-gts-ref': 'gts.hai3.screensets.mfe.entry.v1~*',
       $comment: 'MfeEntry type ID to mount',
     },
-    uiMeta: {
-      type: 'object',
-      $comment: "Optional UI metadata. If domain has extensionsUiMetaTypeId, this must conform to that schema.",
-    },
     lifecycle: {
       type: 'array',
       items: { type: 'object', $ref: 'gts://gts.hai3.screensets.ext.lifecycle_hook.v1~' },
@@ -147,6 +145,7 @@ export const extensionSchema: JSONSchema = {
     },
   },
   required: ['id', 'domain', 'entry'],
+  $comment: 'Domain-specific fields are defined in derived Extension schemas. Domains may specify extensionsTypeId to require a derived type.',
 };
 
 /**

@@ -25,15 +25,12 @@
   ],
   "scripts": {
     "build": "tsup",
-    "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {},
   "devDependencies": {
     "tsup": "^8.0.0",
-    "typescript": "^5.4.2",
-    "vitest": "^2.1.0"
+    "typescript": "^5.4.2"
   },
   "peerDependencies": {},
   "publishConfig": {

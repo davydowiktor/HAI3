@@ -1,38 +1,27 @@
-# Design: MFE Error Class Hierarchy
+/**
+ * MFE Error Class Hierarchy
+ *
+ * Error classes for MFE system failures.
+ *
+ * @packageDocumentation
+ */
 
-This document covers the error class hierarchy for the MFE system.
+import type { ValidationError } from '../plugins/types';
 
----
-
-## Context
-
-The MFE system has multiple failure points: [bundle loading](./mfe-loading.md), contract validation, [action chain](./mfe-actions.md) execution, and [domain/extension](./mfe-domain.md) registration. Each failure type requires specific error information for debugging and recovery. The error hierarchy provides typed errors with contextual data for each scenario.
-
-All MFE errors extend MfeError, which provides a base with error code and message. Specific errors add relevant context (type IDs, validation errors, chain execution state).
-
-## Definition
-
-**MfeError**: Base error class for all MFE-related errors, providing a `code` property for programmatic error handling.
-
-**Derived Errors**: Specialized error classes (MfeLoadError, ContractValidationError, ChainExecutionError, etc.) that extend MfeError with scenario-specific context and structured error data.
-
----
-
-## Decisions
-
-### Decision 15: Error Class Hierarchy
-
-The MFE system defines a hierarchy of error classes for specific failure scenarios.
-
-#### Error Classes
-
-```typescript
-// packages/screensets/src/mfe/errors/index.ts
+/**
+ * Contract validation error details
+ */
+export interface ContractError {
+  /** Error type */
+  type: 'missing_property' | 'unsupported_action' | 'unhandled_domain_action';
+  /** Human-readable error details */
+  details: string;
+}
 
 /**
  * Base error class for all MFE errors
  */
-class MfeError extends Error {
+export class MfeError extends Error {
   constructor(message: string, public readonly code: string) {
     super(message);
     this.name = 'MfeError';
@@ -42,7 +31,7 @@ class MfeError extends Error {
 /**
  * Error thrown when MFE bundle fails to load
  */
-class MfeLoadError extends MfeError {
+export class MfeLoadError extends MfeError {
   constructor(
     message: string,
     public readonly entryTypeId: string,
@@ -56,17 +45,14 @@ class MfeLoadError extends MfeError {
 /**
  * Error thrown when contract validation fails
  */
-class ContractValidationError extends MfeError {
+export class ContractValidationError extends MfeError {
   constructor(
     public readonly errors: ContractError[],
     public readonly entryTypeId?: string,
     public readonly domainTypeId?: string
   ) {
-    const details = errors.map(e => `  - ${e.type}: ${e.details}`).join('\n');
-    super(
-      `Contract validation failed:\n${details}`,
-      'CONTRACT_VALIDATION_ERROR'
-    );
+    const details = errors.map((e) => `  - ${e.type}: ${e.details}`).join('\n');
+    super(`Contract validation failed:\n${details}`, 'CONTRACT_VALIDATION_ERROR');
     this.name = 'ContractValidationError';
   }
 }
@@ -74,7 +60,7 @@ class ContractValidationError extends MfeError {
 /**
  * Error thrown when extension type hierarchy validation fails
  */
-class ExtensionTypeError extends MfeError {
+export class ExtensionTypeError extends MfeError {
   constructor(
     public readonly extensionTypeId: string,
     public readonly requiredBaseTypeId: string
@@ -90,16 +76,15 @@ class ExtensionTypeError extends MfeError {
 /**
  * Error thrown when actions chain execution fails
  */
-class ChainExecutionError extends MfeError {
+export class ChainExecutionError extends MfeError {
   constructor(
     message: string,
-    public readonly chain: ActionsChain,
-    public readonly failedAction: Action,
+    public readonly failedActionType: string,
     public readonly executedPath: string[],
     public readonly cause?: Error
   ) {
     super(
-      `Actions chain execution failed at '${failedAction.type}': ${message}`,
+      `Actions chain execution failed at '${failedActionType}': ${message}`,
       'CHAIN_EXECUTION_ERROR'
     );
     this.name = 'ChainExecutionError';
@@ -109,7 +94,7 @@ class ChainExecutionError extends MfeError {
 /**
  * Error thrown when shared dependency version validation fails
  */
-class MfeVersionMismatchError extends MfeError {
+export class MfeVersionMismatchError extends MfeError {
   constructor(
     public readonly manifestTypeId: string,
     public readonly dependency: string,
@@ -127,7 +112,7 @@ class MfeVersionMismatchError extends MfeError {
 /**
  * Error thrown when type conformance check fails
  */
-class MfeTypeConformanceError extends MfeError {
+export class MfeTypeConformanceError extends MfeError {
   constructor(
     public readonly typeId: string,
     public readonly expectedBaseType: string
@@ -143,12 +128,12 @@ class MfeTypeConformanceError extends MfeError {
 /**
  * Error thrown when domain validation fails
  */
-class DomainValidationError extends MfeError {
+export class DomainValidationError extends MfeError {
   constructor(
     public readonly errors: ValidationError[],
     public readonly domainTypeId: string
   ) {
-    const details = errors.map(e => `  - ${e.path}: ${e.message}`).join('\n');
+    const details = errors.map((e) => `  - ${e.path}: ${e.message}`).join('\n');
     super(
       `Domain validation failed for '${domainTypeId}':\n${details}`,
       'DOMAIN_VALIDATION_ERROR'
@@ -160,12 +145,12 @@ class DomainValidationError extends MfeError {
 /**
  * Error thrown when extension validation fails
  */
-class ExtensionValidationError extends MfeError {
+export class ExtensionValidationError extends MfeError {
   constructor(
     public readonly errors: ValidationError[],
     public readonly extensionTypeId: string
   ) {
-    const details = errors.map(e => `  - ${e.path}: ${e.message}`).join('\n');
+    const details = errors.map((e) => `  - ${e.path}: ${e.message}`).join('\n');
     super(
       `Extension validation failed for '${extensionTypeId}':\n${details}`,
       'EXTENSION_VALIDATION_ERROR'
@@ -177,7 +162,7 @@ class ExtensionValidationError extends MfeError {
 /**
  * Error thrown when an action is not supported by the target domain
  */
-class UnsupportedDomainActionError extends MfeError {
+export class UnsupportedDomainActionError extends MfeError {
   constructor(
     message: string,
     public readonly actionTypeId: string,
@@ -191,7 +176,7 @@ class UnsupportedDomainActionError extends MfeError {
 /**
  * Error thrown when a lifecycle hook references a stage not supported by the domain
  */
-class UnsupportedLifecycleStageError extends MfeError {
+export class UnsupportedLifecycleStageError extends MfeError {
   constructor(
     message: string,
     public readonly stageId: string,
@@ -202,18 +187,3 @@ class UnsupportedLifecycleStageError extends MfeError {
     this.name = 'UnsupportedLifecycleStageError';
   }
 }
-
-export {
-  MfeError,
-  MfeLoadError,
-  ContractValidationError,
-  ExtensionTypeError,
-  ChainExecutionError,
-  MfeVersionMismatchError,
-  MfeTypeConformanceError,
-  DomainValidationError,
-  ExtensionValidationError,
-  UnsupportedDomainActionError,
-  UnsupportedLifecycleStageError,
-};
-```

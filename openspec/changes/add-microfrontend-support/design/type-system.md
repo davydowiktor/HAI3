@@ -131,6 +131,13 @@ interface AttributeResult {
  * The screensets package treats type IDs as OPAQUE STRINGS.
  * All type ID understanding is delegated to the plugin.
  *
+ * **GTS-Native Validation Model:**
+ * - All runtime entities (schemas AND instances) must be registered with the plugin
+ * - Validation happens on registered instances by their instance ID
+ * - Schema/type IDs end with `~` (e.g., `gts.hai3.screensets.ext.extension.v1~`)
+ * - Instance IDs do NOT end with `~` (e.g., `gts.hai3.screensets.ext.extension.v1~acme.widget.v1`)
+ * - gts-ts extracts the schema ID from the chained instance ID automatically
+ *
  * Note: buildTypeId() is intentionally omitted. GTS type IDs are consumed
  * (validated, parsed) but never programmatically generated at runtime.
  * All type IDs are defined as string constants.
@@ -171,14 +178,36 @@ interface TypeSystemPlugin {
   registerSchema(schema: JSONSchema): void;
 
   /**
-   * Validate an instance against the schema for a type ID
-   */
-  validateInstance(typeId: string, instance: unknown): ValidationResult;
-
-  /**
-   * Get the schema registered for a type ID
+   * Get the schema registered for a type ID (ends with ~)
    */
   getSchema(typeId: string): JSONSchema | undefined;
+
+  // === Instance Registry (GTS-Native Approach) ===
+
+  /**
+   * Register any GTS entity (schema or instance) with the type system.
+   * For instances, the entity must have an `id` field containing the instance ID.
+   *
+   * gts-ts uses the instance ID to automatically determine the schema:
+   * - Instance ID: `gts.hai3.screensets.ext.extension.v1~acme.widget.v1`
+   * - Schema ID:   `gts.hai3.screensets.ext.extension.v1~` (extracted automatically)
+   *
+   * @param entity - The GTS entity to register (must have an `id` field)
+   */
+  register(entity: unknown): void;
+
+  /**
+   * Validate a registered instance by its instance ID.
+   * The instance must be registered first via register().
+   *
+   * gts-ts extracts the schema ID from the instance ID automatically:
+   * - Instance ID: `gts.hai3.screensets.ext.extension.v1~acme.widget.v1`
+   * - Schema ID:   `gts.hai3.screensets.ext.extension.v1~`
+   *
+   * @param instanceId - The instance ID (does NOT end with ~)
+   * @returns Validation result
+   */
+  validateInstance(instanceId: string): ValidationResult;
 
   // === Query ===
 
@@ -218,7 +247,14 @@ interface TypeSystemPlugin {
 
 #### GTS Plugin Implementation
 
-The GTS plugin implements `TypeSystemPlugin` using `@globaltypesystem/gts-ts`. First-class citizen schemas are registered during plugin construction - the plugin is ready to use immediately:
+The GTS plugin implements `TypeSystemPlugin` using `@globaltypesystem/gts-ts`. First-class citizen schemas are registered during plugin construction - the plugin is ready to use immediately.
+
+**Key Points about GTS-Native Validation:**
+- gts-ts uses Ajv INTERNALLY - we do NOT need Ajv as a direct dependency
+- All entities (schemas and instances) are registered with `gtsStore.register()`
+- Validation happens by instance ID, not by passing arbitrary data
+- Schema IDs end with `~`, instance IDs do NOT end with `~`
+- gts-ts extracts the schema ID from the chained instance ID automatically
 
 ```typescript
 // packages/screensets/src/mfe/plugins/gts/index.ts
@@ -227,7 +263,6 @@ import {
   parseGtsID,
   GtsStore,
   GtsQuery,
-  createJsonEntity,
   type GtsIDSegment,
   type ParseResult,
   type ValidationResult as GtsValidationResult,
@@ -275,9 +310,8 @@ export function createGtsPlugin(): TypeSystemPlugin {
   ];
 
   for (const schema of firstClassSchemas) {
-    // createJsonEntity wraps the schema as a JsonEntity for registration
-    const entity = createJsonEntity(schema);
-    gtsStore.register(entity);
+    // gtsStore.register() accepts any GTS entity (schema or instance)
+    gtsStore.register(schema);
   }
 
   return {
@@ -317,18 +351,30 @@ export function createGtsPlugin(): TypeSystemPlugin {
     // Schema registry - for vendor/dynamic schemas only
     // First-class schemas are already registered during construction
     registerSchema(schema: JSONSchema): void {
-      const entity = createJsonEntity(schema);
+      gtsStore.register(schema);
+    },
+
+    getSchema(typeId: string): JSONSchema | undefined {
+      // GtsStore.get() returns the entity or undefined
+      const entity = gtsStore.get(typeId);
+      if (!entity) return undefined;
+      return entity as JSONSchema;
+    },
+
+    // Instance registration (GTS-native approach)
+    register(entity: unknown): void {
+      // gtsStore.register() accepts any GTS entity (schema or instance)
+      // For instances, the entity must have an `id` field
       gtsStore.register(entity);
     },
 
-    validateInstance(typeId: string, instance: unknown): ValidationResult {
-      // GtsStore.validateInstance takes just the gtsId string
-      // The instance must already be registered in the store
-      // For validating arbitrary instances, we need to register them first
-      const instanceEntity = createJsonEntity(instance);
-      gtsStore.register(instanceEntity);
-
-      const result: GtsValidationResult = gtsStore.validateInstance(typeId);
+    // Validate a registered instance by its instance ID
+    validateInstance(instanceId: string): ValidationResult {
+      // GtsStore.validateInstance takes the instance ID (NOT schema ID)
+      // gts-ts extracts the schema ID from the chained instance ID:
+      // - Instance ID: gts.hai3.screensets.ext.extension.v1~acme.widget.v1
+      // - Schema ID:   gts.hai3.screensets.ext.extension.v1~ (extracted automatically)
+      const result: GtsValidationResult = gtsStore.validateInstance(instanceId);
       return {
         valid: result.ok && (result.valid ?? false),
         errors: result.error ? [{
@@ -337,14 +383,6 @@ export function createGtsPlugin(): TypeSystemPlugin {
           keyword: 'validation',
         }] : [],
       };
-    },
-
-    getSchema(typeId: string): JSONSchema | undefined {
-      // GtsStore.get() returns JsonEntity | undefined
-      const entity = gtsStore.get(typeId);
-      if (!entity) return undefined;
-      // JsonEntity.content contains the actual schema/instance data
-      return entity.content as JSONSchema;
     },
 
     // Query - using GtsQuery.query() static method
@@ -356,8 +394,9 @@ export function createGtsPlugin(): TypeSystemPlugin {
     // Type Hierarchy
     isTypeOf(typeId: string, baseTypeId: string): boolean {
       // GTS type derivation: derived types include the base type ID as a prefix
-      // e.g., 'gts.hai3.screensets.mfe.entry.v1~acme.corp.mfe.entry_acme.v1~'
+      // e.g., 'gts.hai3.screensets.mfe.entry.v1~acme.corp.mfe.entry_acme.v1'
       // is derived from 'gts.hai3.screensets.mfe.entry.v1~'
+      // Note: Instance IDs don't end with ~, schema IDs do
       return typeId.startsWith(baseTypeId) || typeId === baseTypeId;
     },
 
@@ -400,6 +439,15 @@ export function createGtsPlugin(): TypeSystemPlugin {
 // Plugin is immediately ready to use with all first-class schemas registered
 export const gtsPlugin = createGtsPlugin();
 ```
+
+#### Instance ID Convention
+
+GTS distinguishes between schema IDs (type definitions) and instance IDs (concrete data):
+
+- **Schema/Type IDs end with `~`**: `gts.hai3.screensets.ext.extension.v1~`
+- **Instance IDs do NOT end with `~`**: `gts.hai3.screensets.ext.extension.v1~acme.widget.v1`
+
+When validating an instance, gts-ts automatically extracts the schema ID from the instance ID by finding the first segment that ends with `~`. This is why the `validateInstance()` method only needs the instance ID - the schema is determined automatically.
 
 ### Decision 2: GTS Type ID Format and Registration
 
@@ -493,10 +541,10 @@ export const HAI3_CORE_TYPE_IDS = {
 
 /** GTS Type IDs for default lifecycle stages (4 stages) - for reference only */
 export const HAI3_LIFECYCLE_STAGE_IDS = {
-  init: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1~',
-  activated: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1~',
-  deactivated: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1~',
-  destroyed: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1~',
+  init: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1',
+  activated: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1',
+  deactivated: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1',
+  destroyed: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1',
 } as const;
 
 /** GTS Type IDs for MF-specific types (2 types) - for reference only */
@@ -855,65 +903,73 @@ function validateContract(
 }
 ```
 
-### Decision 9: Dynamic uiMeta Validation via Type ID Reference
+### Decision 9: Domain-Specific Extension Validation via Derived Types
 
-**Problem:** An `Extension` instance has a `domain` field containing a type ID reference, and its `uiMeta` property must conform to that domain's uiMeta schema. The previous design embedded an inline JSON Schema in `ExtensionDomain.extensionsUiMeta`, which mixed instance semantics (domain is an instance) with type semantics (domain defines a schema).
+**Problem:** An `Extension` instance may need domain-specific fields beyond the base Extension contract. The previous design used a separate `uiMeta?: Record<string, unknown>` field validated against `extensionsUiMetaTypeId`, which required custom Ajv validation and created parallel entities.
 
-**Solution:** Change `extensionsUiMeta: JSONSchema` to `extensionsUiMetaTypeId?: string`. The uiMeta schema becomes a separate, first-class GTS type that must be registered independently. Validation uses standard `validateInstance(typeId, instance)`.
+**Solution:** Instead of embedding domain-specific fields in a separate `uiMeta` field, derive the Extension type itself to include domain-specific fields directly. Domains specify `extensionsTypeId` pointing to a derived Extension type that extensions must conform to.
 
 **Key Design Change:**
 
 ```typescript
-// Before (mixed semantics - instance embedding a type definition):
+// Before (separate uiMeta requiring custom validation):
 interface ExtensionDomain {
-  extensionsUiMeta: JSONSchema;  // Inline schema embedded in instance
+  extensionsUiMetaTypeId?: string;  // Reference to uiMeta schema
+}
+interface Extension {
+  uiMeta?: Record<string, unknown>;  // Separate field for domain-specific data
 }
 
-// After (clean separation - instance references a type):
+// After (derived Extension types with native validation):
 interface ExtensionDomain {
-  extensionsUiMetaTypeId?: string;  // Reference to a GTS type ID
+  extensionsTypeId?: string;  // Reference to derived Extension type
+}
+interface Extension {
+  // Domain-specific fields defined in derived Extension schemas directly
+  // No separate uiMeta field
 }
 ```
 
-**Benefits of Type ID Reference Pattern:**
+**Benefits of Derived Extension Types:**
 
-1. **Clean separation of concerns** - ExtensionDomain remains a pure instance (configuration data)
-2. **Schema is a first-class GTS type** - Can be versioned, queried, and validated like any other type
-3. **Standard validation path** - Uses `plugin.validateInstance(typeId, instance)` directly
-4. **No convention-based IDs** - No need for `{domainId}@extensionsUiMeta` workaround
-5. **Works with GTS** - Type IDs are valid GTS identifiers (no `@` symbol issues)
-6. **Optional validation** - If `extensionsUiMetaTypeId` is not specified, no uiMeta validation is performed
+1. **Simpler**: One entity (Extension) instead of two (Extension + uiMeta)
+2. **Native GTS validation**: All fields validated with single `validateInstance()` call
+3. **No parallel hierarchies**: Domains remain instances, not derived types
+4. **No Ajv dependency**: Removes custom schema validation from screensets package
+5. **Type-safe**: Derived Extension types are proper GTS types that can be versioned and queried
+6. **Consistent**: Same validation pattern as MfeEntry hierarchy (base + derived)
 
 **Validation Implementation:**
 
 ```typescript
 /**
- * Validate Extension's uiMeta against its domain's extensionsUiMetaTypeId
+ * Validate Extension against its domain's extensionsTypeId.
+ * This ensures the extension uses a type that derives from the domain's required type.
  */
-function validateExtensionUiMeta(
+function validateExtensionType(
   plugin: TypeSystemPlugin,
   extension: Extension,
   domain: ExtensionDomain
 ): ValidationResult {
-  // If domain doesn't require uiMeta validation, skip it
-  if (!domain.extensionsUiMetaTypeId) {
+  // If domain doesn't require a specific extension type, skip this check
+  if (!domain.extensionsTypeId) {
     return { valid: true, errors: [] };
   }
 
-  // Validate using standard validateInstance
-  const result = plugin.validateInstance(domain.extensionsUiMetaTypeId, extension.uiMeta);
-
-  // Transform errors to include context
-  if (!result.valid) {
+  // Check that extension's type derives from domain's extensionsTypeId
+  if (!plugin.isTypeOf(extension.id, domain.extensionsTypeId)) {
     return {
       valid: false,
-      errors: result.errors.map(err => ({
-        ...err,
-        message: `uiMeta validation failed against ${domain.extensionsUiMetaTypeId}: ${err.message}`,
-      })),
+      errors: [{
+        path: 'id',
+        message: `Extension type '${extension.id}' must derive from '${domain.extensionsTypeId}'`,
+        keyword: 'x-gts-ref',
+      }],
     };
   }
 
+  // Native GTS validation handles all fields (including domain-specific ones)
+  // This is already done when validating the extension instance
   return { valid: true, errors: [] };
 }
 ```
@@ -921,11 +977,13 @@ function validateExtensionUiMeta(
 **Domain Definition Example:**
 
 ```typescript
-// 1. First, define and register the uiMeta schema as a GTS type
-const widgetUiMetaSchema: JSONSchema = {
-  "$id": "gts://gts.acme.dashboard.ext.widget_ui_meta.v1~",
+// 1. First, define and register a derived Extension schema with domain-specific fields
+const widgetExtensionSchema: JSONSchema = {
+  "$id": "gts://gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
+  "allOf": [
+    { "$ref": "gts://gts.hai3.screensets.ext.extension.v1~" }
+  ],
   "properties": {
     "title": { "type": "string" },
     "icon": { "type": "string" },
@@ -933,32 +991,65 @@ const widgetUiMetaSchema: JSONSchema = {
   },
   "required": ["title", "size"]
 };
-plugin.registerSchema(widgetUiMetaSchema);
+plugin.registerSchema(widgetExtensionSchema);
 
-// 2. Domain references the schema by type ID
+// 2. Domain references the derived Extension type (schema ID ends with ~)
+// Note: Domain instance ID does NOT end with ~ (only schema IDs do)
 const widgetSlotDomain: ExtensionDomain = {
-  id: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~',
+  id: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
   // ... other fields ...
-  extensionsUiMetaTypeId: 'gts.acme.dashboard.ext.widget_ui_meta.v1~',  // Reference to registered type
+  // extensionsTypeId is a SCHEMA reference, so it ends with ~
+  extensionsTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~',
   // ...
+};
+
+// 3. Extensions use the derived type with domain-specific fields
+// Note: Instance IDs do NOT end with ~ (only schema IDs do)
+const analyticsExtension: Extension = {
+  id: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.v1',
+  domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
+  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+  // Domain-specific fields (defined in derived schema):
+  title: 'Analytics Dashboard',
+  icon: 'chart-line',
+  size: 'large',
 };
 ```
 
 **Integration Point:**
 
-The ScreensetsRegistry calls `validateExtensionUiMeta()` during extension registration, after contract matching validation:
+The ScreensetsRegistry validates extension type compatibility during registration using the GTS-native approach:
 
 ```typescript
 // In ScreensetsRegistry.registerExtension()
+
+// 1. Register the extension as a GTS entity (required before validation)
+this.typeSystem.register(extension);
+
+// 2. Validate the registered extension instance by its ID
+// gts-ts extracts the schema ID from the instance ID automatically:
+// - Instance ID: gts.hai3.screensets.ext.extension.v1~acme.widget.v1
+// - Schema ID:   gts.hai3.screensets.ext.extension.v1~ (extracted automatically)
+const instanceResult = this.typeSystem.validateInstance(extension.id);
+if (!instanceResult.valid) {
+  throw new ExtensionValidationError(instanceResult.errors);
+}
+
+// 3. Validate contract matching (entry vs domain)
 const contractResult = validateContract(entry, domain);
 if (!contractResult.valid) {
   throw new ContractValidationError(contractResult.errors);
 }
 
-const uiMetaResult = validateExtensionUiMeta(this.typeSystem, extension, domain);
-if (!uiMetaResult.valid) {
-  throw new UiMetaValidationError(uiMetaResult.errors);
+// 4. Validate extension type derives from domain's extensionsTypeId
+const typeResult = validateExtensionType(this.typeSystem, extension, domain);
+if (!typeResult.valid) {
+  throw new ExtensionTypeError(typeResult.errors);
 }
 
-// Contract and uiMeta both valid, proceed with registration
+// All validations pass, extension is now registered and validated
 ```
+
+**Note on Instance IDs**: Extension instance IDs do NOT end with `~`. For example:
+- Schema ID: `gts.hai3.screensets.ext.extension.v1~` (ends with `~`)
+- Instance ID: `gts.hai3.screensets.ext.extension.v1~acme.widget.v1` (no trailing `~`)

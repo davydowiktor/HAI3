@@ -9,13 +9,24 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 - **WHEN** @hai3/screensets is imported
 - **THEN** the package SHALL export a `TypeSystemPlugin` interface
 - **AND** the interface SHALL define type ID operations (`isValidTypeId`, `parseTypeId`)
-- **AND** the interface SHALL define schema registry operations (`registerSchema`, `validateInstance`, `getSchema`)
+- **AND** the interface SHALL define schema registry operations (`registerSchema`, `getSchema`)
+- **AND** the interface SHALL define instance registry operations (`register`)
+- **AND** the interface SHALL define validation operations (`validateInstance` taking instanceId only)
 - **AND** the interface SHALL define query operations (`query`)
 - **AND** the interface SHALL define type hierarchy operations (`isTypeOf`)
 - **AND** the interface SHALL define required compatibility checking (`checkCompatibility`)
 - **AND** the interface SHALL define attribute access (`getAttribute`) for dynamic schema resolution
 - **AND** the interface SHALL NOT define `buildTypeId` (GTS type IDs are consumed but never programmatically generated; all type IDs are defined as string constants)
-- **AND** the interface SHALL NOT define `validateAgainstSchema` (domain's `extensionsUiMetaTypeId` references a standard GTS type, enabling direct `validateInstance()` calls)
+- **AND** the interface SHALL NOT define `validateAgainstSchema` (Extension validation uses native `validateInstance()` with derived Extension types)
+
+#### Scenario: GTS-native validation model
+
+- **WHEN** validating a GTS entity
+- **THEN** the entity MUST first be registered via `plugin.register(entity)`
+- **AND** validation SHALL happen via `plugin.validateInstance(instanceId)` where instanceId is the entity's id
+- **AND** gts-ts SHALL extract the schema ID from the instance ID automatically
+- **AND** schema IDs SHALL end with `~` (e.g., `gts.hai3.screensets.ext.extension.v1~`)
+- **AND** instance IDs SHALL NOT end with `~` (e.g., `gts.hai3.screensets.ext.extension.v1~acme.widget.v1`)
 
 #### Scenario: GTS plugin as default implementation
 
@@ -101,44 +112,47 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 - **AND** the result SHALL contain the value if resolved
 - **AND** the result SHALL contain an error message if not resolved
 
-### Requirement: Dynamic uiMeta Validation
+### Requirement: Domain-Specific Extension Validation via Derived Types
 
-The system SHALL validate Extension's uiMeta against its domain's extensionsUiMetaTypeId at runtime using the type ID reference pattern.
+The system SHALL validate Extension instances using derived Extension types when domains specify `extensionsTypeId`. This enables domain-specific fields without separate uiMeta entities or custom Ajv validation.
 
-#### Scenario: uiMeta validation via type ID reference
+#### Scenario: Extension type validation via derived types
 
 - **WHEN** registering an extension binding
-- **AND** the domain has `extensionsUiMetaTypeId` specified
-- **THEN** the ScreensetsRegistry SHALL validate extension.uiMeta via `plugin.validateInstance(domain.extensionsUiMetaTypeId, extension.uiMeta)`
+- **AND** the domain has `extensionsTypeId` specified
+- **THEN** the ScreensetsRegistry SHALL verify `plugin.isTypeOf(extension.id, domain.extensionsTypeId)` returns true
 - **AND** validation failure SHALL prevent extension registration
-- **AND** error message SHALL identify the uiMeta validation failure and include the type ID
+- **AND** error message SHALL indicate the extension type must derive from the domain's extensionsTypeId
 
-#### Scenario: Domain without uiMeta validation
+#### Scenario: Domain without extensionsTypeId
 
 - **WHEN** registering an extension binding
-- **AND** the domain does NOT have `extensionsUiMetaTypeId` specified
-- **THEN** no uiMeta validation SHALL be performed
+- **AND** the domain does NOT have `extensionsTypeId` specified
+- **THEN** extensions SHALL use the base Extension type (`gts.hai3.screensets.ext.extension.v1~`)
 - **AND** extension registration SHALL proceed (assuming other validations pass)
 
-#### Scenario: uiMeta schema must be registered before domain
+#### Scenario: Derived Extension type must be registered
 
-- **WHEN** a domain specifies `extensionsUiMetaTypeId`
-- **THEN** the referenced type MUST be registered with the TypeSystemPlugin before extension validation
+- **WHEN** a domain specifies `extensionsTypeId`
+- **THEN** the derived Extension type MUST be registered with the TypeSystemPlugin before extension validation
 - **AND** if the type is not registered, extension registration SHALL fail
 - **AND** error message SHALL indicate the missing type ID
 
-#### Scenario: uiMeta validation with derived domains
+#### Scenario: Extension validation with derived types
 
-- **WHEN** an extension binds to a derived domain (e.g., `gts.hai3.screensets.ext.domain.v1~hai3.layout.domain.sidebar.v1`)
-- **THEN** the runtime SHALL use the derived domain's `extensionsUiMetaTypeId`
-- **AND** uiMeta validation SHALL validate against that type
+- **WHEN** an extension uses a derived type (e.g., `gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.widget.v1`)
+- **THEN** the runtime SHALL first register the extension via `plugin.register(extension)`
+- **AND** the runtime SHALL validate the registered instance via `plugin.validateInstance(extension.id)`
+- **AND** gts-ts SHALL extract the schema ID from the instance ID automatically
+- **AND** the runtime SHALL verify type hierarchy via `plugin.isTypeOf(extension.id, domain.extensionsTypeId)`
+- **AND** the instance ID SHALL NOT end with `~` (only schema IDs end with `~`)
 
-#### Scenario: uiMeta type resolution failure
+#### Scenario: Extension type hierarchy validation failure
 
-- **WHEN** the ScreensetsRegistry cannot find the type referenced by `extensionsUiMetaTypeId`
+- **WHEN** an extension's type does NOT derive from the domain's `extensionsTypeId`
 - **THEN** extension registration SHALL fail
-- **AND** error message SHALL indicate the type was not found
-- **AND** error SHALL include the missing type ID and domain ID
+- **AND** `ExtensionTypeError` SHALL be thrown
+- **AND** error SHALL include the extension type ID and required base type ID
 
 ### Requirement: MFE TypeScript Type System
 
@@ -190,24 +204,24 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **THEN** the domain SHALL conform to `ExtensionDomain` TypeScript interface
 - **AND** the domain SHALL have an `id` field (string)
 - **AND** the domain SHALL specify sharedProperties, actions, and extensionsActions
-- **AND** the domain MAY specify `extensionsUiMetaTypeId` (optional string, reference to a GTS type ID for uiMeta validation)
+- **AND** the domain MAY specify `extensionsTypeId` (optional string, reference to a derived Extension type ID)
 - **AND** the domain SHALL specify `defaultActionTimeout` (REQUIRED, number in milliseconds)
 - **AND** sharedProperties SHALL reference SharedProperty type IDs
 - **AND** `actions` SHALL list Action type IDs the domain can send TO extensions (e.g., `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_UNLOAD_EXT`, plus any domain-specific actions)
 - **AND** `extensionsActions` SHALL list Action type IDs extensions can send TO this domain
-- **AND** if `extensionsUiMetaTypeId` is specified, extensions' uiMeta SHALL be validated against that type
-- **AND** derived domains MAY specify their own `extensionsUiMetaTypeId` to override or narrow the validation
+- **AND** if `extensionsTypeId` is specified, extensions must use types that derive from that type
+- **AND** derived domains MAY specify their own `extensionsTypeId` to override or narrow the validation
 
 #### Scenario: Extension binding type definition
 
 - **WHEN** binding an MFE entry to a domain
-- **THEN** the binding SHALL conform to `Extension` TypeScript interface
+- **THEN** the binding SHALL conform to `Extension` TypeScript interface (or a derived type)
 - **AND** the binding SHALL have an `id` field (string)
 - **AND** the binding SHALL reference valid domain and entry type IDs
 - **AND** domain SHALL reference an ExtensionDomain type ID
 - **AND** entry SHALL reference an MfeEntry type ID (base or derived)
-- **AND** uiMeta MAY be provided (optional field)
-- **AND** if uiMeta is provided AND the domain has extensionsUiMetaTypeId, uiMeta SHALL conform to that type
+- **AND** if the domain has extensionsTypeId, the extension's type SHALL derive from that type
+- **AND** domain-specific fields SHALL be defined in derived Extension schemas, NOT in a separate uiMeta field
 
 #### Scenario: Shared property type definition
 
@@ -368,9 +382,10 @@ The system SHALL provide an ActionsChainsMediator to deliver action chains betwe
 #### Scenario: Action payload validation via plugin
 
 - **WHEN** ActionsChainsMediator delivers an action
-- **THEN** payload SHALL be validated via `plugin.validateInstance()`
-- **AND** validation SHALL use the action's registered payloadSchema
-- **AND** invalid payloads SHALL cause chain failure
+- **THEN** the action SHALL first be registered via `plugin.register(action)`
+- **AND** the action SHALL be validated via `plugin.validateInstance(action.type)`
+- **AND** validation SHALL use the schema extracted from the action's type ID
+- **AND** invalid actions SHALL cause chain failure
 
 #### Scenario: Extension registration
 
@@ -743,11 +758,11 @@ The system SHALL provide typed error classes for MFE operations.
 - **THEN** `ContractValidationError` SHALL be thrown with `errors` array
 - **AND** each error SHALL include `type`, `details`, and affected type IDs
 
-#### Scenario: UiMetaValidationError class
+#### Scenario: ExtensionTypeError class
 
-- **WHEN** uiMeta validation fails against the type referenced by domain's extensionsUiMetaTypeId
-- **THEN** `UiMetaValidationError` SHALL be thrown with validation errors
-- **AND** the error SHALL include the extension and domain type IDs
+- **WHEN** extension type hierarchy validation fails (extension type does not derive from domain's extensionsTypeId)
+- **THEN** `ExtensionTypeError` SHALL be thrown with type hierarchy details
+- **AND** the error SHALL include the extension type ID and required base type ID
 
 #### Scenario: ChainExecutionError class
 
@@ -1017,7 +1032,7 @@ The ScreensetsRegistry SHALL provide a complete API for dynamic registration and
 - **AND** the domain MUST exist (registered earlier or dynamically)
 - **AND** the entry SHALL be resolved (from cache or provider)
 - **AND** the contract SHALL be validated (entry vs domain)
-- **AND** the uiMeta SHALL be validated against domain's extensionsUiMeta
+- **AND** the extension type hierarchy SHALL be validated against domain's extensionsTypeId (if specified)
 
 #### Scenario: ScreensetsRegistry unregisterExtension method
 

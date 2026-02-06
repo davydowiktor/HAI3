@@ -30,14 +30,18 @@
   ],
   "scripts": {
     "build": "tsup",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "@globaltypesystem/gts-ts": "^1.0.0"
+    "@globaltypesystem/gts-ts": "^0.1.0"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.18",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "vitest": "^4.0.18"
   },
   "publishConfig": {
     "access": "public"

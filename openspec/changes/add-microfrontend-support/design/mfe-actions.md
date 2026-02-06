@@ -373,7 +373,7 @@ const dashboardDomain: ExtensionDomain = {
   sharedProperties: [...],
   actions: [...],
   extensionsActions: [...],
-  extensionsUiMetaTypeId: 'gts.acme.dashboard.ext.ui_meta.v1~',  // Optional reference to uiMeta type
+  extensionsTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.main_extension.v1~',  // Derived Extension type
   defaultActionTimeout: 30000,  // 30 seconds default for all actions
 };
 

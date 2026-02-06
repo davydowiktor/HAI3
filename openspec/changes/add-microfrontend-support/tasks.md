@@ -2,7 +2,7 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 6 IN PROGRESS
+**Current Status**: Phase 6 COMPLETE
 
 ---
 
@@ -25,7 +25,7 @@
 ### 1.2 Define Plugin Method Signatures
 
 - [x] 1.2.1 Define type ID operation method signatures (`isValidTypeId`, `parseTypeId`) - Note: `buildTypeId` omitted because GTS type IDs are consumed but never programmatically generated; all type IDs are defined as string constants
-- [x] 1.2.2 Define schema registry method signatures (`registerSchema`, `validateInstance`, `getSchema`)
+- [x] 1.2.2 Define type system method signatures (`registerSchema`, `getSchema` for schema operations; `register`, `validateInstance` for instance operations)
 - [x] 1.2.3 Define query method signature (`query`)
 - [x] 1.2.4 Define required compatibility method signature (`checkCompatibility`)
 - [x] 1.2.5 Define attribute access method signature (`getAttribute`)
@@ -93,8 +93,8 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 **Core Types (8 types):**
 - [x] 3.1.1 Create `MfeEntry` interface (id, requiredProperties, optionalProperties, actions, domainActions)
-- [x] 3.1.2 Create `ExtensionDomain` interface (id, sharedProperties, actions, extensionsActions, extensionsUiMetaTypeId?, defaultActionTimeout, lifecycleStages, extensionsLifecycleStages, lifecycle?)
-- [x] 3.1.3 Create `Extension` interface (id, domain, entry, uiMeta, lifecycle?)
+- [x] 3.1.2 Create `ExtensionDomain` interface (id, sharedProperties, actions, extensionsActions, extensionsTypeId?, defaultActionTimeout, lifecycleStages, extensionsLifecycleStages, lifecycle?)
+- [x] 3.1.3 Create `Extension` interface (id, domain, entry, lifecycle?) - domain-specific fields in derived types
 - [x] 3.1.4 Create `SharedProperty` interface (id, value)
 - [x] 3.1.5 Create `Action` interface (type, target, payload?, timeout?)
 - [x] 3.1.6 Create `ActionsChain` interface (action: Action, next?: ActionsChain, fallback?: ActionsChain) - no id field
@@ -112,7 +112,7 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 **Core Type Schemas (8 types):**
 - [x] 3.2.1 Create schema for `gts.hai3.screensets.mfe.entry.v1~` with id field
-- [x] 3.2.2 Create schema for `gts.hai3.screensets.ext.domain.v1~` with id, defaultActionTimeout (required), extensionsUiMetaTypeId (optional), lifecycleStages, extensionsLifecycleStages fields
+- [x] 3.2.2 Create schema for `gts.hai3.screensets.ext.domain.v1~` with id, defaultActionTimeout (required), extensionsTypeId (optional), lifecycleStages, extensionsLifecycleStages fields
 - [x] 3.2.3 Create schema for `gts.hai3.screensets.ext.extension.v1~` with id field
 - [x] 3.2.4 Create schema for `gts.hai3.screensets.ext.shared_property.v1~` with id and value fields
 - [x] 3.2.5 Create schema for `gts.hai3.screensets.ext.action.v1~` with type, target, timeout (optional) fields (no id)
@@ -229,42 +229,50 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 ---
 
-## Phase 6: Dynamic uiMeta Validation via Type ID Reference ✓
+## Phase 6: Domain-Specific Extension Validation via Derived Types
 
-**Goal**: Implement runtime validation of Extension's uiMeta against domain's extensionsUiMetaTypeId using the type ID reference pattern.
+**Goal**: Implement validation of Extension instances using derived Extension types when domains specify `extensionsTypeId`. This enables domain-specific fields without separate uiMeta entities or custom Ajv validation.
 
 **Status**: COMPLETE
 
-### 6.1 Verify ExtensionDomain Type (Schema Already Correct)
+### 6.1 Update ExtensionDomain Type
 
-- [x] 6.1.1 ExtensionDomain TypeScript interface uses `extensionsUiMetaTypeId?: string` (updated)
-- [x] 6.1.2 ExtensionDomain GTS schema uses `extensionsUiMetaTypeId` as optional string field (updated)
-- [x] 6.1.3 `extensionsUiMetaTypeId` is not in required fields (it is optional) - correct
-- [x] 6.1.4 Extension TypeScript interface updated with optional `uiMeta?` field
+- [x] 6.1.1 ExtensionDomain TypeScript interface uses `extensionsTypeId?: string` (replaces `extensionsUiMetaTypeId`)
+- [x] 6.1.2 ExtensionDomain GTS schema uses `extensionsTypeId` as optional string with `x-gts-ref` to derived Extension types
+- [x] 6.1.3 `extensionsTypeId` is not in required fields (it is optional)
+- [x] 6.1.4 Extension TypeScript interface does NOT have `uiMeta` field (removed)
 
-**Traceability**: Requirement "Dynamic uiMeta Validation" - Domain uses type ID reference instead of inline schema
+**Traceability**: Requirement "Domain-Specific Extension Validation via Derived Types" - Domain uses extensionsTypeId reference
 
-### 6.2 uiMeta Validation Implementation
+### 6.2 Extension Type Validation Implementation
 
-- [x] 6.2.1 Implemented `validateExtensionUiMeta(plugin, domain, extension)` function
-- [x] 6.2.2 If `domain.extensionsUiMetaTypeId` is not specified, return valid (skip validation)
-- [x] 6.2.3 Validate using standard `plugin.validateInstance(domain.extensionsUiMetaTypeId, extension.uiMeta)`
-- [x] 6.2.4 Transform validation errors to include uiMeta context and type ID
-- [x] 6.2.5 Handle case where referenced type is not registered (clear error message)
+- [x] 6.2.1 Implement `validateExtensionType(plugin, domain, extension)` function
+- [x] 6.2.2 If `domain.extensionsTypeId` is not specified, return valid (skip type hierarchy check)
+- [x] 6.2.3 Validate using `plugin.isTypeOf(extension.id, domain.extensionsTypeId)` for type hierarchy
+- [x] 6.2.4 Native GTS validation handles all fields via `plugin.register(extension)` then `plugin.validateInstance(extension.id)`
+- [x] 6.2.5 Handle case where derived Extension type is not registered (clear error message)
 
-**Traceability**: Requirement "Dynamic uiMeta Validation" - uiMeta validation via type ID reference
+**Traceability**: Requirement "Domain-Specific Extension Validation via Derived Types" - Type hierarchy validation
 
-### 6.3 uiMeta Validation Tests
+### 6.3 Extension Type Validation Tests
 
-**Test file**: `packages/screensets/__tests__/mfe/validation/uimeta.test.ts`
+**Test file**: `packages/screensets/__tests__/mfe/validation/extension-type.test.ts`
 
-- [x] 6.3.1 Test successful uiMeta validation when extensionsUiMetaTypeId is specified
-- [x] 6.3.2 Test uiMeta validation failure returns proper error with type ID
-- [x] 6.3.3 Test uiMeta validation skipped when extensionsUiMetaTypeId is not specified
-- [x] 6.3.4 Test error when referenced type ID is not registered
-- [x] 6.3.5 Test uiMeta validation with derived domains
+- [x] 6.3.1 Test successful extension type validation when extensionsTypeId is specified
+- [x] 6.3.2 Test extension type hierarchy failure returns proper error
+- [x] 6.3.3 Test validation skipped when extensionsTypeId is not specified
+- [x] 6.3.4 Test error when derived Extension type is not registered
+- [x] 6.3.5 Test domain-specific fields validated via native GTS validateInstance
 
-**Traceability**: Requirement "Dynamic uiMeta Validation" - all scenarios
+**Traceability**: Requirement "Domain-Specific Extension Validation via Derived Types" - all scenarios
+
+### 6.4 Update Error Classes
+
+- [x] 6.4.1 Replace `UiMetaValidationError` with `ExtensionTypeError`
+- [x] 6.4.2 `ExtensionTypeError` includes extensionTypeId and requiredBaseTypeId
+- [x] 6.4.3 Remove any Ajv-related validation code from screensets package
+
+**Traceability**: Requirement "MFE Error Classes" - ExtensionTypeError class
 
 ---
 
@@ -724,7 +732,7 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 - [ ] 16.2.2 Implement `MfeError` base class
 - [ ] 16.2.3 Implement `MfeLoadError` with entryTypeId
 - [ ] 16.2.4 Implement `ContractValidationError` with errors array
-- [ ] 16.2.5 Implement `UiMetaValidationError` with validation details
+- [ ] 16.2.5 Implement `ExtensionTypeError` with extensionTypeId and requiredBaseTypeId
 - [ ] 16.2.6 Implement `ChainExecutionError` with execution path
 - [ ] 16.2.7 Implement `MfeVersionMismatchError` with version details
 - [ ] 16.2.8 Implement `MfeTypeConformanceError` with type details

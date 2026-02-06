@@ -284,15 +284,6 @@ Module Federation's shared dependencies provide TWO independent benefits:
 
 HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation through `singleton: false`. For the complete isolation model, benefits, and recommendations, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
 
-**Module Federation Implementation**: `singleton: false` ensures each MFE instance gets its own runtime instances of React, TypeSystemPlugin, and @hai3/screensets - even when sharing the same bundled code.
-
-**Isolation Recommendations** (see [overview.md](./overview.md#runtime-isolation-default-behavior) for details):
-
-| MFE Source | Isolation Strategy | Reason |
-|------------|-------------------|--------|
-| 3rd-party/vendor MFEs | Always `singleton: false` | Security - untrusted code must not share state |
-| Internal MFEs (custom handler) | Handler's choice | Trusted code can share if beneficial |
-
 #### When `singleton: true` is Safe
 
 | Library | singleton | Reason |
@@ -440,11 +431,13 @@ When `loadExtension()` is called for an extension referencing MfeEntryMF:
 
 ```typescript
 // Application registers extension (manifest info is embedded in MfeEntryMF)
+// Extension using derived type that includes domain-specific fields
 runtime.registerExtension({
-  id: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1~',
+  id: 'gts.hai3.screensets.ext.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1~',
   domain: 'gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1~',
   entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1~',
-  uiMeta: { title: 'Analytics Dashboard' },
+  // Domain-specific fields from derived Extension type (no uiMeta wrapper)
+  title: 'Analytics Dashboard',
 });
 
 // Loading is handled by MfeHandlerMF internally

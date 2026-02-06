@@ -196,10 +196,9 @@ export class ScreensetsRegistry {
    * @param domain - Domain to register
    */
   registerDomain(domain: ExtensionDomain): void {
-    const validation = this.typeSystem.validateInstance(
-      'gts.hai3.screensets.ext.domain.v1~',
-      domain
-    );
+    // GTS-native validation: register then validate by ID
+    this.typeSystem.register(domain);
+    const validation = this.typeSystem.validateInstance(domain.id);
 
     if (!validation.valid) {
       throw new Error(
@@ -248,18 +247,12 @@ export class ScreensetsRegistry {
     this.validateTypeId(action.target, 'action.target');
 
     // If payload is present, validate it against action schema
+    // TODO: Phase 9 - Action payload validation needs different approach
+    // Payloads are not GTS entities (no id field), so they can't use register+validateInstance
+    // Will be implemented in ActionsChainsMediator which handles payload validation
     if (action.payload !== undefined) {
-      const validation = this.typeSystem.validateInstance(
-        action.type,
-        action.payload
-      );
-
-      if (!validation.valid) {
-        return {
-          valid: false,
-          errors: validation.errors.map(e => e.message),
-        };
-      }
+      // Placeholder: Skip payload validation for now
+      // Phase 9 will implement proper payload validation via ActionsChainsMediator
     }
 
     return { valid: true, errors: [] };
@@ -274,12 +267,20 @@ export class ScreensetsRegistry {
    */
   async executeActionsChain(chain: ActionsChain): Promise<ChainResult> {
     // Validate action
-    const validation = this.validateActionPayload(chain.action);
-    if (!validation.valid) {
+    try {
+      const validation = this.validateActionPayload(chain.action);
+      if (!validation.valid) {
+        return {
+          completed: false,
+          path: [chain.action.type],
+          error: new Error(`Action validation failed: ${validation.errors.join(', ')}`),
+        };
+      }
+    } catch (error) {
       return {
         completed: false,
         path: [chain.action.type],
-        error: new Error(`Action validation failed: ${validation.errors.join(', ')}`),
+        error: error instanceof Error ? error : new Error(String(error)),
       };
     }
 

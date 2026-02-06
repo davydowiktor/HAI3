@@ -65,8 +65,12 @@ interface TypeSystemPlugin {
   // Schema registry (for vendor/dynamic schemas only)
   // First-class citizen schemas are built into the plugin
   registerSchema(schema: JSONSchema): void;  // Type ID extracted from schema.$id
-  validateInstance(typeId: string, instance: unknown): ValidationResult;
   getSchema(typeId: string): JSONSchema | undefined;
+
+  // Instance registry (GTS-native validation approach)
+  // All runtime entities must be registered before validation
+  register(entity: unknown): void;                    // Register any GTS entity
+  validateInstance(instanceId: string): ValidationResult;  // Validate registered instance by ID
 
   // Query
   query(pattern: string, limit?: number): string[];
@@ -81,6 +85,12 @@ interface TypeSystemPlugin {
   getAttribute(typeId: string, path: string): AttributeResult;
 }
 ```
+
+**GTS-Native Validation Model:**
+- Schema/type IDs end with `~`: `gts.hai3.screensets.ext.extension.v1~`
+- Instance IDs do NOT end with `~`: `gts.hai3.screensets.ext.extension.v1~acme.widget.v1`
+- gts-ts extracts the schema ID from the chained instance ID automatically
+- gts-ts uses Ajv INTERNALLY - no direct Ajv dependency needed in MFE plugin
 
 **Built-in First-Class Citizen Schemas:**
 
@@ -101,8 +111,8 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
 | `MfeEntry` | `id, requiredProperties[], optionalProperties?[], actions[], domainActions[]` | Pure contract type (Abstract Base) |
-| `ExtensionDomain` | `id, sharedProperties[], actions[], extensionsActions[], extensionsUiMetaTypeId?, defaultActionTimeout, lifecycleStages[], extensionsLifecycleStages[], lifecycle?[]` | Extension point contract |
-| `Extension` | `id, domain, entry, uiMeta?, lifecycle?[]` | Extension binding |
+| `ExtensionDomain` | `id, sharedProperties[], actions[], extensionsActions[], extensionsTypeId?, defaultActionTimeout, lifecycleStages[], extensionsLifecycleStages[], lifecycle?[]` | Extension point contract |
+| `Extension` | `id, domain, entry, lifecycle?[]` | Extension binding (domain-specific fields in derived types) |
 | `SharedProperty` | `id, value` | Shared property instance |
 | `Action` | `type, target, payload?, timeout?` | Action with self-identifying type ID and optional timeout override |
 | `ActionsChain` | `action: Action, next?: ActionsChain, fallback?: ActionsChain` | Action chain for mediation (contains instances, no id) |
@@ -135,7 +145,7 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 The following methods and patterns were intentionally omitted from the design:
 
 **Omitted TypeSystemPlugin Methods:**
-- **`validateAgainstSchema`**: Not needed. Domain's `extensionsUiMetaTypeId` references a standard GTS type, enabling direct `validateInstance(typeId, instance)` calls.
+- **`validateAgainstSchema`**: Not needed. Extension validation uses native `validateInstance()` with derived Extension types.
 - **`buildTypeId`**: GTS type IDs are consumed (validated, parsed) but never programmatically generated at runtime. All type IDs are defined as string constants, making a builder method unnecessary.
 
 **Type Design Rationale:**
@@ -168,10 +178,10 @@ The GTS plugin ships with all first-class citizen schemas **built-in**. When usi
 
 | GTS Type ID | When Triggered |
 |-------------|----------------|
-| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1~` | After registration |
-| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1~` | After mount |
-| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1~` | After unmount |
-| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1~` | Before unregistration |
+| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1` | After registration |
+| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1` | After mount |
+| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1` | After unmount |
+| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1` | Before unregistration |
 
 **MF-Specific Types (2 types):**
 
@@ -223,21 +233,25 @@ For the complete type hierarchy diagram including field definitions, `x-gts-ref`
 
 ### Contract Matching Rules
 
-For mounting to be valid:
-```
-entry.requiredProperties  is subset of  domain.sharedProperties
-entry.actions             is subset of  domain.extensionsActions
-domain.actions            is subset of  entry.domainActions
-```
+For mounting to be valid, the entry must be compatible with the domain. See [Contract Matching Rules in type-system.md](./design/type-system.md#decision-8-contract-matching-rules) for the complete validation algorithm and implementation details.
 
-### Dynamic uiMeta Validation
+### Domain-Specific Extension Validation via Derived Types
 
-An `Extension`'s `uiMeta` must conform to its domain's uiMeta schema. Validation uses a **type ID reference pattern**:
-- `ExtensionDomain.extensionsUiMetaTypeId` is an optional reference to a GTS type ID
-- If specified, extensions must have their `uiMeta` validated against this type
-- Validation uses standard `plugin.validateInstance(domain.extensionsUiMetaTypeId, extension.uiMeta)`
-- If `extensionsUiMetaTypeId` is not specified, no uiMeta validation is performed
+Instead of embedding domain-specific metadata in a separate `uiMeta` field, domain-specific fields are defined in **derived Extension schemas** directly:
+
+- `ExtensionDomain.extensionsTypeId` is an optional reference to a derived Extension type ID
+- If specified, extensions registered in this domain MUST use types that derive from `extensionsTypeId`
+- Validation uses GTS-native approach: `plugin.register(extension)` then `plugin.validateInstance(extension.id)` - all fields validated together
+- One additional check: `plugin.isTypeOf(extension.id, domain.extensionsTypeId)` verifies type hierarchy
+- If `extensionsTypeId` is not specified, extensions use the base Extension type
+- This eliminates the need for separate uiMeta entities and custom Ajv validation
 - See Decision 9 in `design/type-system.md` for implementation details
+
+**Benefits of derived Extension types:**
+1. **Simpler**: One entity (Extension) instead of two (Extension + uiMeta)
+2. **Native GTS validation**: All fields validated with `register()` + `validateInstance(instanceId)`
+3. **No parallel hierarchies**: Domains remain instances, not derived types
+4. **No Ajv dependency**: gts-ts uses Ajv internally - no direct Ajv dependency needed in MFE plugin
 
 ### Explicit Timeout Configuration
 

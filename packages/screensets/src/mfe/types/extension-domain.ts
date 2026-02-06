@@ -22,11 +22,10 @@ export interface ExtensionDomain {
   /** Action type IDs extensions can send when targeting this domain */
   extensionsActions: string[];
   /**
-   * Optional GTS type ID for extension uiMeta schema validation.
-   * If specified, extensions must have their uiMeta validated against this type.
-   * Uses standard plugin.validateInstance(typeId, instance) - no pre-registration needed.
+   * Optional reference to a derived Extension type ID.
+   * If specified, extensions must use types that derive from this type.
    */
-  extensionsUiMetaTypeId?: string;
+  extensionsTypeId?: string;
   /** Default timeout for actions targeting this domain (milliseconds, REQUIRED) */
   defaultActionTimeout: number;
   /** Lifecycle stage type IDs supported for the domain itself */

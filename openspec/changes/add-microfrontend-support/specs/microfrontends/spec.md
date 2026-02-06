@@ -339,6 +339,7 @@ import { HAI3_ACTION_LOAD_EXT, HAI3_SCREEN_DOMAIN, type GtsTypeId } from '@hai3/
 mfeActions.mountExtension({
   extensionId: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.screens.dashboard.v1' as GtsTypeId,
 });
+// Note: Instance IDs do NOT end with ~ (only schema/type IDs do)
 // Effect handles: calls runtime.mountExtension() on the screen domain
 // Screen domain replaces current screen with the extension
 ```
@@ -625,12 +626,13 @@ The system SHALL provide query methods on ScreensetsRegistry for querying regist
 ```typescript
 import { type GtsTypeId, parseGtsId } from '@hai3/screensets';
 
-// Query extension by type ID
-const ANALYTICS_EXTENSION = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+// Query extension by type ID (extension uses derived type with domain-specific fields)
+// Note: Instance IDs do NOT end with ~ (only schema/type IDs do)
+const ANALYTICS_EXTENSION = 'gts.hai3.screensets.ext.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
 const extension = runtime.getExtension(ANALYTICS_EXTENSION);
 console.log(extension?.domain);     // Domain type ID
 console.log(extension?.entry);      // Entry type ID (MfeEntryMF)
-console.log(extension?.uiMeta);     // UI metadata
+console.log(extension?.title);      // Domain-specific field from derived Extension type
 
 // Query domain by type ID
 const SCREEN_DOMAIN = 'gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1~' as GtsTypeId;
@@ -745,11 +747,14 @@ import { mfeActions } from '@hai3/framework';
 import { type Extension, type GtsTypeId } from '@hai3/screensets';
 
 // Extension can be registered at any time - NOT just initialization
+// Extension uses derived type that includes domain-specific fields
 mfeActions.registerExtension({
-  id: 'gts.hai3.screensets.ext.extension.v1~acme.user.widgets.analytics_widget.v1' as GtsTypeId,
+  id: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1' as GtsTypeId,
   domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~',
   entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
-  uiMeta: { title: 'Analytics', size: 'medium' },
+  // Domain-specific fields from derived Extension type (no uiMeta wrapper)
+  title: 'Analytics',
+  size: 'medium',
 });
 // Emits: 'mfe/registerExtensionRequested' with { extension }
 // Effect calls: runtime.registerExtension(extension)
