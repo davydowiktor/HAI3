@@ -93,8 +93,11 @@ export type {
   SharedDependencyConfig,
 } from './mfe';
 
-// HAI3 Type ID Constants and GTS Schemas
-export { HAI3_CORE_TYPE_IDS, HAI3_LIFECYCLE_STAGE_IDS, HAI3_MF_TYPE_IDS, mfeGtsSchemas } from './mfe';
+// HAI3 Type ID Constants
+export { HAI3_CORE_TYPE_IDS, HAI3_LIFECYCLE_STAGE_IDS, HAI3_MF_TYPE_IDS } from './mfe';
+
+// GTS JSON Loaders (preferred method for loading schemas and instances)
+export { loadSchemas, loadLifecycleStages, loadBaseActions, loadLayoutDomains } from './mfe';
 
 // NOTE: GTS Plugin is NOT re-exported here to avoid pulling in @globaltypesystem/gts-ts
 // for consumers who don't need it. Import directly from '@hai3/screensets/plugins/gts'

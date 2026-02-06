@@ -13,22 +13,40 @@ This document contains the JSON Schema definitions for all MFE system types. The
 
 ---
 
+## GTS Package Organization
+
+The MFE type system is organized into two GTS packages:
+
+### `hai3.mfe` Package (Core Infrastructure)
+Core infrastructure schemas hardcoded in `@hai3/screensets`. These define the fundamental building blocks of the MFE system.
+
+### `hai3.screensets` Package (Layout Implementation)
+Layout-specific domain instances that use the core `hai3.mfe` schemas. These are framework-level implementations.
+
+---
+
 ## Overview
 
 The MFE type system consists of **8 core types** plus **2 MF-specific types**:
 
 | Category | Type | GTS Type ID |
 |----------|------|-------------|
-| Core | MFE Entry (Abstract) | `gts.hai3.screensets.mfe.entry.v1~` |
-| Core | Extension Domain | `gts.hai3.screensets.ext.domain.v1~` |
-| Core | Extension | `gts.hai3.screensets.ext.extension.v1~` |
-| Core | Shared Property | `gts.hai3.screensets.ext.shared_property.v1~` |
-| Core | Action | `gts.hai3.screensets.ext.action.v1~` |
-| Core | Actions Chain | `gts.hai3.screensets.ext.actions_chain.v1~` |
-| Core | Lifecycle Stage | `gts.hai3.screensets.ext.lifecycle_stage.v1~` |
-| Core | Lifecycle Hook | `gts.hai3.screensets.ext.lifecycle_hook.v1~` |
-| MF-Specific | MF Manifest | `gts.hai3.screensets.mfe.mf.v1~` |
-| MF-Specific | MFE Entry MF (Derived) | `gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~` |
+| Core | MFE Entry (Abstract) | `gts.hai3.mfe.entry.v1~` |
+| Core | Extension Domain | `gts.hai3.mfe.domain.v1~` |
+| Core | Extension | `gts.hai3.mfe.extension.v1~` |
+| Core | Shared Property | `gts.hai3.mfe.shared_property.v1~` |
+| Core | Action | `gts.hai3.mfe.action.v1~` |
+| Core | Actions Chain | `gts.hai3.mfe.actions_chain.v1~` |
+| Core | Lifecycle Stage | `gts.hai3.mfe.lifecycle_stage.v1~` |
+| Core | Lifecycle Hook | `gts.hai3.mfe.lifecycle_hook.v1~` |
+| MF-Specific | MF Manifest | `gts.hai3.mfe.manifest.v1~` |
+| MF-Specific | MFE Entry MF (Derived) | `gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~` |
+
+**Layout Domain Instances** (from `hai3.screensets` package):
+- `gts.hai3.mfe.domain.v1~hai3.screensets.layout.sidebar.v1`
+- `gts.hai3.mfe.domain.v1~hai3.screensets.layout.popup.v1`
+- `gts.hai3.mfe.domain.v1~hai3.screensets.layout.screen.v1`
+- `gts.hai3.mfe.domain.v1~hai3.screensets.layout.overlay.v1`
 
 ---
 
@@ -40,7 +58,7 @@ The base contract type for all MFE entries. Derived types add loader-specific fi
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.mfe.entry.v1~",
+  "$id": "gts://gts.hai3.mfe.entry.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -49,21 +67,21 @@ The base contract type for all MFE entries. Derived types add loader-specific fi
     },
     "requiredProperties": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.ext.shared_property.v1~*" },
+      "items": { "x-gts-ref": "gts.hai3.mfe.shared_property.v1~*" },
       "$comment": "SharedProperty type IDs REQUIRED by the MFE"
     },
     "optionalProperties": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.ext.shared_property.v1~*" }
+      "items": { "x-gts-ref": "gts.hai3.mfe.shared_property.v1~*" }
     },
     "actions": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
+      "items": { "x-gts-ref": "gts.hai3.mfe.action.v1~*" },
       "$comment": "Actions MFE can send to its domain"
     },
     "domainActions": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
+      "items": { "x-gts-ref": "gts.hai3.mfe.action.v1~*" },
       "$comment": "Actions MFE can receive"
     }
   },
@@ -77,7 +95,7 @@ Defines an extension point where MFEs can be mounted.
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.domain.v1~",
+  "$id": "gts://gts.hai3.mfe.domain.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -87,21 +105,21 @@ Defines an extension point where MFEs can be mounted.
     },
     "sharedProperties": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.ext.shared_property.v1~*" }
+      "items": { "x-gts-ref": "gts.hai3.mfe.shared_property.v1~*" }
     },
     "actions": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
+      "items": { "x-gts-ref": "gts.hai3.mfe.action.v1~*" },
       "$comment": "Action type IDs that can target extensions in this domain"
     },
     "extensionsActions": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
+      "items": { "x-gts-ref": "gts.hai3.mfe.action.v1~*" },
       "$comment": "Action type IDs extensions can send when targeting this domain"
     },
     "extensionsTypeId": {
       "type": "string",
-      "x-gts-ref": "gts.hai3.screensets.ext.extension.v1~*",
+      "x-gts-ref": "gts.hai3.mfe.extension.v1~*",
       "$comment": "Optional reference to a derived Extension type ID. If specified, extensions must use types that derive from this type."
     },
     "defaultActionTimeout": {
@@ -111,17 +129,17 @@ Defines an extension point where MFEs can be mounted.
     },
     "lifecycleStages": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.ext.lifecycle_stage.v1~*" },
+      "items": { "x-gts-ref": "gts.hai3.mfe.lifecycle_stage.v1~*" },
       "$comment": "Lifecycle stage type IDs supported for the domain itself. Hooks referencing unsupported stages are rejected during validation."
     },
     "extensionsLifecycleStages": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.ext.lifecycle_stage.v1~*" },
+      "items": { "x-gts-ref": "gts.hai3.mfe.lifecycle_stage.v1~*" },
       "$comment": "Lifecycle stage type IDs supported for extensions in this domain. Extension hooks referencing unsupported stages are rejected during validation."
     },
     "lifecycle": {
       "type": "array",
-      "items": { "type": "object", "$ref": "gts://gts.hai3.screensets.ext.lifecycle_hook.v1~" },
+      "items": { "type": "object", "$ref": "gts://gts.hai3.mfe.lifecycle_hook.v1~" },
       "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
     }
   },
@@ -135,7 +153,7 @@ Binds an MFE entry to a domain. Domain-specific fields are defined in derived Ex
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.extension.v1~",
+  "$id": "gts://gts.hai3.mfe.extension.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -144,16 +162,16 @@ Binds an MFE entry to a domain. Domain-specific fields are defined in derived Ex
       "$comment": "The GTS type ID for this instance"
     },
     "domain": {
-      "x-gts-ref": "gts.hai3.screensets.ext.domain.v1~*",
+      "x-gts-ref": "gts.hai3.mfe.domain.v1~*",
       "$comment": "ExtensionDomain type ID to mount into"
     },
     "entry": {
-      "x-gts-ref": "gts.hai3.screensets.mfe.entry.v1~*",
+      "x-gts-ref": "gts.hai3.mfe.entry.v1~*",
       "$comment": "MfeEntry type ID to mount"
     },
     "lifecycle": {
       "type": "array",
-      "items": { "type": "object", "$ref": "gts://gts.hai3.screensets.ext.lifecycle_hook.v1~" },
+      "items": { "type": "object", "$ref": "gts://gts.hai3.mfe.lifecycle_hook.v1~" },
       "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
     }
   },
@@ -168,7 +186,7 @@ Represents a typed value passed from parent to MFE.
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.shared_property.v1~",
+  "$id": "gts://gts.hai3.mfe.shared_property.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -187,7 +205,7 @@ A typed message with target and optional payload.
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.action.v1~",
+  "$id": "gts://gts.hai3.mfe.action.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -198,8 +216,8 @@ A typed message with target and optional payload.
     "target": {
       "type": "string",
       "oneOf": [
-        { "x-gts-ref": "gts.hai3.screensets.ext.domain.v1~*" },
-        { "x-gts-ref": "gts.hai3.screensets.ext.extension.v1~*" }
+        { "x-gts-ref": "gts.hai3.mfe.domain.v1~*" },
+        { "x-gts-ref": "gts.hai3.mfe.extension.v1~*" }
       ],
       "$comment": "Type ID of the target ExtensionDomain or Extension"
     },
@@ -223,21 +241,21 @@ A linked structure of actions with success/failure branches.
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.actions_chain.v1~",
+  "$id": "gts://gts.hai3.mfe.actions_chain.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "action": {
       "type": "object",
-      "$ref": "gts://gts.hai3.screensets.ext.action.v1~"
+      "$ref": "gts://gts.hai3.mfe.action.v1~"
     },
     "next": {
       "type": "object",
-      "$ref": "gts://gts.hai3.screensets.ext.actions_chain.v1~"
+      "$ref": "gts://gts.hai3.mfe.actions_chain.v1~"
     },
     "fallback": {
       "type": "object",
-      "$ref": "gts://gts.hai3.screensets.ext.actions_chain.v1~"
+      "$ref": "gts://gts.hai3.mfe.actions_chain.v1~"
     }
   },
   "required": ["action"]
@@ -250,7 +268,7 @@ Represents a lifecycle event that can trigger actions chains.
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.lifecycle_stage.v1~",
+  "$id": "gts://gts.hai3.mfe.lifecycle_stage.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -271,17 +289,17 @@ Binds a lifecycle stage to an actions chain.
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.lifecycle_hook.v1~",
+  "$id": "gts://gts.hai3.mfe.lifecycle_hook.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "stage": {
-      "x-gts-ref": "gts.hai3.screensets.ext.lifecycle_stage.v1~*",
+      "x-gts-ref": "gts.hai3.mfe.lifecycle_stage.v1~*",
       "$comment": "The lifecycle stage that triggers this hook"
     },
     "actions_chain": {
       "type": "object",
-      "$ref": "gts://gts.hai3.screensets.ext.actions_chain.v1~",
+      "$ref": "gts://gts.hai3.mfe.actions_chain.v1~",
       "$comment": "The actions chain to execute when the stage triggers"
     }
   },
@@ -299,7 +317,7 @@ Module Federation configuration for loading MFE bundles.
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.mfe.mf.v1~",
+  "$id": "gts://gts.hai3.mfe.manifest.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -332,7 +350,7 @@ Module Federation configuration for loading MFE bundles.
     },
     "entries": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~*" }
+      "items": { "x-gts-ref": "gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~*" }
     }
   },
   "required": ["id", "remoteEntry", "remoteName"]
@@ -345,14 +363,14 @@ Module Federation implementation extending the base MfeEntry.
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~",
+  "$id": "gts://gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "allOf": [
-    { "$ref": "gts://gts.hai3.screensets.mfe.entry.v1~" }
+    { "$ref": "gts://gts.hai3.mfe.entry.v1~" }
   ],
   "properties": {
     "manifest": {
-      "x-gts-ref": "gts.hai3.screensets.mfe.mf.v1~*",
+      "x-gts-ref": "gts.hai3.mfe.manifest.v1~*",
       "$comment": "Reference to MfManifest type ID containing Module Federation config"
     },
     "exposedModule": {
@@ -364,6 +382,107 @@ Module Federation implementation extending the base MfeEntry.
   "required": ["manifest", "exposedModule"]
 }
 ```
+
+---
+
+## GTS Entity Storage Format
+
+### JSON as Native GTS Format
+
+GTS entities (schemas, instances, domains, extensions, etc.) are natively represented as JSON. This is the canonical storage format for the Global Type System.
+
+**MANDATORY**: All GTS entities MUST be stored in `.json` files, not hardcoded as TypeScript objects. TypeScript interfaces provide compile-time type safety, while JSON files provide runtime validation via GTS.
+
+**Two-Package Organization**:
+
+| Package | Purpose | Location | Loaded By |
+|---------|---------|----------|-----------|
+| `hai3.mfe` | Core MFE infrastructure schemas and base instances | `packages/screensets/src/mfe/gts/hai3.mfe/` | GTS plugin (hardcoded in @hai3/screensets) |
+| `hai3.screensets` | Layout-specific domain instances | `packages/screensets/src/mfe/gts/hai3.screensets/` | Framework level (added at runtime) |
+
+**Complete Directory Structure**:
+```
+packages/screensets/src/mfe/gts/
+  hai3.mfe/                          # Core MFE GTS package
+    schemas/
+      entry.v1.json                  # MfeEntry schema
+      domain.v1.json                 # ExtensionDomain schema
+      extension.v1.json              # Extension schema
+      action.v1.json                 # Action schema
+      actions_chain.v1.json          # ActionsChain schema
+      shared_property.v1.json        # SharedProperty schema
+      lifecycle_stage.v1.json        # LifecycleStage schema
+      lifecycle_hook.v1.json         # LifecycleHook schema
+      manifest.v1.json               # MfManifest schema
+      entry_mf.v1.json               # MfeEntryMF schema (derives from entry)
+    instances/
+      lifecycle-stages/
+        init.v1.json                 # gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1
+        activated.v1.json            # gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1
+        deactivated.v1.json          # gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1
+        destroyed.v1.json            # gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1
+      actions/
+        load_ext.v1.json             # gts.hai3.mfe.action.v1~hai3.mfe.actions.load_ext.v1
+        unload_ext.v1.json           # gts.hai3.mfe.action.v1~hai3.mfe.actions.unload_ext.v1
+  hai3.screensets/                   # Screensets layout GTS package
+    instances/
+      domains/
+        sidebar.v1.json              # gts.hai3.mfe.domain.v1~hai3.screensets.layout.sidebar.v1
+        popup.v1.json                # gts.hai3.mfe.domain.v1~hai3.screensets.layout.popup.v1
+        screen.v1.json               # gts.hai3.mfe.domain.v1~hai3.screensets.layout.screen.v1
+        overlay.v1.json              # gts.hai3.mfe.domain.v1~hai3.screensets.layout.overlay.v1
+```
+
+**What Goes Where**:
+- `hai3.mfe/schemas/` - All 10 type schemas (8 core + 2 MF-specific)
+- `hai3.mfe/instances/lifecycle-stages/` - The 4 default lifecycle stage instances
+- `hai3.mfe/instances/actions/` - Base action type instances (load_ext, unload_ext)
+- `hai3.screensets/instances/domains/` - Layout domain instances (sidebar, popup, screen, overlay)
+
+**Loading JSON Schemas**:
+```typescript
+// Import JSON schema file
+import entrySchema from './gts/schemas/entry.v1.json';
+
+// Register with plugin
+plugin.registerSchema(entrySchema);
+
+// Or load dynamically
+const schema = await fetch('/gts/schemas/entry.v1.json').then(r => r.json());
+plugin.registerSchema(schema);
+```
+
+**TypeScript Type Safety**:
+When using JSON files, TypeScript interfaces provide compile-time type safety for code that works with these entities:
+```typescript
+// TypeScript interface for code
+interface MfeEntry {
+  id: string;
+  requiredProperties: string[];
+  // ...
+}
+
+// JSON file provides runtime validation via GTS
+// TypeScript interface provides compile-time validation
+```
+
+**Benefits of JSON Storage**:
+1. **Native GTS format** - No translation layer needed
+2. **Tool-friendly** - Can be generated, validated, and transformed by external tools
+3. **Runtime loadable** - Can be fetched dynamically without bundling
+4. **Shareable** - Can be published to registries or shared via HTTP
+5. **Version-independent** - Schema changes don't require code recompilation
+
+**When to Use TypeScript Objects** (LIMITED cases only):
+- For inline entity definitions in unit tests (test-specific mocks)
+- For temporary examples in documentation
+
+**When NOT to Use TypeScript Objects** (use JSON files instead):
+- First-class citizen schemas - MUST be in JSON files under `hai3.mfe/schemas/`
+- Default lifecycle stages - MUST be in JSON files under `hai3.mfe/instances/lifecycle-stages/`
+- Base action types - MUST be in JSON files under `hai3.mfe/instances/actions/`
+- Layout domain instances - MUST be in JSON files under `hai3.screensets/instances/domains/`
+- Any entity that will be registered with the GTS plugin at runtime
 
 ---
 
@@ -391,10 +510,10 @@ Vendors register their derived type schemas using `registerSchema(schema)`. The 
 
 // Vendor-specific derived action type
 const acmeDataUpdatedSchema: JSONSchema = {
-  "$id": "gts://gts.hai3.screensets.ext.action.v1~acme.analytics.ext.data_updated.v1~",
+  "$id": "gts://gts.hai3.mfe.action.v1~acme.analytics.ext.data_updated.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "allOf": [
-    { "$ref": "gts://gts.hai3.screensets.ext.action.v1~" }
+    { "$ref": "gts://gts.hai3.mfe.action.v1~" }
   ],
   "properties": {
     "payload": {
@@ -413,10 +532,10 @@ plugin.registerSchema(acmeDataUpdatedSchema);
 
 // Vendor-specific derived entry type
 const acmeChartEntrySchema: JSONSchema = {
-  "$id": "gts://gts.hai3.screensets.mfe.entry.v1~acme.analytics.mfe.chart_widget.v1~",
+  "$id": "gts://gts.hai3.mfe.entry.v1~acme.analytics.mfe.chart_widget.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "allOf": [
-    { "$ref": "gts://gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~" }
+    { "$ref": "gts://gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~" }
   ],
   "properties": {
     "chartType": { "enum": ["bar", "line", "pie", "scatter"] },

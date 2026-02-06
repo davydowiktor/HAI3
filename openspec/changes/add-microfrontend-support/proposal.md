@@ -87,8 +87,8 @@ interface TypeSystemPlugin {
 ```
 
 **GTS-Native Validation Model:**
-- Schema/type IDs end with `~`: `gts.hai3.screensets.ext.extension.v1~`
-- Instance IDs do NOT end with `~`: `gts.hai3.screensets.ext.extension.v1~acme.widget.v1`
+- Schema/type IDs end with `~`: `gts.hai3.mfe.extension.v1~`
+- Instance IDs do NOT end with `~`: `gts.hai3.mfe.extension.v1~acme.widget.v1`
 - gts-ts extracts the schema ID from the chained instance ID automatically
 - gts-ts uses Ajv INTERNALLY - no direct Ajv dependency needed in MFE plugin
 
@@ -171,30 +171,30 @@ The GTS plugin ships with all first-class citizen schemas **built-in**. When usi
 
 | GTS Type ID | Purpose |
 |-------------|---------|
-| `gts.hai3.screensets.mfe.entry.v1~` | Pure contract type (Abstract Base) |
-| `gts.hai3.screensets.ext.domain.v1~` | Extension point contract |
-| `gts.hai3.screensets.ext.extension.v1~` | Extension binding |
-| `gts.hai3.screensets.ext.shared_property.v1~` | Property definition |
-| `gts.hai3.screensets.ext.action.v1~` | Action type with target and self-id |
-| `gts.hai3.screensets.ext.actions_chain.v1~` | Action chain for mediation |
-| `gts.hai3.screensets.ext.lifecycle_stage.v1~` | Lifecycle event type |
-| `gts.hai3.screensets.ext.lifecycle_hook.v1~` | Lifecycle stage to actions chain binding |
+| `gts.hai3.mfe.entry.v1~` | Pure contract type (Abstract Base) |
+| `gts.hai3.mfe.domain.v1~` | Extension point contract |
+| `gts.hai3.mfe.extension.v1~` | Extension binding |
+| `gts.hai3.mfe.shared_property.v1~` | Property definition |
+| `gts.hai3.mfe.action.v1~` | Action type with target and self-id |
+| `gts.hai3.mfe.actions_chain.v1~` | Action chain for mediation |
+| `gts.hai3.mfe.lifecycle_stage.v1~` | Lifecycle event type |
+| `gts.hai3.mfe.lifecycle_hook.v1~` | Lifecycle stage to actions chain binding |
 
 **Default Lifecycle Stages (4 stages):**
 
 | GTS Type ID | When Triggered |
 |-------------|----------------|
-| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1` | After registration |
-| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1` | After mount |
-| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1` | After unmount |
-| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1` | Before unregistration |
+| `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1` | After registration |
+| `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1` | After mount |
+| `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1` | After unmount |
+| `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1` | Before unregistration |
 
 **MF-Specific Types (2 types):**
 
 | GTS Type ID | Purpose |
 |-------------|---------|
-| `gts.hai3.screensets.mfe.mf.v1~` | Module Federation manifest (standalone) |
-| `gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~` | Module Federation entry (derived) |
+| `gts.hai3.mfe.manifest.v1~` | Module Federation manifest (standalone) |
+| `gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~` | Module Federation entry (derived) |
 
 ### GTS JSON Schema Definitions
 
@@ -202,7 +202,7 @@ Each of the 8 core types and 2 MF-specific types has a corresponding JSON Schema
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.action.v1~",
+  "$id": "gts://gts.hai3.mfe.action.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -213,8 +213,8 @@ Each of the 8 core types and 2 MF-specific types has a corresponding JSON Schema
     "target": {
       "type": "string",
       "oneOf": [
-        { "x-gts-ref": "gts.hai3.screensets.ext.domain.v1~*" },
-        { "x-gts-ref": "gts.hai3.screensets.ext.extension.v1~*" }
+        { "x-gts-ref": "gts.hai3.mfe.domain.v1~*" },
+        { "x-gts-ref": "gts.hai3.mfe.extension.v1~*" }
       ],
       "$comment": "Type ID of the target ExtensionDomain or Extension"
     },
@@ -317,8 +317,8 @@ Example: A dashboard screenset defines a "widget slot" domain for third-party wi
 **Generic Extension Actions:**
 ```typescript
 // Only two action constants needed for ALL domains
-HAI3_ACTION_LOAD_EXT: 'gts.hai3.screensets.ext.action.v1~hai3.screensets.actions.load_ext.v1~'
-HAI3_ACTION_UNLOAD_EXT: 'gts.hai3.screensets.ext.action.v1~hai3.screensets.actions.unload_ext.v1~'
+HAI3_ACTION_LOAD_EXT: 'gts.hai3.mfe.action.v1~hai3.mfe.actions.load_ext.v1~'
+HAI3_ACTION_UNLOAD_EXT: 'gts.hai3.mfe.action.v1~hai3.mfe.actions.unload_ext.v1~'
 
 // Action payload specifies target domain and extension
 interface LoadExtPayload {
@@ -346,14 +346,14 @@ interface LoadExtPayload {
 ```typescript
 // Popup domain - supports both load and unload
 {
-  id: 'gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.popup.v1~',
+  id: 'gts.hai3.mfe.domain.v1~hai3.screensets.layout.popup.v1',
   actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_UNLOAD_EXT],
   // ...
 }
 
 // Screen domain - only supports load (navigate to)
 {
-  id: 'gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1~',
+  id: 'gts.hai3.mfe.domain.v1~hai3.screensets.layout.screen.v1',
   actions: [HAI3_ACTION_LOAD_EXT],  // No unload - can't have "no screen"
   // ...
 }

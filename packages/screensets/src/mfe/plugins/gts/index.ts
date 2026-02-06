@@ -7,8 +7,8 @@
  * GTS-Native Validation Model:
  * - All runtime entities (schemas AND instances) must be registered with gtsStore
  * - Validation happens on registered instances by their instance ID
- * - Schema IDs end with `~` (e.g., `gts.hai3.screensets.ext.extension.v1~`)
- * - Instance IDs do NOT end with `~` (e.g., `gts.hai3.screensets.ext.extension.v1~acme.widget.v1`)
+ * - Schema IDs end with `~` (e.g., `gts.hai3.mfe.extension.v1~`)
+ * - Instance IDs do NOT end with `~` (e.g., `gts.hai3.mfe.extension.v1~acme.widget.v1`)
  * - gts-ts extracts the schema ID from the chained instance ID automatically
  * - gts-ts uses Ajv INTERNALLY - we do NOT need Ajv as a direct dependency
  *
@@ -34,11 +34,12 @@ import type {
   AttributeResult,
   JSONSchema,
 } from '../types';
-import { mfeGtsSchemas } from '../../schemas/gts-schemas';
+import { loadSchemas, loadLifecycleStages, loadBaseActions } from '../../gts/loader';
 
 /**
  * Create a GTS plugin instance.
- * All first-class citizen schemas are registered during construction.
+ * All first-class citizen schemas and instances are loaded from JSON files
+ * and registered during construction.
  * The plugin is ready to use immediately - no additional setup required.
  *
  * @returns TypeSystemPlugin instance configured for HAI3 MFE types
@@ -46,32 +47,27 @@ import { mfeGtsSchemas } from '../../schemas/gts-schemas';
 export function createGtsPlugin(): TypeSystemPlugin {
   const gtsStore = new GtsStore();
 
-  // Register all first-class citizen schemas during construction.
-  // These types define system capabilities and are well-known at compile time.
-  // Changes to them require code changes in screensets anyway.
-  const firstClassSchemas = [
-    // Core types (8)
-    mfeGtsSchemas.mfeEntry,
-    mfeGtsSchemas.extensionDomain,
-    mfeGtsSchemas.extension,
-    mfeGtsSchemas.sharedProperty,
-    mfeGtsSchemas.action,
-    mfeGtsSchemas.actionsChain,
-    mfeGtsSchemas.lifecycleStage,
-    mfeGtsSchemas.lifecycleHook,
-    // Default lifecycle stages (4)
-    mfeGtsSchemas.lifecycleStageInit,
-    mfeGtsSchemas.lifecycleStageActivated,
-    mfeGtsSchemas.lifecycleStageDeactivated,
-    mfeGtsSchemas.lifecycleStageDestroyed,
-    // MF-specific types (2)
-    mfeGtsSchemas.mfManifest,
-    mfeGtsSchemas.mfeEntryMf,
-  ];
-
-  for (const schema of firstClassSchemas) {
-    // createJsonEntity wraps the schema as a JsonEntity for registration
+  // Load and register all first-class citizen schemas from JSON files (10 schemas)
+  // These schemas are stored in packages/screensets/src/mfe/gts/hai3.mfe/schemas/
+  const schemas = loadSchemas();
+  for (const schema of schemas) {
     const entity: JsonEntity = createJsonEntity(schema);
+    gtsStore.register(entity);
+  }
+
+  // Load and register default lifecycle stage instances from JSON files (4 instances)
+  // These instances are stored in packages/screensets/src/mfe/gts/hai3.mfe/instances/lifecycle-stages/
+  const lifecycleStages = loadLifecycleStages();
+  for (const instance of lifecycleStages) {
+    const entity: JsonEntity = createJsonEntity(instance);
+    gtsStore.register(entity);
+  }
+
+  // Load and register base action instances from JSON files (2 instances)
+  // These instances are stored in packages/screensets/src/mfe/gts/hai3.mfe/instances/actions/
+  const baseActions = loadBaseActions();
+  for (const action of baseActions) {
+    const entity: JsonEntity = createJsonEntity(action);
     gtsStore.register(entity);
   }
 
@@ -136,8 +132,8 @@ export function createGtsPlugin(): TypeSystemPlugin {
     validateInstance(instanceId: string): ValidationResult {
       // GtsStore.validateInstance takes the instance ID (NOT schema ID)
       // gts-ts extracts the schema ID from the chained instance ID:
-      // - Instance ID: gts.hai3.screensets.ext.extension.v1~acme.widget.v1
-      // - Schema ID:   gts.hai3.screensets.ext.extension.v1~ (extracted automatically)
+      // - Instance ID: gts.hai3.mfe.extension.v1~acme.widget.v1
+      // - Schema ID:   gts.hai3.mfe.extension.v1~ (extracted automatically)
       const result: GtsValidationResult = gtsStore.validateInstance(instanceId);
       return {
         valid: result.ok && (result.valid ?? false),
@@ -168,8 +164,8 @@ export function createGtsPlugin(): TypeSystemPlugin {
     // Type Hierarchy
     isTypeOf(typeId: string, baseTypeId: string): boolean {
       // GTS type derivation: derived types include the base type ID as a prefix
-      // e.g., 'gts.hai3.screensets.mfe.entry.v1~acme.corp.mfe.entry_acme.v1~'
-      // is derived from 'gts.hai3.screensets.mfe.entry.v1~'
+      // e.g., 'gts.hai3.mfe.entry.v1~acme.corp.mfe.entry_acme.v1~'
+      // is derived from 'gts.hai3.mfe.entry.v1~'
       return typeId.startsWith(baseTypeId) || typeId === baseTypeId;
     },
 

@@ -16,38 +16,11 @@ This document covers the ScreensetsRegistry runtime isolation model, action chai
 
 ### Decision 13: Instance-Level Isolation (Framework-Agnostic, Default Behavior)
 
-See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for the isolation model overview.
-
-**Architecture:**
-```
-+---------------------------+      +---------------------------+
-|     PARENT RUNTIME        |      |       MFE RUNTIME         |
-|  (React + TypeSystemA)    |      |  (Vue 3 + TypeSystemB)    |
-+---------------------------+      +---------------------------+
-|   TypeSystemPlugin A      |      |   TypeSystemPlugin B      |
-|   (parent schemas only)   |      |   (MFE schemas only)      |
-+---------------------------+      +---------------------------+
-|   HAI3 State Instance A   |      |   HAI3 State Instance B   |
-+---------------------------+      +---------------------------+
-|   React Host Component    |      |   Vue 3 MFE Component     |
-+-------------+-------------+      +-------------+-------------+
-              |                                  |
-              |    MfeBridge (Contract)          |
-              +==================================+
-              |  - Shared Properties (parent->MFE)|
-              |  - Actions Chains (bidirectional)|
-              +==================================+
-```
-
-**Key Points:**
-- No direct store access across boundary
-- No direct schema registry access across boundary (security)
-- Shared properties passed via ChildMfeBridge only
-- Actions delivered via ActionsChainsMediator through ChildMfeBridge
+See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for the complete isolation model, architecture diagrams, and recommendations.
 
 ### Decision 14: Framework-Agnostic Isolation Model (Default Behavior)
 
-See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for the complete isolation model, Module Federation configuration, and recommendations.
+See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for the complete isolation model.
 
 **Class-Based ScreensetsRegistry**:
 
@@ -380,9 +353,9 @@ settingsButton.onClick = async () => {
   // Extension using derived type that includes domain-specific fields
   // Note: Instance IDs do NOT end with ~ (only schema IDs do)
   await runtime.registerExtension({
-    id: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1',
-    domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
-    entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+    id: 'gts.hai3.mfe.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1',
+    domain: 'gts.hai3.mfe.domain.v1~acme.dashboard.layout.widget_slot.v1',
+    entry: 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
     // Domain-specific fields from derived Extension type (no uiMeta wrapper)
     title: 'Analytics',
     size: 'medium',

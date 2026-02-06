@@ -26,7 +26,7 @@ This document covers the Action and ActionsChain types and their usage in the MF
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.action.v1~",
+  "$id": "gts://gts.hai3.mfe.action.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -37,8 +37,8 @@ This document covers the Action and ActionsChain types and their usage in the MF
     "target": {
       "type": "string",
       "oneOf": [
-        { "x-gts-ref": "gts.hai3.screensets.ext.domain.v1~*" },
-        { "x-gts-ref": "gts.hai3.screensets.ext.extension.v1~*" }
+        { "x-gts-ref": "gts.hai3.mfe.domain.v1~*" },
+        { "x-gts-ref": "gts.hai3.mfe.extension.v1~*" }
       ],
       "$comment": "Type ID of the target ExtensionDomain or Extension"
     },
@@ -62,21 +62,21 @@ ActionsChain contains actual Action INSTANCES (embedded objects), not references
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.actions_chain.v1~",
+  "$id": "gts://gts.hai3.mfe.actions_chain.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "action": {
       "type": "object",
-      "$ref": "gts://gts.hai3.screensets.ext.action.v1~"
+      "$ref": "gts://gts.hai3.mfe.action.v1~"
     },
     "next": {
       "type": "object",
-      "$ref": "gts://gts.hai3.screensets.ext.actions_chain.v1~"
+      "$ref": "gts://gts.hai3.mfe.actions_chain.v1~"
     },
     "fallback": {
       "type": "object",
-      "$ref": "gts://gts.hai3.screensets.ext.actions_chain.v1~"
+      "$ref": "gts://gts.hai3.mfe.actions_chain.v1~"
     }
   },
   "required": ["action"]
@@ -88,7 +88,7 @@ ActionsChain contains actual Action INSTANCES (embedded objects), not references
 ```typescript
 /**
  * An action with target, self-identifying type, and optional payload
- * GTS Type: gts.hai3.screensets.ext.action.v1~
+ * GTS Type: gts.hai3.mfe.action.v1~
  */
 interface Action {
   /** Self-reference to this action's type ID */
@@ -103,7 +103,7 @@ interface Action {
 
 /**
  * Defines a mediated chain of actions with success/failure branches
- * GTS Type: gts.hai3.screensets.ext.actions_chain.v1~
+ * GTS Type: gts.hai3.mfe.actions_chain.v1~
  *
  * Contains actual Action INSTANCES (embedded objects).
  * ActionsChain is NOT referenced by other types, so it has NO id field.
@@ -369,25 +369,25 @@ See [MFE API](./mfe-api.md) for the complete `ParentMfeBridge` interface.
 ```typescript
 // Domain defines default timeout in its type definition
 const dashboardDomain: ExtensionDomain = {
-  id: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.main.v1',
+  id: 'gts.hai3.mfe.domain.v1~acme.dashboard.layout.main.v1',
   sharedProperties: [...],
   actions: [...],
   extensionsActions: [...],
-  extensionsTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.main_extension.v1~',  // Derived Extension type (schema reference, ends with ~)
+  extensionsTypeId: 'gts.hai3.mfe.extension.v1~acme.dashboard.ext.main_extension.v1~',  // Derived Extension type (schema reference, ends with ~)
   defaultActionTimeout: 30000,  // 30 seconds default for all actions
 };
 
 // Action uses domain's default timeout
 const refreshAction: Action = {
-  type: 'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.refresh.v1',
-  target: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.main.v1',
+  type: 'gts.hai3.mfe.action.v1~acme.dashboard.ext.refresh.v1',
+  target: 'gts.hai3.mfe.domain.v1~acme.dashboard.layout.main.v1',
   // No timeout specified - uses domain's 30000ms default
 };
 
 // Action overrides for a long-running operation
 const exportAction: Action = {
-  type: 'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.export.v1',
-  target: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.main.v1',
+  type: 'gts.hai3.mfe.action.v1~acme.dashboard.ext.export.v1',
+  target: 'gts.hai3.mfe.domain.v1~acme.dashboard.layout.main.v1',
   timeout: 120000,  // 2 minutes for this specific action
   // On timeout: executes fallback chain if defined (same as any other failure)
 };

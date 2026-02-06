@@ -42,7 +42,7 @@ TYPE SYSTEM (GTS)                           HANDLER REGISTRY
 MfeEntry (abstract)                         MfeHandler (abstract class)
     |                                           |
     +-- MfeEntryMF                              +-- MfeHandlerMF
-    |   (thin, stable)                          |   handledBaseTypeId: ~hai3.screensets.mfe.entry_mf.*
+    |   (thin, stable)                          |   handledBaseTypeId: ~hai3.mfe.entry_mf.*
     |                                           |   bridgeFactory: MfeBridgeFactoryDefault
     |                                           |
     +-- MfeEntryAcme                            +-- MfeHandlerAcme
@@ -152,7 +152,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
   constructor(typeSystem: TypeSystemPlugin) {
     // Pass the base type ID this handler handles
-    super(typeSystem, 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~');
+    super(typeSystem, 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~');
     // ManifestCache is created internally - not passed in
     this.manifestCache = new ManifestCache();
   }
@@ -198,7 +198,7 @@ class MfeHandlerAcme extends MfeHandler<MfeEntryAcme, ChildMfeBridgeAcme> {
   readonly bridgeFactory: MfeBridgeFactoryAcme;
 
   constructor(typeSystem: TypeSystemPlugin, router: Router, apiClient: ApiClient) {
-    super(typeSystem, 'gts.hai3.screensets.mfe.entry.v1~acme.corp.mfe.entry_acme.v1~', 100);
+    super(typeSystem, 'gts.hai3.mfe.entry.v1~acme.corp.mfe.entry_acme.v1~', 100);
     this.bridgeFactory = new MfeBridgeFactoryAcme(router, apiClient);
   }
 
@@ -433,9 +433,9 @@ When `loadExtension()` is called for an extension referencing MfeEntryMF:
 // Application registers extension (manifest info is embedded in MfeEntryMF)
 // Extension using derived type that includes domain-specific fields
 runtime.registerExtension({
-  id: 'gts.hai3.screensets.ext.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1',
-  domain: 'gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1',
-  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+  id: 'gts.hai3.mfe.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1',
+  domain: 'gts.hai3.mfe.domain.v1~hai3.screensets.layout.screen.v1',
+  entry: 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   // Domain-specific fields from derived Extension type (no uiMeta wrapper)
   title: 'Analytics Dashboard',
 });

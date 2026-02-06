@@ -50,7 +50,7 @@ export interface SharedDependencyConfig {
 
 /**
  * Module Federation manifest containing shared configuration
- * GTS Type: gts.hai3.screensets.mfe.mf.v1~
+ * GTS Type: gts.hai3.mfe.manifest.v1~
  */
 export interface MfManifest {
   /** The GTS type ID for this manifest */

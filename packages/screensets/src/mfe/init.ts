@@ -15,21 +15,21 @@
  */
 export const HAI3_CORE_TYPE_IDS = {
   /** Pure contract type (abstract base) */
-  mfeEntry: 'gts.hai3.screensets.mfe.entry.v1~',
+  mfeEntry: 'gts.hai3.mfe.entry.v1~',
   /** Extension point contract */
-  extensionDomain: 'gts.hai3.screensets.ext.domain.v1~',
+  extensionDomain: 'gts.hai3.mfe.domain.v1~',
   /** Extension binding */
-  extension: 'gts.hai3.screensets.ext.extension.v1~',
+  extension: 'gts.hai3.mfe.extension.v1~',
   /** Property definition */
-  sharedProperty: 'gts.hai3.screensets.ext.shared_property.v1~',
+  sharedProperty: 'gts.hai3.mfe.shared_property.v1~',
   /** Action type with target and self-id */
-  action: 'gts.hai3.screensets.ext.action.v1~',
+  action: 'gts.hai3.mfe.action.v1~',
   /** Action chain for mediation */
-  actionsChain: 'gts.hai3.screensets.ext.actions_chain.v1~',
+  actionsChain: 'gts.hai3.mfe.actions_chain.v1~',
   /** Lifecycle event type */
-  lifecycleStage: 'gts.hai3.screensets.ext.lifecycle_stage.v1~',
+  lifecycleStage: 'gts.hai3.mfe.lifecycle_stage.v1~',
   /** Lifecycle stage to actions chain binding */
-  lifecycleHook: 'gts.hai3.screensets.ext.lifecycle_hook.v1~',
+  lifecycleHook: 'gts.hai3.mfe.lifecycle_hook.v1~',
 } as const;
 
 /**
@@ -40,13 +40,13 @@ export const HAI3_CORE_TYPE_IDS = {
  */
 export const HAI3_LIFECYCLE_STAGE_IDS = {
   /** Triggered after extension registration */
-  init: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1~',
+  init: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1',
   /** Triggered after extension mount */
-  activated: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1~',
+  activated: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1',
   /** Triggered after extension unmount */
-  deactivated: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1~',
+  deactivated: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1',
   /** Triggered before extension unregistration */
-  destroyed: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1~',
+  destroyed: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1',
 } as const;
 
 /**
@@ -56,9 +56,9 @@ export const HAI3_LIFECYCLE_STAGE_IDS = {
  */
 export const HAI3_MF_TYPE_IDS = {
   /** Module Federation manifest (standalone) */
-  mfManifest: 'gts.hai3.screensets.mfe.mf.v1~',
+  mfManifest: 'gts.hai3.mfe.manifest.v1~',
   /** Module Federation entry (derived from MfeEntry) */
-  mfeEntryMf: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~',
+  mfeEntryMf: 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~',
 } as const;
 
 /**

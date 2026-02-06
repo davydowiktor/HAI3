@@ -20,7 +20,7 @@ At runtime, extensions subscribe to property updates via the [ChildMfeBridge](./
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.shared_property.v1~",
+  "$id": "gts://gts.hai3.mfe.shared_property.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -41,7 +41,7 @@ At runtime, extensions subscribe to property updates via the [ChildMfeBridge](./
 ```typescript
 /**
  * Defines a shared property instance passed from parent to MFE
- * GTS Type: gts.hai3.screensets.ext.shared_property.v1~
+ * GTS Type: gts.hai3.mfe.shared_property.v1~
  */
 interface SharedProperty {
   /** The GTS type ID for this shared property */

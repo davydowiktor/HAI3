@@ -24,7 +24,7 @@ MfManifest is a **standalone type** containing Module Federation configuration.
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.mfe.mf.v1~",
+  "$id": "gts://gts.hai3.mfe.manifest.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -61,7 +61,7 @@ MfManifest is a **standalone type** containing Module Federation configuration.
     },
     "entries": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~*" },
+      "items": { "x-gts-ref": "gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~*" },
       "$comment": "Convenience field for discovery - lists MfeEntryMF type IDs"
     }
   },
@@ -74,7 +74,7 @@ MfManifest is a **standalone type** containing Module Federation configuration.
 ```typescript
 /**
  * Module Federation manifest containing shared configuration
- * GTS Type: gts.hai3.screensets.mfe.mf.v1~
+ * GTS Type: gts.hai3.mfe.manifest.v1~
  */
 interface MfManifest {
   /** The GTS type ID for this manifest */
@@ -136,7 +136,7 @@ interface SharedDependencyConfig {
 
 ```typescript
 const analyticsManifest: MfManifest = {
-  id: 'gts.hai3.screensets.mfe.mf.v1~acme.analytics.mfe.manifest.v1',
+  id: 'gts.hai3.mfe.manifest.v1~acme.analytics.mfe.manifest.v1',
   remoteEntry: 'https://cdn.acme.com/analytics/remoteEntry.js',
   remoteName: 'acme_analytics',
   // sharedDependencies configures Module Federation code sharing.
@@ -159,8 +159,8 @@ const analyticsManifest: MfManifest = {
     // { name: '@hai3/screensets', requiredVersion: '^1.0.0', singleton: false },
   ],
   entries: [
-    'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
-    'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.metrics.v1',
+    'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+    'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.metrics.v1',
   ],
 };
 ```

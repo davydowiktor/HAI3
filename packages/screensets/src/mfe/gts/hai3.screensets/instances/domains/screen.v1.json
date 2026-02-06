@@ -1,0 +1,21 @@
+{
+  "id": "gts.hai3.mfe.domain.v1~hai3.screensets.layout.screen.v1",
+  "sharedProperties": [],
+  "actions": [
+    "gts.hai3.mfe.action.v1~hai3.mfe.actions.load_ext.v1"
+  ],
+  "extensionsActions": [],
+  "defaultActionTimeout": 5000,
+  "lifecycleStages": [
+    "gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1",
+    "gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1",
+    "gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1",
+    "gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1"
+  ],
+  "extensionsLifecycleStages": [
+    "gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1",
+    "gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1",
+    "gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1",
+    "gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1"
+  ]
+}

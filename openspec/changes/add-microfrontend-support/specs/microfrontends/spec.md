@@ -2,7 +2,7 @@
 
 **Key principle**: This spec defines Flux integration only. All MFE lifecycle management (loading, mounting, bridging) is handled by `@hai3/screensets`. The framework plugin wires the ScreensetsRegistry into the Flux data flow pattern.
 
-**Namespace convention**: All HAI3 MFE types use the `gts.hai3.screensets.*` namespace for consistency with the screensets package. The type hierarchy follows the pattern established in screensets/spec.md.
+**Namespace convention**: All HAI3 MFE core infrastructure types use the `gts.hai3.mfe.*` namespace. Layout domain instances use `gts.hai3.mfe.domain.v1~hai3.screensets.layout.*` namespace.
 
 ### Requirement: Microfrontends Plugin
 
@@ -62,7 +62,7 @@ import { mfeActions } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
 // Extension type ID
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfe.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
 
 // Action emits event, returns void - loads JS bundle only
 mfeActions.loadExtension(ANALYTICS_EXTENSION_ID);
@@ -82,7 +82,7 @@ import { mfeActions } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
 // Extension type ID
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfe.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
 
 // Action emits event for preloading - fetch bundle before user navigates
 mfeActions.preloadExtension(ANALYTICS_EXTENSION_ID);
@@ -102,7 +102,7 @@ import { mfeActions } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
 // Extension type ID
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfe.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
 
 // Action emits event, returns void - mounts to DOM (auto-loads if needed)
 mfeActions.mountExtension(ANALYTICS_EXTENSION_ID);
@@ -119,7 +119,7 @@ mfeActions.mountExtension(ANALYTICS_EXTENSION_ID);
 
 ```typescript
 // Called by ScreensetsRegistry when MFE (child) sends an action chain to parent
-// actionTypeId references gts.hai3.screensets.ext.action.v1~
+// actionTypeId references gts.hai3.mfe.action.v1~
 mfeActions.handleMfeChildAction(extensionId, actionTypeId, payload);
 // Emits: 'mfe/childActionRequested' with { extensionId, actionTypeId, payload }
 ```
@@ -139,7 +139,7 @@ The system SHALL provide MFE effects that subscribe to events, call ScreensetsRe
 import { ScreensetsRegistry } from '@hai3/screensets';
 
 // Effect subscribes to event, calls runtime, dispatches to slice
-// extensionId is Extension type: gts.hai3.screensets.ext.extension.v1~...
+// extensionId is Extension type: gts.hai3.mfe.extension.v1~...
 eventBus.on('mfe/loadRequested', async ({ extensionId }) => {
   dispatch(mfeSlice.actions.setLoading({ extensionId }));
   try {
@@ -185,7 +185,7 @@ eventBus.on('mfe/preloadRequested', async ({ extensionId }) => {
 import { ScreensetsRegistry } from '@hai3/screensets';
 
 // Effect subscribes to event, calls runtime, dispatches to slice
-// extensionId is Extension type: gts.hai3.screensets.ext.extension.v1~...
+// extensionId is Extension type: gts.hai3.mfe.extension.v1~...
 eventBus.on('mfe/mountRequested', async ({ extensionId }) => {
   dispatch(mfeSlice.actions.setMounting({ extensionId }));
   try {
@@ -209,7 +209,7 @@ eventBus.on('mfe/mountRequested', async ({ extensionId }) => {
 ```typescript
 import { conformsTo, HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
 
-// actionTypeId conforms to gts.hai3.screensets.ext.action.v1~
+// actionTypeId conforms to gts.hai3.mfe.action.v1~
 eventBus.on('mfe/childActionRequested', async ({ extensionId, actionTypeId, payload }) => {
   if (conformsTo(actionTypeId, HAI3_ACTION_LOAD_EXT)) {
     const { domainTypeId, targetExtensionId, ...params } = payload as LoadExtPayload;
@@ -236,7 +236,7 @@ import { selectMfeLoadState, selectMfeMountState, selectMfeError } from '@hai3/f
 import { type GtsTypeId } from '@hai3/screensets';
 
 // Extension type ID
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfe.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
 
 // Load state tracks bundle loading
 const loadState = useAppSelector((state) =>
@@ -280,7 +280,7 @@ import { MfeContainer } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
 // Extension type ID (references the MFE entry)
-const ANALYTICS_EXTENSION = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+const ANALYTICS_EXTENSION = 'gts.hai3.mfe.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
 
 // MfeContainer handles mounting via ScreensetsRegistry.mountExtension() and Shadow DOM isolation
 <MfeContainer
@@ -337,7 +337,7 @@ import { HAI3_ACTION_LOAD_EXT, HAI3_SCREEN_DOMAIN, type GtsTypeId } from '@hai3/
 // Navigate by mounting the extension on the screen domain
 // Screen domain interprets mount as "navigate to this screen"
 mfeActions.mountExtension({
-  extensionId: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.screens.dashboard.v1' as GtsTypeId,
+  extensionId: 'gts.hai3.mfe.extension.v1~acme.analytics.screens.dashboard.v1' as GtsTypeId,
 });
 // Note: Instance IDs do NOT end with ~ (only schema/type IDs do)
 // Effect handles: calls runtime.mountExtension() on the screen domain
@@ -371,13 +371,13 @@ The system SHALL support loading MFE extensions into any domain using generic `l
 import { HAI3_ACTION_LOAD_EXT, HAI3_POPUP_DOMAIN } from '@hai3/screensets';
 
 // Inside MFE component - bridge sends action chain to parent
-// HAI3_ACTION_LOAD_EXT is: gts.hai3.screensets.ext.action.v1~hai3.screensets.actions.load_ext.v1~
+// HAI3_ACTION_LOAD_EXT is: gts.hai3.mfe.action.v1~hai3.mfe.actions.load_ext.v1~
 await bridge.sendActionsChain({
   action: {
     type: HAI3_ACTION_LOAD_EXT,
     target: HAI3_POPUP_DOMAIN,  // Target domain handles layout behavior
     payload: {
-      extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.popups.export.v1',
+      extensionTypeId: 'gts.hai3.mfe.extension.v1~acme.analytics.popups.export.v1',
       props: { format: 'pdf' },
     },
   },
@@ -404,13 +404,13 @@ await bridge.sendActionsChain({
 import { HAI3_ACTION_UNLOAD_EXT, HAI3_POPUP_DOMAIN } from '@hai3/screensets';
 
 // Inside MFE popup
-// HAI3_ACTION_UNLOAD_EXT is: gts.hai3.screensets.ext.action.v1~hai3.screensets.actions.unload_ext.v1~
+// HAI3_ACTION_UNLOAD_EXT is: gts.hai3.mfe.action.v1~hai3.mfe.actions.unload_ext.v1~
 await bridge.sendActionsChain({
   action: {
     type: HAI3_ACTION_UNLOAD_EXT,
     target: HAI3_POPUP_DOMAIN,
     payload: {
-      extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.popups.export.v1',
+      extensionTypeId: 'gts.hai3.mfe.extension.v1~acme.analytics.popups.export.v1',
     },
   },
 });
@@ -425,13 +425,13 @@ await bridge.sendActionsChain({
 ```typescript
 import { HAI3_ACTION_LOAD_EXT, HAI3_SIDEBAR_DOMAIN } from '@hai3/screensets';
 
-// HAI3_ACTION_LOAD_EXT is: gts.hai3.screensets.ext.action.v1~hai3.screensets.actions.load_ext.v1~
+// HAI3_ACTION_LOAD_EXT is: gts.hai3.mfe.action.v1~hai3.mfe.actions.load_ext.v1~
 await bridge.sendActionsChain({
   action: {
     type: HAI3_ACTION_LOAD_EXT,
     target: HAI3_SIDEBAR_DOMAIN,  // Target domain handles layout behavior
     payload: {
-      extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.sidebars.quick_stats.v1',
+      extensionTypeId: 'gts.hai3.mfe.extension.v1~acme.analytics.sidebars.quick_stats.v1',
     },
   },
 });
@@ -468,7 +468,7 @@ await bridge.sendActionsChain({
     type: HAI3_ACTION_LOAD_EXT,
     target: HAI3_SCREEN_DOMAIN,
     payload: {
-      extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.screens.analytics.v1',
+      extensionTypeId: 'gts.hai3.mfe.extension.v1~acme.dashboard.screens.analytics.v1',
     },
   },
 });
@@ -481,7 +481,7 @@ try {
       type: HAI3_ACTION_UNLOAD_EXT,
       target: HAI3_SCREEN_DOMAIN,
       payload: {
-        extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.screens.analytics.v1',
+        extensionTypeId: 'gts.hai3.mfe.extension.v1~acme.dashboard.screens.analytics.v1',
       },
     },
   });
@@ -517,8 +517,8 @@ import { type GtsTypeId } from '@hai3/screensets';
 // - Retry button
 // - MFE GTS entry type ID
 
-// MfeEntryMF type ID - derived from gts.hai3.screensets.mfe.entry.v1~
-const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
+// MfeEntryMF type ID - derived from gts.hai3.mfe.entry.v1~
+const MFE_ANALYTICS_ENTRY = 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
 
 <MfeErrorBoundary
   entryTypeId={MFE_ANALYTICS_ENTRY}
@@ -564,8 +564,8 @@ The system SHALL provide loading indicators while MFEs are being fetched.
 import { MfeContainer } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
-// MfeEntryMF type ID - derived from gts.hai3.screensets.mfe.entry.v1~
-const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
+// MfeEntryMF type ID - derived from gts.hai3.mfe.entry.v1~
+const MFE_ANALYTICS_ENTRY = 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
 
 // Loading component is passed as a prop to MfeContainer
 // NOT as static plugin configuration
@@ -591,7 +591,7 @@ import { mfeActions } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
 // Extension type ID
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfe.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
 
 // Preload is triggered via action, not static configuration
 // On click, mount the extension on its screen domain (which navigates to it)
@@ -622,8 +622,8 @@ import { type GtsTypeId } from '@hai3/screensets';
 // In an effect or app initialization hook:
 eventBus.on('app/ready', () => {
   // Preload frequently used extensions dynamically
-  mfeActions.preloadExtension('gts.hai3.screensets.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId);
-  mfeActions.preloadExtension('gts.hai3.screensets.ext.extension.v1~acme.billing.overview.v1' as GtsTypeId);
+  mfeActions.preloadExtension('gts.hai3.mfe.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId);
+  mfeActions.preloadExtension('gts.hai3.mfe.extension.v1~acme.billing.overview.v1' as GtsTypeId);
 });
 // Analytics and billing bundles fetched after app startup
 ```
@@ -653,14 +653,14 @@ import { type GtsTypeId, parseGtsId } from '@hai3/screensets';
 
 // Query extension by type ID (extension uses derived type with domain-specific fields)
 // Note: Instance IDs do NOT end with ~ (only schema/type IDs do)
-const ANALYTICS_EXTENSION = 'gts.hai3.screensets.ext.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+const ANALYTICS_EXTENSION = 'gts.hai3.mfe.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
 const extension = runtime.getExtension(ANALYTICS_EXTENSION);
 console.log(extension?.domain);     // Domain type ID
 console.log(extension?.entry);      // Entry type ID (MfeEntryMF)
 console.log(extension?.title);      // Domain-specific field from derived Extension type
 
 // Query domain by type ID
-const SCREEN_DOMAIN = 'gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1' as GtsTypeId;
+const SCREEN_DOMAIN = 'gts.hai3.mfe.domain.v1~hai3.screensets.layout.screen.v1' as GtsTypeId;
 const domain = runtime.getDomain(SCREEN_DOMAIN);
 console.log(domain?.sharedProperties);  // List of shared property type IDs
 
@@ -689,7 +689,7 @@ The system SHALL validate shared dependency versions between host and MFE.
 
 ```typescript
 // If host uses React 18.3.0 and MFE built with React 18.2.0:
-// Warning logged: "MFE entry 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' was built with react@18.2.0, host has 18.3.0"
+// Warning logged: "MFE entry 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' was built with react@18.2.0, host has 18.3.0"
 ```
 
 - **WHEN** an MFE is loaded with different shared dependency versions
@@ -729,16 +729,16 @@ The system SHALL validate that MFE type IDs conform to HAI3 base types.
 import { conformsTo, HAI3_MF_MANIFEST, type GtsTypeId } from '@hai3/screensets';
 
 // When loading an MFE manifest
-const manifestTypeId = 'gts.hai3.screensets.mfe.mf.v1~acme.analytics.mfe.manifest.v1' as GtsTypeId;
+const manifestTypeId = 'gts.hai3.mfe.manifest.v1~acme.analytics.mfe.manifest.v1' as GtsTypeId;
 
-// HAI3_MF_MANIFEST is: gts.hai3.screensets.mfe.mf.v1~
+// HAI3_MF_MANIFEST is: gts.hai3.mfe.manifest.v1~
 if (!conformsTo(manifestTypeId, HAI3_MF_MANIFEST)) {
   throw new MfeTypeConformanceError(manifestTypeId, HAI3_MF_MANIFEST);
 }
 ```
 
 - **WHEN** loading an MFE manifest
-- **THEN** the loader SHALL validate that `manifestTypeId` conforms to `gts.hai3.screensets.mfe.mf.v1~`
+- **THEN** the loader SHALL validate that `manifestTypeId` conforms to `gts.hai3.mfe.manifest.v1~`
 - **AND** if validation fails, `MfeTypeConformanceError` SHALL be thrown
 
 #### Scenario: Validate MfeEntry type on mount
@@ -747,10 +747,10 @@ if (!conformsTo(manifestTypeId, HAI3_MF_MANIFEST)) {
 import { conformsTo, HAI3_MFE_ENTRY, HAI3_MFE_ENTRY_MF, type GtsTypeId } from '@hai3/screensets';
 
 // MfeEntryMF (Module Federation derived) type ID
-const entryTypeId = 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
+const entryTypeId = 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
 
-// HAI3_MFE_ENTRY is: gts.hai3.screensets.mfe.entry.v1~ (base)
-// HAI3_MFE_ENTRY_MF is: gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~ (derived)
+// HAI3_MFE_ENTRY is: gts.hai3.mfe.entry.v1~ (base)
+// HAI3_MFE_ENTRY_MF is: gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~ (derived)
 if (!conformsTo(entryTypeId, HAI3_MFE_ENTRY)) {
   throw new MfeEntryTypeConformanceError(entryTypeId, HAI3_MFE_ENTRY);
 }
@@ -758,8 +758,8 @@ if (!conformsTo(entryTypeId, HAI3_MFE_ENTRY)) {
 
 - **WHEN** mounting an entry
 - **THEN** the entry type SHALL be validated against the expected base type
-- **AND** all MFE entries SHALL conform to `gts.hai3.screensets.mfe.entry.v1~` (base)
-- **AND** Module Federation entries SHALL also conform to `gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~` (derived)
+- **AND** all MFE entries SHALL conform to `gts.hai3.mfe.entry.v1~` (base)
+- **AND** Module Federation entries SHALL also conform to `gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~` (derived)
 
 ### Requirement: Dynamic Registration Support in Framework
 
@@ -774,9 +774,9 @@ import { type Extension, type GtsTypeId } from '@hai3/screensets';
 // Extension can be registered at any time - NOT just initialization
 // Extension uses derived type that includes domain-specific fields
 mfeActions.registerExtension({
-  id: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1' as GtsTypeId,
-  domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
-  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+  id: 'gts.hai3.mfe.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1' as GtsTypeId,
+  domain: 'gts.hai3.mfe.domain.v1~acme.dashboard.layout.widget_slot.v1',
+  entry: 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   // Domain-specific fields from derived Extension type (no uiMeta wrapper)
   title: 'Analytics',
   size: 'medium',
@@ -798,7 +798,7 @@ import { mfeActions } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
 // Unregister at any time - also unmounts if currently mounted
-mfeActions.unregisterExtension('gts.hai3.screensets.ext.extension.v1~acme.user.widgets.analytics_widget.v1' as GtsTypeId);
+mfeActions.unregisterExtension('gts.hai3.mfe.extension.v1~acme.user.widgets.analytics_widget.v1' as GtsTypeId);
 // Emits: 'mfe/unregisterExtensionRequested' with { extensionId }
 // Effect calls: runtime.unregisterExtension(extensionId)
 ```
@@ -814,7 +814,7 @@ mfeActions.unregisterExtension('gts.hai3.screensets.ext.extension.v1~acme.user.w
 import { selectExtensionState, selectRegisteredExtensions } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
-const extensionId = 'gts.hai3.screensets.ext.extension.v1~acme.user.widgets.analytics_widget.v1' as GtsTypeId;
+const extensionId = 'gts.hai3.mfe.extension.v1~acme.user.widgets.analytics_widget.v1' as GtsTypeId;
 
 // Query registration state
 const state = useAppSelector((s) => selectExtensionState(s, extensionId));
@@ -869,7 +869,7 @@ import { useExtensionEvents } from '@hai3/framework';
 
 function WidgetSlot() {
   // Re-render when extensions are registered/unregistered for this domain
-  const extensions = useExtensionEvents('gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1');
+  const extensions = useExtensionEvents('gts.hai3.mfe.domain.v1~acme.dashboard.layout.widget_slot.v1');
 
   return (
     <div>

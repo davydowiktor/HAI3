@@ -10,7 +10,7 @@ import type { MfeEntry } from './mfe-entry';
 
 /**
  * Module Federation 2.0 implementation of MfeEntry
- * GTS Type: gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~
+ * GTS Type: gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~
  */
 export interface MfeEntryMF extends MfeEntry {
   /** Reference to MfManifest type ID containing Module Federation config */

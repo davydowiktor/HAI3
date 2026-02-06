@@ -34,7 +34,7 @@ HAI3's purpose is runtime extendability. Lifecycle stages are first-class citize
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.lifecycle_stage.v1~",
+  "$id": "gts://gts.hai3.mfe.lifecycle_stage.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -56,7 +56,7 @@ HAI3's purpose is runtime extendability. Lifecycle stages are first-class citize
 ```typescript
 /**
  * Represents a lifecycle event that can trigger actions chains
- * GTS Type: gts.hai3.screensets.ext.lifecycle_stage.v1~
+ * GTS Type: gts.hai3.mfe.lifecycle_stage.v1~
  */
 interface LifecycleStage {
   /** The GTS type ID for this lifecycle stage */
@@ -74,10 +74,10 @@ HAI3 provides four default lifecycle stages:
 
 | Stage | GTS Type ID | When Triggered |
 |-------|-------------|----------------|
-| **init** | `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1` | Immediately after registration (domain or extension is registered with the registry) |
-| **activated** | `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1` | When the extension is mounted and ready to receive actions |
-| **deactivated** | `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1` | When the extension is unmounted but still registered |
-| **destroyed** | `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1` | Immediately before unregistration (final cleanup) |
+| **init** | `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1` | Immediately after registration (domain or extension is registered with the registry) |
+| **activated** | `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1` | When the extension is mounted and ready to receive actions |
+| **deactivated** | `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1` | When the extension is unmounted but still registered |
+| **destroyed** | `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1` | Immediately before unregistration (final cleanup) |
 
 ### Stage Triggering Sequence
 
@@ -153,17 +153,17 @@ unregisterDomain(domainId)
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.ext.lifecycle_hook.v1~",
+  "$id": "gts://gts.hai3.mfe.lifecycle_hook.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "stage": {
-      "x-gts-ref": "gts.hai3.screensets.ext.lifecycle_stage.v1~*",
+      "x-gts-ref": "gts.hai3.mfe.lifecycle_stage.v1~*",
       "$comment": "The lifecycle stage that triggers this hook"
     },
     "actions_chain": {
       "type": "object",
-      "$ref": "gts://gts.hai3.screensets.ext.actions_chain.v1~",
+      "$ref": "gts://gts.hai3.mfe.actions_chain.v1~",
       "$comment": "The actions chain to execute when the stage triggers"
     }
   },
@@ -176,7 +176,7 @@ unregisterDomain(domainId)
 ```typescript
 /**
  * Binds a lifecycle stage to an actions chain
- * GTS Type: gts.hai3.screensets.ext.lifecycle_hook.v1~
+ * GTS Type: gts.hai3.mfe.lifecycle_hook.v1~
  */
 interface LifecycleHook {
   /** The lifecycle stage GTS type ID that triggers this hook */
@@ -338,22 +338,22 @@ Projects can define custom lifecycle stages as GTS types. Custom stages must der
 
 ```typescript
 // Example: Dashboard widget refresh stage
-// Type ID: gts.hai3.screensets.ext.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1
+// Type ID: gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1
 
 const refreshStage: LifecycleStage = {
-  id: 'gts.hai3.screensets.ext.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1',
+  id: 'gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1',
   description: 'Triggered when the dashboard requests all widgets to refresh their data',
 };
 
 // Custom stage schema - type ID is in the $id field
 const refreshStageSchema: JSONSchema = {
-  "$id": "gts://gts.hai3.screensets.ext.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1",
+  "$id": "gts://gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "allOf": [
-    { "$ref": "gts://gts.hai3.screensets.ext.lifecycle_stage.v1~" }
+    { "$ref": "gts://gts.hai3.mfe.lifecycle_stage.v1~" }
   ],
   "properties": {
-    "id": { "const": "gts.hai3.screensets.ext.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1" },
+    "id": { "const": "gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1" },
     "description": { "type": "string" }
   }
 };
@@ -370,13 +370,13 @@ Custom stages are triggered programmatically via the ScreensetsRegistry:
 // Trigger a custom lifecycle stage for a specific extension
 await registry.triggerLifecycleStage(
   extensionId,
-  'gts.hai3.screensets.ext.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1'
+  'gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1'
 );
 
 // Trigger a custom lifecycle stage for all extensions in a domain
 await registry.triggerDomainLifecycleStage(
   domainId,
-  'gts.hai3.screensets.ext.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1'
+  'gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1'
 );
 ```
 
@@ -389,9 +389,9 @@ await registry.triggerDomainLifecycleStage(
 ```typescript
 // Extension using derived type that includes domain-specific fields (title, icon, size)
 const analyticsExtension = {
-  id: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.v1',
-  domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
-  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+  id: 'gts.hai3.mfe.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.v1',
+  domain: 'gts.hai3.mfe.domain.v1~acme.dashboard.layout.widget_slot.v1',
+  entry: 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   // Domain-specific fields from derived Extension type (no uiMeta wrapper)
   title: 'Analytics Dashboard',
   icon: 'chart-line',
@@ -399,43 +399,43 @@ const analyticsExtension = {
   lifecycle: [
     {
       // On init: notify analytics service that widget is registered
-      stage: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1',
+      stage: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.screensets.ext.action.v1~acme.analytics.actions.widget_registered.v1',
-          target: 'gts.hai3.screensets.ext.domain.v1~acme.analytics.service.v1',
+          type: 'gts.hai3.mfe.action.v1~acme.analytics.actions.widget_registered.v1',
+          target: 'gts.hai3.mfe.domain.v1~acme.analytics.service.v1',
           payload: { widgetId: 'analytics-dashboard' },
         },
       },
     },
     {
       // On activated: start data polling
-      stage: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1',
+      stage: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.screensets.ext.action.v1~acme.analytics.actions.start_polling.v1',
-          target: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.widgets.analytics.v1',
+          type: 'gts.hai3.mfe.action.v1~acme.analytics.actions.start_polling.v1',
+          target: 'gts.hai3.mfe.extension.v1~acme.dashboard.widgets.analytics.v1',
           payload: { interval: 30000 },
         },
       },
     },
     {
       // On deactivated: stop data polling to save resources
-      stage: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1',
+      stage: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.screensets.ext.action.v1~acme.analytics.actions.stop_polling.v1',
-          target: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.widgets.analytics.v1',
+          type: 'gts.hai3.mfe.action.v1~acme.analytics.actions.stop_polling.v1',
+          target: 'gts.hai3.mfe.extension.v1~acme.dashboard.widgets.analytics.v1',
         },
       },
     },
     {
       // On destroyed: cleanup analytics tracking
-      stage: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1',
+      stage: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.screensets.ext.action.v1~acme.analytics.actions.widget_destroyed.v1',
-          target: 'gts.hai3.screensets.ext.domain.v1~acme.analytics.service.v1',
+          type: 'gts.hai3.mfe.action.v1~acme.analytics.actions.widget_destroyed.v1',
+          target: 'gts.hai3.mfe.domain.v1~acme.analytics.service.v1',
           payload: { widgetId: 'analytics-dashboard' },
         },
       },
@@ -448,38 +448,38 @@ const analyticsExtension = {
 
 ```typescript
 const widgetSlotDomain: ExtensionDomain = {
-  id: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
+  id: 'gts.hai3.mfe.domain.v1~acme.dashboard.layout.widget_slot.v1',
   sharedProperties: [
-    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.user_context.v1',
+    'gts.hai3.mfe.shared_property.v1~hai3.mfe.props.user_context.v1',
   ],
   actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_UNLOAD_EXT],
   extensionsActions: [
-    'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.data_update.v1',
+    'gts.hai3.mfe.action.v1~acme.dashboard.ext.data_update.v1',
   ],
   // Reference to derived Extension type for this domain (schema reference, ends with ~)
-  extensionsTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~',
+  extensionsTypeId: 'gts.hai3.mfe.extension.v1~acme.dashboard.ext.widget_extension.v1~',
   defaultActionTimeout: 30000,
   lifecycleStages: [
     // Domain itself only supports init/destroyed stages
-    'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1',
-    'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1',
+    'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1',
+    'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1',
   ],
   extensionsLifecycleStages: [
     // Extensions support all 4 default stages plus a custom refresh stage
-    'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1',
-    'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1',
-    'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1',
-    'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1',
-    'gts.hai3.screensets.ext.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1',
+    'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1',
+    'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1',
+    'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1',
+    'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1',
+    'gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1',
   ],
   lifecycle: [
     {
       // On init: log domain registration for debugging
-      stage: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1',
+      stage: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.screensets.ext.action.v1~acme.logging.actions.log.v1',
-          target: 'gts.hai3.screensets.ext.domain.v1~acme.logging.service.v1',
+          type: 'gts.hai3.mfe.action.v1~acme.logging.actions.log.v1',
+          target: 'gts.hai3.mfe.domain.v1~acme.logging.service.v1',
           payload: { message: 'Widget slot domain initialized', level: 'info' },
         },
       },
@@ -573,13 +573,13 @@ class ScreensetsRegistry {
 
 ```typescript
 // Default lifecycle stage type IDs
-const HAI3_LIFECYCLE_INIT = 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1';
-const HAI3_LIFECYCLE_ACTIVATED = 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1';
-const HAI3_LIFECYCLE_DEACTIVATED = 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1';
-const HAI3_LIFECYCLE_DESTROYED = 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1';
+const HAI3_LIFECYCLE_INIT = 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1';
+const HAI3_LIFECYCLE_ACTIVATED = 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1';
+const HAI3_LIFECYCLE_DEACTIVATED = 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1';
+const HAI3_LIFECYCLE_DESTROYED = 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1';
 
 // Base lifecycle stage type (for custom stage derivation)
-const HAI3_LIFECYCLE_STAGE_BASE = 'gts.hai3.screensets.ext.lifecycle_stage.v1~';
+const HAI3_LIFECYCLE_STAGE_BASE = 'gts.hai3.mfe.lifecycle_stage.v1~';
 ```
 
 ---

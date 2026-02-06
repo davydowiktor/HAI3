@@ -166,8 +166,8 @@ export interface TypeSystemPlugin {
    * For instances, the entity must have an `id` field containing the instance ID.
    *
    * gts-ts uses the instance ID to automatically determine the schema:
-   * - Instance ID: `gts.hai3.screensets.ext.extension.v1~acme.widget.v1`
-   * - Schema ID:   `gts.hai3.screensets.ext.extension.v1~` (extracted automatically)
+   * - Instance ID: `gts.hai3.mfe.extension.v1~acme.widget.v1`
+   * - Schema ID:   `gts.hai3.mfe.extension.v1~` (extracted automatically)
    *
    * @param entity - The GTS entity to register (must have an `id` field)
    */
@@ -178,8 +178,8 @@ export interface TypeSystemPlugin {
    * The instance must be registered first via register().
    *
    * gts-ts extracts the schema ID from the instance ID automatically:
-   * - Instance ID: `gts.hai3.screensets.ext.extension.v1~acme.widget.v1`
-   * - Schema ID:   `gts.hai3.screensets.ext.extension.v1~`
+   * - Instance ID: `gts.hai3.mfe.extension.v1~acme.widget.v1`
+   * - Schema ID:   `gts.hai3.mfe.extension.v1~`
    *
    * @param instanceId - The instance ID (does NOT end with ~)
    * @returns Validation result

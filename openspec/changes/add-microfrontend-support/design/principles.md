@@ -38,39 +38,7 @@ See [MFE Loading - Decision 10](./mfe-loading.md#decision-10-mfehandler-abstract
 - MFE developers take full responsibility for their own needs
 - Each MFE evolves independently
 
-### Default Architecture: Thin Contracts, Full Ownership
-
-```
-+--------------------------------------------------------------------+
-|                           PUBLIC CONTRACT                           |
-|   (MfeEntryLifecycle + ChildMfeBridge + Actions = THIN INTERFACE)  |
-+--------------------------------------------------------------------+
-         |                                          |
-         v                                          v
-+------------------+                      +------------------+
-|  PARENT RUNTIME  |                      |   MFE RUNTIME    |
-+------------------+                      +------------------+
-| - Own API Client |                      | - Own API Client |
-| - Own Router     |                      | - Own Router     |
-| - Own Services   |                      | - Own Services   |
-| - Own State      |                      | - Own State      |
-+------------------+                      +------------------+
-         |                                          |
-         |        (Optional: Private Library)       |
-         +------------------+  +--------------------+
-                            |  |
-                            v  v
-                   +------------------+
-                   |  @hai3/api       |
-                   |  (Shared Code)   |
-                   +------------------+
-                   | - Cache sync     |
-                   | - Deduplication  |
-                   | (TRANSPARENT)    |
-                   +------------------+
-```
-
-With HAI3's default handler, each MFE instance has its own API services, router, and state. See [Runtime Isolation](./overview.md#runtime-isolation-default-behavior) for the complete isolation model.
+With HAI3's default handler, each MFE instance has its own API services, router, and state. See [Runtime Isolation](./overview.md#runtime-isolation-default-behavior) for the complete isolation model, architecture diagrams, and recommendations.
 
 ### The Trade-off and Solution
 

@@ -162,8 +162,8 @@ Shared properties are managed at the DOMAIN level, not per-MFE. When the parent 
 ```typescript
 // Update a shared property for all subscribed extensions in the domain
 runtime.updateDomainProperty(
-  'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
-  'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.theme.v1',
+  'gts.hai3.mfe.domain.v1~acme.dashboard.layout.widget_slot.v1',
+  'gts.hai3.mfe.shared_property.v1~hai3.mfe.props.theme.v1',
   'dark'
 );
 ```
@@ -234,7 +234,7 @@ import { ChildMfeBridge } from '@hai3/screensets';
 export function mount(container: HTMLElement, bridge: ChildMfeBridge): void {
   container.innerHTML = '<div class="my-widget">Loading...</div>';
   bridge.subscribeToProperty(
-    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.theme.v1',
+    'gts.hai3.mfe.shared_property.v1~hai3.mfe.props.theme.v1',
     (theme) => {
       container.style.background = theme === 'dark' ? '#333' : '#fff';
     }

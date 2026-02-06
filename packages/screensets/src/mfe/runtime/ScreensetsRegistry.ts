@@ -145,14 +145,14 @@ export class ScreensetsRegistry {
    */
   private verifyFirstClassSchemas(): void {
     const coreTypeIds = [
-      'gts.hai3.screensets.mfe.entry.v1~',
-      'gts.hai3.screensets.ext.domain.v1~',
-      'gts.hai3.screensets.ext.extension.v1~',
-      'gts.hai3.screensets.ext.shared_property.v1~',
-      'gts.hai3.screensets.ext.action.v1~',
-      'gts.hai3.screensets.ext.actions_chain.v1~',
-      'gts.hai3.screensets.ext.lifecycle_stage.v1~',
-      'gts.hai3.screensets.ext.lifecycle_hook.v1~',
+      'gts.hai3.mfe.entry.v1~',
+      'gts.hai3.mfe.domain.v1~',
+      'gts.hai3.mfe.extension.v1~',
+      'gts.hai3.mfe.shared_property.v1~',
+      'gts.hai3.mfe.action.v1~',
+      'gts.hai3.mfe.actions_chain.v1~',
+      'gts.hai3.mfe.lifecycle_stage.v1~',
+      'gts.hai3.mfe.lifecycle_hook.v1~',
     ];
 
     const missingSchemas: string[] = [];

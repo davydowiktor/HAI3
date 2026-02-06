@@ -9,7 +9,7 @@
 
 /**
  * Defines an entry point with its communication contract (PURE CONTRACT - Abstract Base)
- * GTS Type: gts.hai3.screensets.mfe.entry.v1~
+ * GTS Type: gts.hai3.mfe.entry.v1~
  */
 export interface MfeEntry {
   /** The GTS type ID for this entry */
