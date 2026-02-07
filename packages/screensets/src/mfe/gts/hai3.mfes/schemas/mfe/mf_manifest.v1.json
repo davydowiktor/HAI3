@@ -1,5 +1,5 @@
 {
-  "$id": "gts://gts.hai3.mfe.manifest.v1~",
+  "$id": "gts://gts.hai3.mfes.mfe.mf_manifest.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -32,7 +32,7 @@
     },
     "entries": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~*" }
+      "items": { "x-gts-ref": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~*" }
     }
   },
   "required": ["id", "remoteEntry", "remoteName"]

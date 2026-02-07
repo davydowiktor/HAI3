@@ -18,30 +18,14 @@ At runtime, extensions subscribe to property updates via the [ChildMfeBridge](./
 
 ## Shared Property Schema
 
-```json
-{
-  "$id": "gts://gts.hai3.mfe.shared_property.v1~",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "id": {
-      "x-gts-ref": "/$id",
-      "$comment": "The GTS type ID for this shared property"
-    },
-    "value": {
-      "$comment": "The shared property value"
-    }
-  },
-  "required": ["id", "value"]
-}
-```
+See [schemas.md - Shared Property Schema](./schemas.md#shared-property-schema) for the JSON Schema definition.
 
 ## TypeScript Interface Definition
 
 ```typescript
 /**
  * Defines a shared property instance passed from parent to MFE
- * GTS Type: gts.hai3.mfe.shared_property.v1~
+ * GTS Type: gts.hai3.mfes.comm.shared_property.v1~
  */
 interface SharedProperty {
   /** The GTS type ID for this shared property */

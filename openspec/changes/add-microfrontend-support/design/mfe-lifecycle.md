@@ -32,31 +32,14 @@ HAI3's purpose is runtime extendability. Lifecycle stages are first-class citize
 
 ### LifecycleStage Schema
 
-```json
-{
-  "$id": "gts://gts.hai3.mfe.lifecycle_stage.v1~",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "id": {
-      "x-gts-ref": "/$id",
-      "$comment": "The GTS type ID for this lifecycle stage"
-    },
-    "description": {
-      "type": "string",
-      "$comment": "Human-readable description of when this stage triggers"
-    }
-  },
-  "required": ["id"]
-}
-```
+See [schemas.md - Lifecycle Stage Schema](./schemas.md#lifecycle-stage-schema) for the JSON Schema definition.
 
 ### TypeScript Interface
 
 ```typescript
 /**
  * Represents a lifecycle event that can trigger actions chains
- * GTS Type: gts.hai3.mfe.lifecycle_stage.v1~
+ * GTS Type: gts.hai3.mfes.lifecycle.stage.v1~
  */
 interface LifecycleStage {
   /** The GTS type ID for this lifecycle stage */
@@ -74,10 +57,10 @@ HAI3 provides four default lifecycle stages:
 
 | Stage | GTS Type ID | When Triggered |
 |-------|-------------|----------------|
-| **init** | `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1` | Immediately after registration (domain or extension is registered with the registry) |
-| **activated** | `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1` | When the extension is mounted and ready to receive actions |
-| **deactivated** | `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1` | When the extension is unmounted but still registered |
-| **destroyed** | `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1` | Immediately before unregistration (final cleanup) |
+| **init** | `gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1` | Immediately after registration (domain or extension is registered with the registry) |
+| **activated** | `gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1` | When the extension is mounted and ready to receive actions |
+| **deactivated** | `gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1` | When the extension is unmounted but still registered |
+| **destroyed** | `gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1` | Immediately before unregistration (final cleanup) |
 
 ### Stage Triggering Sequence
 
@@ -151,32 +134,14 @@ unregisterDomain(domainId)
 
 ### LifecycleHook Schema
 
-```json
-{
-  "$id": "gts://gts.hai3.mfe.lifecycle_hook.v1~",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "stage": {
-      "x-gts-ref": "gts.hai3.mfe.lifecycle_stage.v1~*",
-      "$comment": "The lifecycle stage that triggers this hook"
-    },
-    "actions_chain": {
-      "type": "object",
-      "$ref": "gts://gts.hai3.mfe.actions_chain.v1~",
-      "$comment": "The actions chain to execute when the stage triggers"
-    }
-  },
-  "required": ["stage", "actions_chain"]
-}
-```
+See [schemas.md - Lifecycle Hook Schema](./schemas.md#lifecycle-hook-schema) for the JSON Schema definition.
 
 ### TypeScript Interface
 
 ```typescript
 /**
  * Binds a lifecycle stage to an actions chain
- * GTS Type: gts.hai3.mfe.lifecycle_hook.v1~
+ * GTS Type: gts.hai3.mfes.lifecycle.hook.v1~
  */
 interface LifecycleHook {
   /** The lifecycle stage GTS type ID that triggers this hook */
@@ -192,32 +157,11 @@ interface LifecycleHook {
 
 Both Extension and ExtensionDomain types include an optional `lifecycle` field. Additionally, ExtensionDomain explicitly declares which lifecycle stages it supports.
 
-```typescript
-interface Extension {
-  id: string;
-  domain: string;
-  entry: string;
-  // Domain-specific fields defined in derived Extension types (no uiMeta field)
-  /** Optional lifecycle hooks - explicitly declared actions for each stage */
-  lifecycle?: LifecycleHook[];
-}
-
-interface ExtensionDomain {
-  id: string;
-  sharedProperties: string[];
-  actions: string[];
-  extensionsActions: string[];
-  /** Optional GTS type ID for derived Extension type that extensions must use */
-  extensionsTypeId?: string;
-  defaultActionTimeout: number;
-  /** Lifecycle stage type IDs supported for the domain itself */
-  lifecycleStages: string[];
-  /** Lifecycle stage type IDs supported for extensions in this domain */
-  extensionsLifecycleStages: string[];
-  /** Optional lifecycle hooks - explicitly declared actions for each stage */
-  lifecycle?: LifecycleHook[];
-}
-```
+See [mfe-domain.md](./mfe-domain.md) for the canonical ExtensionDomain and Extension interface definitions. The lifecycle-relevant fields are:
+- `Extension.lifecycle?: LifecycleHook[]` - Optional lifecycle hooks
+- `ExtensionDomain.lifecycle?: LifecycleHook[]` - Optional lifecycle hooks
+- `ExtensionDomain.lifecycleStages: string[]` - Supported stages for the domain itself
+- `ExtensionDomain.extensionsLifecycleStages: string[]` - Supported stages for extensions in this domain
 
 ### Explicit Lifecycle Stage Support
 
@@ -311,22 +255,7 @@ function validateExtensionLifecycleHooks(
 
 ### Error Handling
 
-```typescript
-/**
- * Thrown when a lifecycle hook references a stage not supported by the domain.
- */
-class UnsupportedLifecycleStageError extends Error {
-  constructor(
-    message: string,
-    public readonly stageId: string,
-    public readonly entityId: string,
-    public readonly supportedStages: string[]
-  ) {
-    super(message);
-    this.name = 'UnsupportedLifecycleStageError';
-  }
-}
-```
+Lifecycle validation throws `UnsupportedLifecycleStageError` when a hook references an unsupported stage. See [mfe-errors.md](./mfe-errors.md) for the canonical error class definition.
 
 ---
 
@@ -338,22 +267,22 @@ Projects can define custom lifecycle stages as GTS types. Custom stages must der
 
 ```typescript
 // Example: Dashboard widget refresh stage
-// Type ID: gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1
+// Type ID: gts.hai3.mfes.lifecycle.stage.v1~acme.dashboard.lifecycle.refresh.v1
 
 const refreshStage: LifecycleStage = {
-  id: 'gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1',
+  id: 'gts.hai3.mfes.lifecycle.stage.v1~acme.dashboard.lifecycle.refresh.v1',
   description: 'Triggered when the dashboard requests all widgets to refresh their data',
 };
 
 // Custom stage schema - type ID is in the $id field
 const refreshStageSchema: JSONSchema = {
-  "$id": "gts://gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1",
+  "$id": "gts://gts.hai3.mfes.lifecycle.stage.v1~acme.dashboard.lifecycle.refresh.v1",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "allOf": [
-    { "$ref": "gts://gts.hai3.mfe.lifecycle_stage.v1~" }
+    { "$ref": "gts://gts.hai3.mfes.lifecycle.stage.v1~" }
   ],
   "properties": {
-    "id": { "const": "gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1" },
+    "id": { "const": "gts.hai3.mfes.lifecycle.stage.v1~acme.dashboard.lifecycle.refresh.v1" },
     "description": { "type": "string" }
   }
 };
@@ -370,13 +299,13 @@ Custom stages are triggered programmatically via the ScreensetsRegistry:
 // Trigger a custom lifecycle stage for a specific extension
 await registry.triggerLifecycleStage(
   extensionId,
-  'gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1'
+  'gts.hai3.mfes.lifecycle.stage.v1~acme.dashboard.lifecycle.refresh.v1'
 );
 
 // Trigger a custom lifecycle stage for all extensions in a domain
 await registry.triggerDomainLifecycleStage(
   domainId,
-  'gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1'
+  'gts.hai3.mfes.lifecycle.stage.v1~acme.dashboard.lifecycle.refresh.v1'
 );
 ```
 
@@ -389,9 +318,9 @@ await registry.triggerDomainLifecycleStage(
 ```typescript
 // Extension using derived type that includes domain-specific fields (title, icon, size)
 const analyticsExtension = {
-  id: 'gts.hai3.mfe.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.v1',
-  domain: 'gts.hai3.mfe.domain.v1~acme.dashboard.layout.widget_slot.v1',
-  entry: 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+  id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.v1',
+  domain: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
+  entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   // Domain-specific fields from derived Extension type (no uiMeta wrapper)
   title: 'Analytics Dashboard',
   icon: 'chart-line',
@@ -399,43 +328,43 @@ const analyticsExtension = {
   lifecycle: [
     {
       // On init: notify analytics service that widget is registered
-      stage: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1',
+      stage: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.mfe.action.v1~acme.analytics.actions.widget_registered.v1',
-          target: 'gts.hai3.mfe.domain.v1~acme.analytics.service.v1',
+          type: 'gts.hai3.mfes.comm.action.v1~acme.analytics.actions.widget_registered.v1',
+          target: 'gts.hai3.mfes.ext.domain.v1~acme.analytics.service.v1',
           payload: { widgetId: 'analytics-dashboard' },
         },
       },
     },
     {
       // On activated: start data polling
-      stage: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1',
+      stage: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.mfe.action.v1~acme.analytics.actions.start_polling.v1',
-          target: 'gts.hai3.mfe.extension.v1~acme.dashboard.widgets.analytics.v1',
+          type: 'gts.hai3.mfes.comm.action.v1~acme.analytics.actions.start_polling.v1',
+          target: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.widgets.analytics.v1',
           payload: { interval: 30000 },
         },
       },
     },
     {
       // On deactivated: stop data polling to save resources
-      stage: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1',
+      stage: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.mfe.action.v1~acme.analytics.actions.stop_polling.v1',
-          target: 'gts.hai3.mfe.extension.v1~acme.dashboard.widgets.analytics.v1',
+          type: 'gts.hai3.mfes.comm.action.v1~acme.analytics.actions.stop_polling.v1',
+          target: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.widgets.analytics.v1',
         },
       },
     },
     {
       // On destroyed: cleanup analytics tracking
-      stage: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1',
+      stage: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.mfe.action.v1~acme.analytics.actions.widget_destroyed.v1',
-          target: 'gts.hai3.mfe.domain.v1~acme.analytics.service.v1',
+          type: 'gts.hai3.mfes.comm.action.v1~acme.analytics.actions.widget_destroyed.v1',
+          target: 'gts.hai3.mfes.ext.domain.v1~acme.analytics.service.v1',
           payload: { widgetId: 'analytics-dashboard' },
         },
       },
@@ -448,38 +377,38 @@ const analyticsExtension = {
 
 ```typescript
 const widgetSlotDomain: ExtensionDomain = {
-  id: 'gts.hai3.mfe.domain.v1~acme.dashboard.layout.widget_slot.v1',
+  id: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
   sharedProperties: [
-    'gts.hai3.mfe.shared_property.v1~hai3.mfe.props.user_context.v1',
+    'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.user_context.v1',
   ],
   actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_UNLOAD_EXT],
   extensionsActions: [
-    'gts.hai3.mfe.action.v1~acme.dashboard.ext.data_update.v1',
+    'gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.data_update.v1',
   ],
   // Reference to derived Extension type for this domain (schema reference, ends with ~)
-  extensionsTypeId: 'gts.hai3.mfe.extension.v1~acme.dashboard.ext.widget_extension.v1~',
+  extensionsTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~',
   defaultActionTimeout: 30000,
   lifecycleStages: [
     // Domain itself only supports init/destroyed stages
-    'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1',
-    'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
   ],
   extensionsLifecycleStages: [
     // Extensions support all 4 default stages plus a custom refresh stage
-    'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1',
-    'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1',
-    'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1',
-    'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1',
-    'gts.hai3.mfe.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~acme.dashboard.lifecycle.refresh.v1',
   ],
   lifecycle: [
     {
       // On init: log domain registration for debugging
-      stage: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1',
+      stage: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.mfe.action.v1~acme.logging.actions.log.v1',
-          target: 'gts.hai3.mfe.domain.v1~acme.logging.service.v1',
+          type: 'gts.hai3.mfes.comm.action.v1~acme.logging.actions.log.v1',
+          target: 'gts.hai3.mfes.ext.domain.v1~acme.logging.service.v1',
           payload: { message: 'Widget slot domain initialized', level: 'info' },
         },
       },
@@ -492,80 +421,11 @@ const widgetSlotDomain: ExtensionDomain = {
 
 ## ScreensetsRegistry Lifecycle Methods
 
-The ScreensetsRegistry provides methods for lifecycle management:
-
-```typescript
-interface ScreensetsRegistry {
-  // ... existing methods ...
-
-  /**
-   * Trigger a lifecycle stage for a specific extension.
-   * Executes all lifecycle hooks registered for the given stage.
-   */
-  triggerLifecycleStage(extensionId: string, stageId: string): Promise<void>;
-
-  /**
-   * Trigger a lifecycle stage for all extensions in a domain.
-   * Useful for custom stages like "refresh" that affect all widgets.
-   */
-  triggerDomainLifecycleStage(domainId: string, stageId: string): Promise<void>;
-
-  /**
-   * Trigger a lifecycle stage for a domain itself.
-   */
-  triggerDomainOwnLifecycleStage(domainId: string, stageId: string): Promise<void>;
-}
-```
+The ScreensetsRegistry provides lifecycle triggering methods: `triggerLifecycleStage()`, `triggerDomainLifecycleStage()`, and `triggerDomainOwnLifecycleStage()`. See [Registry Runtime](./registry-runtime.md) for the complete API.
 
 ### Internal Lifecycle Triggering
 
-The registry automatically triggers default stages at appropriate times:
-
-```typescript
-class ScreensetsRegistry {
-  async registerExtension(extension: Extension): Promise<void> {
-    // ... validation and registration ...
-
-    // Trigger init stage
-    await this.triggerLifecycleStageInternal(extension, HAI3_LIFECYCLE_INIT);
-  }
-
-  async mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
-    // ... mounting logic ...
-
-    // Trigger activated stage
-    await this.triggerLifecycleStageInternal(extension, HAI3_LIFECYCLE_ACTIVATED);
-
-    return bridge;
-  }
-
-  async unmountExtension(extensionId: string): Promise<void> {
-    // Trigger deactivated stage
-    await this.triggerLifecycleStageInternal(extension, HAI3_LIFECYCLE_DEACTIVATED);
-
-    // ... unmounting logic ...
-  }
-
-  async unregisterExtension(extensionId: string): Promise<void> {
-    // Trigger destroyed stage
-    await this.triggerLifecycleStageInternal(extension, HAI3_LIFECYCLE_DESTROYED);
-
-    // ... unregistration logic ...
-  }
-
-  private async triggerLifecycleStageInternal(
-    entity: Extension | ExtensionDomain,
-    stageId: string
-  ): Promise<void> {
-    if (!entity.lifecycle) return;
-
-    const hooks = entity.lifecycle.filter(hook => hook.stage === stageId);
-    for (const hook of hooks) {
-      await this.executeActionsChain(hook.actions_chain);
-    }
-  }
-}
-```
+The registry automatically triggers default stages at appropriate times (`init` on registration, `activated` on mount, `deactivated` on unmount, `destroyed` on unregistration). See [Registry Runtime](./registry-runtime.md) for the `ScreensetsRegistry` implementation including `triggerLifecycleStageInternal`.
 
 ---
 
@@ -573,13 +433,13 @@ class ScreensetsRegistry {
 
 ```typescript
 // Default lifecycle stage type IDs
-const HAI3_LIFECYCLE_INIT = 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1';
-const HAI3_LIFECYCLE_ACTIVATED = 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1';
-const HAI3_LIFECYCLE_DEACTIVATED = 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1';
-const HAI3_LIFECYCLE_DESTROYED = 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1';
+const HAI3_LIFECYCLE_INIT = 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1';
+const HAI3_LIFECYCLE_ACTIVATED = 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1';
+const HAI3_LIFECYCLE_DEACTIVATED = 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1';
+const HAI3_LIFECYCLE_DESTROYED = 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1';
 
 // Base lifecycle stage type (for custom stage derivation)
-const HAI3_LIFECYCLE_STAGE_BASE = 'gts.hai3.mfe.lifecycle_stage.v1~';
+const HAI3_LIFECYCLE_STAGE_BASE = 'gts.hai3.mfes.lifecycle.stage.v1~';
 ```
 
 ---
@@ -611,10 +471,4 @@ On 'init' stage trigger:
 
 ## Why This Design?
 
-This design follows the "Forced Explicitness" principle outlined at the beginning of this document:
-
-1. **Explicit and Visible** - Look at an extension definition and see exactly what happens at each lifecycle stage. No searching for scattered event listeners or magic method names.
-
-2. **Type Safety** - Lifecycle stages are GTS types. Invalid stage references are caught at validation time, and custom stages are discoverable via the type system.
-
-3. **Reuses Existing Concepts** - Lifecycle hooks use the same ActionsChain type as all other HAI3 communication, providing consistent execution semantics (success/failure branching, timeout handling) with no new concepts to learn.
+This design follows the "Forced Explicitness" principle (see Context above): lifecycle stages are explicit GTS types (catching invalid references at validation time), hooks are visible in entity definitions, and they reuse the existing ActionsChain type for consistent execution semantics.

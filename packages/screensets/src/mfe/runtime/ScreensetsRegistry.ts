@@ -145,14 +145,14 @@ export class ScreensetsRegistry {
    */
   private verifyFirstClassSchemas(): void {
     const coreTypeIds = [
-      'gts.hai3.mfe.entry.v1~',
-      'gts.hai3.mfe.domain.v1~',
-      'gts.hai3.mfe.extension.v1~',
-      'gts.hai3.mfe.shared_property.v1~',
-      'gts.hai3.mfe.action.v1~',
-      'gts.hai3.mfe.actions_chain.v1~',
-      'gts.hai3.mfe.lifecycle_stage.v1~',
-      'gts.hai3.mfe.lifecycle_hook.v1~',
+      'gts.hai3.mfes.mfe.entry.v1~',
+      'gts.hai3.mfes.ext.domain.v1~',
+      'gts.hai3.mfes.ext.extension.v1~',
+      'gts.hai3.mfes.comm.shared_property.v1~',
+      'gts.hai3.mfes.comm.action.v1~',
+      'gts.hai3.mfes.comm.actions_chain.v1~',
+      'gts.hai3.mfes.lifecycle.stage.v1~',
+      'gts.hai3.mfes.lifecycle.hook.v1~',
     ];
 
     const missingSchemas: string[] = [];
@@ -234,7 +234,11 @@ export class ScreensetsRegistry {
   }
 
   /**
-   * Validate action payload via plugin.
+   * Validate action via plugin.
+   *
+   * The ACTION itself is the GTS entity (it has a type ID). The payload is a PROPERTY
+   * within the action. When we call validateInstance() on the action, GTS validates
+   * the entire instance including the payload against the derived type's schema.
    *
    * @param action - Action to validate
    * @returns Validation result
@@ -246,13 +250,20 @@ export class ScreensetsRegistry {
     // Validate target type ID
     this.validateTypeId(action.target, 'action.target');
 
-    // If payload is present, validate it against action schema
-    // TODO: Phase 9 - Action payload validation needs different approach
-    // Payloads are not GTS entities (no id field), so they can't use register+validateInstance
-    // Will be implemented in ActionsChainsMediator which handles payload validation
-    if (action.payload !== undefined) {
-      // Placeholder: Skip payload validation for now
-      // Phase 9 will implement proper payload validation via ActionsChainsMediator
+    // GTS-native validation: register the action, then validate by ID
+    // This validates the entire action instance including the payload
+    // Generate a unique ID for this action instance
+    const actionId = `${action.type}:${Date.now()}:${Math.random()}`;
+    const actionWithId = { ...action, id: actionId };
+
+    this.typeSystem.register(actionWithId);
+    const validation = this.typeSystem.validateInstance(actionId);
+
+    if (!validation.valid) {
+      return {
+        valid: false,
+        errors: validation.errors.map(e => e.message),
+      };
     }
 
     return { valid: true, errors: [] };
@@ -332,7 +343,7 @@ export class ScreensetsRegistry {
         try {
           callback(data);
         } catch (error) {
-          this.handleError(error as Error, { event, data });
+          this.handleError(error instanceof Error ? error : new Error(String(error)), { event, data });
         }
       }
     }

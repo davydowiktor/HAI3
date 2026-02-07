@@ -1,5 +1,5 @@
 {
-  "$id": "gts://gts.hai3.mfe.action.v1~",
+  "$id": "gts://gts.hai3.mfes.comm.action.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -10,8 +10,8 @@
     "target": {
       "type": "string",
       "oneOf": [
-        { "x-gts-ref": "gts.hai3.mfe.domain.v1~*" },
-        { "x-gts-ref": "gts.hai3.mfe.extension.v1~*" }
+        { "x-gts-ref": "gts.hai3.mfes.ext.domain.v1~*" },
+        { "x-gts-ref": "gts.hai3.mfes.ext.extension.v1~*" }
       ],
       "$comment": "Type ID of the target ExtensionDomain or Extension"
     },

@@ -25,8 +25,8 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 - **THEN** the entity MUST first be registered via `plugin.register(entity)`
 - **AND** validation SHALL happen via `plugin.validateInstance(instanceId)` where instanceId is the entity's id
 - **AND** gts-ts SHALL extract the schema ID from the instance ID automatically
-- **AND** schema IDs SHALL end with `~` (e.g., `gts.hai3.mfe.extension.v1~`)
-- **AND** instance IDs SHALL NOT end with `~` (e.g., `gts.hai3.mfe.extension.v1~acme.widget.v1`)
+- **AND** schema IDs SHALL end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~`)
+- **AND** instance IDs SHALL NOT end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~acme.widget.v1`)
 
 #### Scenario: GTS plugin as default implementation
 
@@ -38,7 +38,7 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 #### Scenario: GTS type ID validation
 
 - **WHEN** validating a GTS type ID
-- **THEN** the plugin SHALL accept valid type IDs like `gts.hai3.mfe.entry.v1~`
+- **THEN** the plugin SHALL accept valid type IDs like `gts.hai3.mfes.mfe.entry.v1~`
 - **AND** the plugin SHALL reject invalid formats like `gts.hai3.mfe.v1~` (missing segments)
 - **AND** the plugin SHALL reject formats without trailing tilde
 - **AND** the plugin SHALL reject formats without version prefix "v"
@@ -47,7 +47,7 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 
 - **WHEN** validating a schema field with `x-gts-ref`
 - **THEN** the plugin SHALL validate the referenced type ID exists in the registry
-- **AND** the plugin SHALL validate the reference pattern matches (e.g., `gts.hai3.mfe.action.v1~*`)
+- **AND** the plugin SHALL validate the reference pattern matches (e.g., `gts.hai3.mfes.comm.action.v1~*`)
 - **AND** validation SHALL fail if the referenced type is not registered
 - **AND** error message SHALL identify the invalid x-gts-ref reference
 
@@ -78,17 +78,17 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 - **WHEN** the ScreensetsRegistry initializes with a plugin
 - **THEN** first-class HAI3 MFE types SHALL be built into the GTS plugin during construction, NOT registered at runtime
 - **AND** available types SHALL include 8 core types:
-  - `gts.hai3.mfe.entry.v1~` (MfeEntry - Abstract Base)
-  - `gts.hai3.mfe.domain.v1~` (ExtensionDomain)
-  - `gts.hai3.mfe.extension.v1~` (Extension)
-  - `gts.hai3.mfe.shared_property.v1~` (SharedProperty)
-  - `gts.hai3.mfe.action.v1~` (Action)
-  - `gts.hai3.mfe.actions_chain.v1~` (ActionsChain)
-  - `gts.hai3.mfe.lifecycle_stage.v1~` (LifecycleStage)
-  - `gts.hai3.mfe.lifecycle_hook.v1~` (LifecycleHook)
+  - `gts.hai3.mfes.mfe.entry.v1~` (MfeEntry - Abstract Base)
+  - `gts.hai3.mfes.ext.domain.v1~` (ExtensionDomain)
+  - `gts.hai3.mfes.ext.extension.v1~` (Extension)
+  - `gts.hai3.mfes.comm.shared_property.v1~` (SharedProperty)
+  - `gts.hai3.mfes.comm.action.v1~` (Action)
+  - `gts.hai3.mfes.comm.actions_chain.v1~` (ActionsChain)
+  - `gts.hai3.mfes.lifecycle.stage.v1~` (LifecycleStage)
+  - `gts.hai3.mfes.lifecycle.hook.v1~` (LifecycleHook)
 - **AND** registered types SHALL include 2 MF-specific types:
-  - `gts.hai3.mfe.manifest.v1~` (MfManifest - Standalone)
-  - `gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~` (MfeEntryMF - Derived)
+  - `gts.hai3.mfes.mfe.mf_manifest.v1~` (MfManifest - Standalone)
+  - `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~` (MfeEntryMF - Derived)
 
 #### Scenario: Custom plugin implementation
 
@@ -128,7 +128,7 @@ The system SHALL validate Extension instances using derived Extension types when
 
 - **WHEN** registering an extension binding
 - **AND** the domain does NOT have `extensionsTypeId` specified
-- **THEN** extensions SHALL use the base Extension type (`gts.hai3.mfe.extension.v1~`)
+- **THEN** extensions SHALL use the base Extension type (`gts.hai3.mfes.ext.extension.v1~`)
 - **AND** extension registration SHALL proceed (assuming other validations pass)
 
 #### Scenario: Derived Extension type must be registered
@@ -140,7 +140,7 @@ The system SHALL validate Extension instances using derived Extension types when
 
 #### Scenario: Extension validation with derived types
 
-- **WHEN** an extension uses a derived type (e.g., `gts.hai3.mfe.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.widget.v1`)
+- **WHEN** an extension uses a derived type (e.g., `gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.widget.v1`)
 - **THEN** the runtime SHALL first register the extension via `plugin.register(extension)`
 - **AND** the runtime SHALL validate the registered instance via `plugin.validateInstance(extension.id)`
 - **AND** gts-ts SHALL extract the schema ID from the instance ID automatically
@@ -525,20 +525,8 @@ The system SHALL provide utilities for working with GTS type IDs, used by both s
 
 - **WHEN** calling `conformsTo(derivedTypeId, baseTypeId)`
 - **THEN** the function SHALL return `true` if the derived type conforms to the base type
-- **AND** `conformsTo('gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.dashboard.mfe.main.v1', 'gts.hai3.mfe.entry.v1~')` SHALL return `true`
-- **AND** `conformsTo('gts.hai3.mfe.manifest.v1~acme.analytics.mfe.manifest.v1', 'gts.hai3.mfe.entry.v1~')` SHALL return `false`
-
-### Requirement: MfeRemoteConfig Type
-
-The system SHALL define `MfeRemoteConfig` interface for configuring remote MFE endpoints.
-
-#### Scenario: MfeRemoteConfig interface
-
-- **WHEN** configuring a remote MFE
-- **THEN** `MfeRemoteConfig` SHALL require `manifestTypeId` (GtsTypeId) and `url` (string)
-- **AND** `shared` SHALL be optional (string array of dependency names)
-- **AND** `preload` SHALL be optional ('none' | 'hover' | 'immediate')
-- **AND** `loadTimeout` SHALL be optional (number in milliseconds, default 10000)
+- **AND** `conformsTo('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.dashboard.mfe.main.v1', 'gts.hai3.mfes.mfe.entry.v1~')` SHALL return `true`
+- **AND** `conformsTo('gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.mfe.manifest.v1', 'gts.hai3.mfes.mfe.entry.v1~')` SHALL return `false`
 
 ### Requirement: MFE Bridge Interface
 
@@ -631,8 +619,8 @@ The system SHALL export constants for standard HAI3 actions following the DRY pr
 
 - **WHEN** importing `@hai3/screensets`
 - **THEN** the package SHALL export action type ID constants:
-  - `HAI3_ACTION_LOAD_EXT`: `gts.hai3.mfe.action.v1~hai3.mfe.actions.load_ext.v1~`
-  - `HAI3_ACTION_UNLOAD_EXT`: `gts.hai3.mfe.action.v1~hai3.mfe.actions.unload_ext.v1~`
+  - `HAI3_ACTION_LOAD_EXT`: `gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1`
+  - `HAI3_ACTION_UNLOAD_EXT`: `gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1`
 
 #### Scenario: DRY principle for extension actions
 
@@ -717,12 +705,12 @@ The system SHALL export constants for HAI3 MFE base types.
 
 - **WHEN** importing `@hai3/screensets`
 - **THEN** the package SHALL export base type ID constants:
-  - `HAI3_MFE_ENTRY`: `gts.hai3.mfe.entry.v1~`
-  - `HAI3_MFE_ENTRY_MF`: `gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~`
-  - `HAI3_MF_MANIFEST`: `gts.hai3.mfe.manifest.v1~`
-  - `HAI3_EXT_DOMAIN`: `gts.hai3.mfe.domain.v1~`
-  - `HAI3_EXT_EXTENSION`: `gts.hai3.mfe.extension.v1~`
-  - `HAI3_EXT_ACTION`: `gts.hai3.mfe.action.v1~`
+  - `HAI3_MFE_ENTRY`: `gts.hai3.mfes.mfe.entry.v1~`
+  - `HAI3_MFE_ENTRY_MF`: `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~`
+  - `HAI3_MF_MANIFEST`: `gts.hai3.mfes.mfe.mf_manifest.v1~`
+  - `HAI3_EXT_DOMAIN`: `gts.hai3.mfes.ext.domain.v1~`
+  - `HAI3_EXT_EXTENSION`: `gts.hai3.mfes.ext.extension.v1~`
+  - `HAI3_EXT_ACTION`: `gts.hai3.mfes.comm.action.v1~`
 
 ### Requirement: Shadow DOM Utilities
 

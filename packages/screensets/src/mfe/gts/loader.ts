@@ -10,26 +10,26 @@
 import type { JSONSchema } from '../plugins/types';
 
 // Import all schema JSON files
-import entrySchema from './hai3.mfe/schemas/entry.v1.json';
-import domainSchema from './hai3.mfe/schemas/domain.v1.json';
-import extensionSchema from './hai3.mfe/schemas/extension.v1.json';
-import actionSchema from './hai3.mfe/schemas/action.v1.json';
-import actionsChainSchema from './hai3.mfe/schemas/actions_chain.v1.json';
-import sharedPropertySchema from './hai3.mfe/schemas/shared_property.v1.json';
-import lifecycleStageSchema from './hai3.mfe/schemas/lifecycle_stage.v1.json';
-import lifecycleHookSchema from './hai3.mfe/schemas/lifecycle_hook.v1.json';
-import manifestSchema from './hai3.mfe/schemas/manifest.v1.json';
-import entryMfSchema from './hai3.mfe/schemas/entry_mf.v1.json';
+import entrySchema from './hai3.mfes/schemas/mfe/entry.v1.json';
+import domainSchema from './hai3.mfes/schemas/ext/domain.v1.json';
+import extensionSchema from './hai3.mfes/schemas/ext/extension.v1.json';
+import actionSchema from './hai3.mfes/schemas/comm/action.v1.json';
+import actionsChainSchema from './hai3.mfes/schemas/comm/actions_chain.v1.json';
+import sharedPropertySchema from './hai3.mfes/schemas/comm/shared_property.v1.json';
+import lifecycleStageSchema from './hai3.mfes/schemas/lifecycle/stage.v1.json';
+import lifecycleHookSchema from './hai3.mfes/schemas/lifecycle/hook.v1.json';
+import manifestSchema from './hai3.mfes/schemas/mfe/mf_manifest.v1.json';
+import entryMfSchema from './hai3.mfes/schemas/mfe/entry_mf.v1.json';
 
 // Import lifecycle stage instances
-import lifecycleInitInstance from './hai3.mfe/instances/lifecycle-stages/init.v1.json';
-import lifecycleActivatedInstance from './hai3.mfe/instances/lifecycle-stages/activated.v1.json';
-import lifecycleDeactivatedInstance from './hai3.mfe/instances/lifecycle-stages/deactivated.v1.json';
-import lifecycleDestroyedInstance from './hai3.mfe/instances/lifecycle-stages/destroyed.v1.json';
+import lifecycleInitInstance from './hai3.mfes/instances/lifecycle/init.v1.json';
+import lifecycleActivatedInstance from './hai3.mfes/instances/lifecycle/activated.v1.json';
+import lifecycleDeactivatedInstance from './hai3.mfes/instances/lifecycle/deactivated.v1.json';
+import lifecycleDestroyedInstance from './hai3.mfes/instances/lifecycle/destroyed.v1.json';
 
 // Import action instances
-import loadExtActionInstance from './hai3.mfe/instances/actions/load_ext.v1.json';
-import unloadExtActionInstance from './hai3.mfe/instances/actions/unload_ext.v1.json';
+import loadExtActionInstance from './hai3.mfes/instances/comm/load_ext.v1.json';
+import unloadExtActionInstance from './hai3.mfes/instances/comm/unload_ext.v1.json';
 
 // Import layout domain instances
 import sidebarDomainInstance from './hai3.screensets/instances/domains/sidebar.v1.json';

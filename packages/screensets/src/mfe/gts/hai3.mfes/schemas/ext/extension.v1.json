@@ -1,5 +1,5 @@
 {
-  "$id": "gts://gts.hai3.mfe.extension.v1~",
+  "$id": "gts://gts.hai3.mfes.ext.extension.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
@@ -8,16 +8,16 @@
       "$comment": "The GTS type ID for this instance"
     },
     "domain": {
-      "x-gts-ref": "gts.hai3.mfe.domain.v1~*",
+      "x-gts-ref": "gts.hai3.mfes.ext.domain.v1~*",
       "$comment": "ExtensionDomain type ID to mount into"
     },
     "entry": {
-      "x-gts-ref": "gts.hai3.mfe.entry.v1~*",
+      "x-gts-ref": "gts.hai3.mfes.mfe.entry.v1~*",
       "$comment": "MfeEntry type ID to mount"
     },
     "lifecycle": {
       "type": "array",
-      "items": { "type": "object", "$ref": "gts://gts.hai3.mfe.lifecycle_hook.v1~" },
+      "items": { "type": "object", "$ref": "gts://gts.hai3.mfes.lifecycle.hook.v1~" },
       "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
     }
   },

@@ -67,13 +67,6 @@ The screensets package treats type IDs as **opaque strings**. The plugin is resp
 - MfManifest
 - MfeEntryMF
 
-**Rationale:**
-1. First-class types define system capabilities - they establish the contract model
-2. The plugin implementation depends on these system capabilities
-3. Changes to first-class types require code changes in the screensets package
-4. Vendors can only extend within the boundaries defined by these types
-5. Having schemas built-in eliminates initialization ceremony and potential registration errors
-
 **`registerSchema` is for vendor/dynamic schemas only** - schemas that extend HAI3's base types with vendor-specific fields.
 
 #### Plugin Interface Definition
@@ -134,8 +127,8 @@ interface AttributeResult {
  * **GTS-Native Validation Model:**
  * - All runtime entities (schemas AND instances) must be registered with the plugin
  * - Validation happens on registered instances by their instance ID
- * - Schema/type IDs end with `~` (e.g., `gts.hai3.mfe.extension.v1~`)
- * - Instance IDs do NOT end with `~` (e.g., `gts.hai3.mfe.extension.v1~acme.widget.v1`)
+ * - Schema/type IDs end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~`)
+ * - Instance IDs do NOT end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1`)
  * - gts-ts extracts the schema ID from the chained instance ID automatically
  *
  * Note: buildTypeId() is intentionally omitted. GTS type IDs are consumed
@@ -189,8 +182,8 @@ interface TypeSystemPlugin {
    * For instances, the entity must have an `id` field containing the instance ID.
    *
    * gts-ts uses the instance ID to automatically determine the schema:
-   * - Instance ID: `gts.hai3.mfe.extension.v1~acme.widget.v1`
-   * - Schema ID:   `gts.hai3.mfe.extension.v1~` (extracted automatically)
+   * - Instance ID: `gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1`
+   * - Schema ID:   `gts.hai3.mfes.ext.extension.v1~` (extracted automatically)
    *
    * @param entity - The GTS entity to register (must have an `id` field)
    */
@@ -201,8 +194,8 @@ interface TypeSystemPlugin {
    * The instance must be registered first via register().
    *
    * gts-ts extracts the schema ID from the instance ID automatically:
-   * - Instance ID: `gts.hai3.mfe.extension.v1~acme.widget.v1`
-   * - Schema ID:   `gts.hai3.mfe.extension.v1~`
+   * - Instance ID: `gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1`
+   * - Schema ID:   `gts.hai3.mfes.ext.extension.v1~`
    *
    * @param instanceId - The instance ID (does NOT end with ~)
    * @returns Validation result
@@ -239,7 +232,7 @@ interface TypeSystemPlugin {
 
   /**
    * Get an attribute value from a type using property path.
-   * Used for dynamic schema resolution (e.g., getting domain's extensionsUiMeta).
+   * Used for dynamic schema resolution (e.g., getting domain's extensionsTypeId to resolve derived Extension types).
    */
   getAttribute(typeId: string, path: string): AttributeResult;
 }
@@ -372,8 +365,8 @@ export function createGtsPlugin(): TypeSystemPlugin {
     validateInstance(instanceId: string): ValidationResult {
       // GtsStore.validateInstance takes the instance ID (NOT schema ID)
       // gts-ts extracts the schema ID from the chained instance ID:
-      // - Instance ID: gts.hai3.mfe.extension.v1~acme.widget.v1
-      // - Schema ID:   gts.hai3.mfe.extension.v1~ (extracted automatically)
+      // - Instance ID: gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1
+      // - Schema ID:   gts.hai3.mfes.ext.extension.v1~ (extracted automatically)
       const result: GtsValidationResult = gtsStore.validateInstance(instanceId);
       return {
         valid: result.ok && (result.valid ?? false),
@@ -394,8 +387,8 @@ export function createGtsPlugin(): TypeSystemPlugin {
     // Type Hierarchy
     isTypeOf(typeId: string, baseTypeId: string): boolean {
       // GTS type derivation: derived types include the base type ID as a prefix
-      // e.g., 'gts.hai3.mfe.entry.v1~acme.corp.mfe.entry_acme.v1'
-      // is derived from 'gts.hai3.mfe.entry.v1~'
+      // e.g., 'gts.hai3.mfes.mfe.entry.v1~acme.corp.mfe.entry_acme.v1'
+      // is derived from 'gts.hai3.mfes.mfe.entry.v1~'
       // Note: Instance IDs don't end with ~, schema IDs do
       return typeId.startsWith(baseTypeId) || typeId === baseTypeId;
     },
@@ -442,12 +435,7 @@ export const gtsPlugin = createGtsPlugin();
 
 #### Instance ID Convention
 
-GTS distinguishes between schema IDs (type definitions) and instance IDs (concrete data):
-
-- **Schema/Type IDs end with `~`**: `gts.hai3.mfe.extension.v1~`
-- **Instance IDs do NOT end with `~`**: `gts.hai3.mfe.extension.v1~acme.widget.v1`
-
-When validating an instance, gts-ts automatically extracts the schema ID from the instance ID by finding the first segment that ends with `~`. This is why the `validateInstance()` method only needs the instance ID - the schema is determined automatically.
+Schema IDs end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~`); instance IDs do NOT (e.g., `gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1`). gts-ts extracts the schema ID from the instance ID automatically.
 
 ### Decision 2: GTS Type ID Format and Registration
 
@@ -461,39 +449,25 @@ The type system is organized into **8 core types** that define the contract mode
 
 | Type | GTS Type ID | Purpose |
 |------|-------------|---------|
-| MFE Entry (Abstract) | `gts.hai3.mfe.entry.v1~` | Pure contract type (abstract base) |
-| Extension Domain | `gts.hai3.mfe.domain.v1~` | Extension point contract |
-| Extension | `gts.hai3.mfe.extension.v1~` | Extension binding |
-| Shared Property | `gts.hai3.mfe.shared_property.v1~` | Property definition |
-| Action | `gts.hai3.mfe.action.v1~` | Action type with target and self-id |
-| Actions Chain | `gts.hai3.mfe.actions_chain.v1~` | Action chain for mediation |
-| LifecycleStage | `gts.hai3.mfe.lifecycle_stage.v1~` | Lifecycle event type |
-| LifecycleHook | `gts.hai3.mfe.lifecycle_hook.v1~` | Binds stage to actions chain |
+| MFE Entry (Abstract) | `gts.hai3.mfes.mfe.entry.v1~` | Pure contract type (abstract base) |
+| Extension Domain | `gts.hai3.mfes.ext.domain.v1~` | Extension point contract |
+| Extension | `gts.hai3.mfes.ext.extension.v1~` | Extension binding |
+| Shared Property | `gts.hai3.mfes.comm.shared_property.v1~` | Property definition |
+| Action | `gts.hai3.mfes.comm.action.v1~` | Action type with target and self-id |
+| Actions Chain | `gts.hai3.mfes.comm.actions_chain.v1~` | Action chain for mediation |
+| LifecycleStage | `gts.hai3.mfes.lifecycle.stage.v1~` | Lifecycle event type |
+| LifecycleHook | `gts.hai3.mfes.lifecycle.hook.v1~` | Binds stage to actions chain |
 
 **MF-Specific Types (2 total):**
 
 | Type | GTS Type ID | Purpose |
 |------|-------------|---------|
-| MF Manifest | `gts.hai3.mfe.manifest.v1~` | Module Federation manifest (standalone) |
-| MFE Entry MF (Derived) | `gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~` | Module Federation entry with manifest reference |
+| MF Manifest | `gts.hai3.mfes.mfe.mf_manifest.v1~` | Module Federation manifest (standalone) |
+| MFE Entry MF (Derived) | `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~` | Module Federation entry with manifest reference |
 
-#### Why This Structure Eliminates Parallel Hierarchies
+#### Why This Structure
 
-The previous design had parallel hierarchies:
-- `MfeDefinition` (abstract) -> `MfeDefinitionMF` (derived)
-- `MfeEntry` (pure contract)
-
-This created redundancy because both hierarchies needed to track entries. The new design:
-
-1. **Makes MfeEntry the abstract base** for entry contracts
-2. **Adds MfeEntryMF as derived** that references its MfManifest
-3. **MfManifest is standalone** containing Module Federation config
-4. **Extension binds to MfeEntry** (or its derived types)
-
-Benefits:
-- **No parallel hierarchies**: Only one entry hierarchy
-- **Future-proof**: ESM loader would add `MfeEntryEsm` derived type with its own manifest reference
-- **Clear ownership**: Entry owns its contract AND references its manifest
+MfeEntry is the single abstract base for entry contracts (eliminating previous parallel `MfeDefinition`/`MfeEntry` hierarchies). MfeEntryMF is a derived type referencing its MfManifest. Future loaders (ESM, Import Maps) add their own derived types.
 
 ### Decision 3: Internal TypeScript Type Definitions
 
@@ -510,47 +484,35 @@ TypeScript interface definitions are distributed across their respective design 
 
 ### Decision 4: Built-in First-Class Citizen Schemas
 
-**Key Principle**: First-class citizen schemas are built into the GTS plugin, not registered via `registerSchema` calls.
-
-**Rationale:**
-1. **First-class types define system capabilities** - MfeEntry, ExtensionDomain, Action, etc. establish the contract model that the entire system depends on
-2. **Well-known at compile time** - These types are not dynamic; they are fixed parts of the HAI3 architecture
-3. **Changes require code changes** - Modifying these schemas requires updating the screensets package anyway
-4. **Vendors extend, not replace** - Third parties can only create derived types within the boundaries of these base types
-5. **Eliminates initialization ceremony** - No `registerHai3Types()` call needed; plugin is ready to use immediately
-
-**What this means:**
-- The GTS plugin constructor registers all first-class schemas internally (see GTS Plugin Implementation above)
-- `ScreensetsRegistry` does NOT call any schema registration for core types
-- `registerSchema` is available ONLY for vendor/dynamic schemas
+First-class citizen schemas are built into the GTS plugin (see Decision 1 above for the rationale). The GTS plugin constructor registers all first-class schemas internally. `ScreensetsRegistry` does NOT call schema registration for core types. `registerSchema` is for vendor/dynamic schemas only.
 
 ```typescript
 // packages/screensets/src/mfe/init.ts
 
 /** GTS Type IDs for HAI3 MFE core types (8 types) - for reference only */
 export const HAI3_CORE_TYPE_IDS = {
-  mfeEntry: 'gts.hai3.mfe.entry.v1~',
-  extensionDomain: 'gts.hai3.mfe.domain.v1~',
-  extension: 'gts.hai3.mfe.extension.v1~',
-  sharedProperty: 'gts.hai3.mfe.shared_property.v1~',
-  action: 'gts.hai3.mfe.action.v1~',
-  actionsChain: 'gts.hai3.mfe.actions_chain.v1~',
-  lifecycleStage: 'gts.hai3.mfe.lifecycle_stage.v1~',
-  lifecycleHook: 'gts.hai3.mfe.lifecycle_hook.v1~',
+  mfeEntry: 'gts.hai3.mfes.mfe.entry.v1~',
+  extensionDomain: 'gts.hai3.mfes.ext.domain.v1~',
+  extension: 'gts.hai3.mfes.ext.extension.v1~',
+  sharedProperty: 'gts.hai3.mfes.comm.shared_property.v1~',
+  action: 'gts.hai3.mfes.comm.action.v1~',
+  actionsChain: 'gts.hai3.mfes.comm.actions_chain.v1~',
+  lifecycleStage: 'gts.hai3.mfes.lifecycle.stage.v1~',
+  lifecycleHook: 'gts.hai3.mfes.lifecycle.hook.v1~',
 } as const;
 
 /** GTS Type IDs for default lifecycle stages (4 stages) - for reference only */
 export const HAI3_LIFECYCLE_STAGE_IDS = {
-  init: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1',
-  activated: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1',
-  deactivated: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1',
-  destroyed: 'gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1',
+  init: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+  activated: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
+  deactivated: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
+  destroyed: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
 } as const;
 
 /** GTS Type IDs for MF-specific types (2 types) - for reference only */
 export const HAI3_MF_TYPE_IDS = {
-  mfManifest: 'gts.hai3.mfe.manifest.v1~',
-  mfeEntryMf: 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~',
+  mfManifest: 'gts.hai3.mfes.mfe.mf_manifest.v1~',
+  mfeEntryMf: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
 } as const;
 
 // NOTE: No registerHai3Types() function needed.
@@ -579,8 +541,8 @@ All vendor package identifiers follow the pattern `~<vendor>.<package>.*.*v*` as
 |                  (e.g., acme-analytics)                     |
 +-------------------------------------------------------------+
 |  Derived Types (schemas):                                   |
-|  - gts.hai3.mfe.action.v1~acme.analytics.ext.data_updated.v1~|
-|  - gts.hai3.mfe.entry.v1~acme.analytics.mfe.chart_widget.v1~ |
+|  - gts.hai3.mfes.comm.action.v1~acme.analytics.comm.data_updated.v1~|
+|  - gts.hai3.mfes.mfe.entry.v1~acme.analytics.mfe.chart_widget.v1~ |
 |                                                             |
 |  Instances:                                                 |
 |  - MFE entries, manifests, extensions, actions              |
@@ -604,10 +566,10 @@ All vendor package identifiers follow the pattern `~<vendor>.<package>.*.*v*` as
 Vendor types are **derived types** that extend HAI3 base types using GTS's type derivation mechanism. The derived type ID includes both the base type and the vendor qualifier:
 
 ```
-Base type:    gts.hai3.mfe.action.v1~
+Base type:    gts.hai3.mfes.comm.action.v1~
                               |
                               v (extends)
-Derived type: gts.hai3.mfe.action.v1~acme.analytics.ext.data_updated.v1~
+Derived type: gts.hai3.mfes.comm.action.v1~acme.analytics.comm.data_updated.v1~
               +------------ base ------------++---------- vendor qualifier ---------+
 ```
 
@@ -621,10 +583,10 @@ A vendor (Acme Analytics) defines a custom action with a vendor-specific payload
 // Vendor-specific schema extending base Action
 // The type ID is extracted from the $id field - no need to specify it separately
 const acmeDataUpdatedSchema: JSONSchema = {
-  "$id": "gts://gts.hai3.mfe.action.v1~acme.analytics.ext.data_updated.v1~",
+  "$id": "gts://gts.hai3.mfes.comm.action.v1~acme.analytics.comm.data_updated.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "allOf": [
-    { "$ref": "gts://gts.hai3.mfe.action.v1~" }
+    { "$ref": "gts://gts.hai3.mfes.comm.action.v1~" }
   ],
   "properties": {
     "payload": {
@@ -654,7 +616,7 @@ When an action instance uses this derived type ID, the mediator:
 
 #### Key Points
 
-1. **Vendor types are DERIVED types** - They extend HAI3 base types (e.g., `gts.hai3.mfe.action.v1~`) with a vendor qualifier suffix
+1. **Vendor types are DERIVED types** - They extend HAI3 base types (e.g., `gts.hai3.mfes.comm.action.v1~`) with a vendor qualifier suffix
 2. **GTS polymorphic schema resolution** - The mediator validates payloads using the most specific (derived) type's schema while maintaining base type compatibility
 3. **Delivery mechanism is out of scope** - HOW vendor packages are delivered to the HAI3 runtime is not defined by this proposal
 4. **Interfaces for registration** - The proposal defines the registration interfaces (`TypeSystemPlugin.registerSchema()`, `ScreensetsRegistry.register*()`) that vendor packages use, not the delivery mechanism
@@ -701,14 +663,22 @@ interface ScreensetsRegistryConfig {
   /**
    * Optional: Default loading state component for the registry.
    * Domain containers can override this at the container level for per-use customization.
+   *
+   * Note: @hai3/screensets is L1 (framework-agnostic). This uses a generic type
+   * so it works with any UI framework. The L2/L3 layers (e.g., @hai3/framework,
+   * @hai3/react) provide typed wrappers that accept framework-specific components.
    */
-  loadingComponent?: React.ComponentType;
+  loadingComponent?: unknown;
 
   /**
    * Optional: Default error fallback component for the registry.
    * Domain containers can override this at the container level for per-use customization.
+   *
+   * Note: @hai3/screensets is L1 (framework-agnostic). This uses a generic type
+   * so it works with any UI framework. The L2/L3 layers (e.g., @hai3/framework,
+   * @hai3/react) provide typed wrappers that accept framework-specific components.
    */
-  errorFallbackComponent?: React.ComponentType<{ error: MfeError; retry: () => void }>;
+  errorFallbackComponent?: unknown;
 
   /** Optional: Enable debug logging */
   debug?: boolean;
@@ -909,35 +879,7 @@ function validateContract(
 
 **Solution:** Instead of embedding domain-specific fields in a separate `uiMeta` field, derive the Extension type itself to include domain-specific fields directly. Domains specify `extensionsTypeId` pointing to a derived Extension type that extensions must conform to.
 
-**Key Design Change:**
-
-```typescript
-// Before (separate uiMeta requiring custom validation):
-interface ExtensionDomain {
-  extensionsUiMetaTypeId?: string;  // Reference to uiMeta schema
-}
-interface Extension {
-  uiMeta?: Record<string, unknown>;  // Separate field for domain-specific data
-}
-
-// After (derived Extension types with native validation):
-interface ExtensionDomain {
-  extensionsTypeId?: string;  // Reference to derived Extension type
-}
-interface Extension {
-  // Domain-specific fields defined in derived Extension schemas directly
-  // No separate uiMeta field
-}
-```
-
-**Benefits of Derived Extension Types:**
-
-1. **Simpler**: One entity (Extension) instead of two (Extension + uiMeta)
-2. **Native GTS validation**: All fields validated with single `validateInstance()` call
-3. **No parallel hierarchies**: Domains remain instances, not derived types
-4. **No Ajv dependency**: Removes custom schema validation from screensets package
-5. **Type-safe**: Derived Extension types are proper GTS types that can be versioned and queried
-6. **Consistent**: Same validation pattern as MfeEntry hierarchy (base + derived)
+**Key Design Change:** `ExtensionDomain.extensionsTypeId` replaces the previous `extensionsUiMetaTypeId` + `Extension.uiMeta` pattern. Domain-specific fields are defined directly in derived Extension schemas. Benefits: simpler (one entity vs two), native GTS validation, no parallel hierarchies, no Ajv dependency.
 
 **Validation Implementation:**
 
@@ -979,10 +921,10 @@ function validateExtensionType(
 ```typescript
 // 1. First, define and register a derived Extension schema with domain-specific fields
 const widgetExtensionSchema: JSONSchema = {
-  "$id": "gts://gts.hai3.mfe.extension.v1~acme.dashboard.ext.widget_extension.v1~",
+  "$id": "gts://gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "allOf": [
-    { "$ref": "gts://gts.hai3.mfe.extension.v1~" }
+    { "$ref": "gts://gts.hai3.mfes.ext.extension.v1~" }
   ],
   "properties": {
     "title": { "type": "string" },
@@ -996,19 +938,19 @@ plugin.registerSchema(widgetExtensionSchema);
 // 2. Domain references the derived Extension type (schema ID ends with ~)
 // Note: Domain instance ID does NOT end with ~ (only schema IDs do)
 const widgetSlotDomain: ExtensionDomain = {
-  id: 'gts.hai3.mfe.domain.v1~acme.dashboard.layout.widget_slot.v1',
+  id: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
   // ... other fields ...
   // extensionsTypeId is a SCHEMA reference, so it ends with ~
-  extensionsTypeId: 'gts.hai3.mfe.extension.v1~acme.dashboard.ext.widget_extension.v1~',
+  extensionsTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~',
   // ...
 };
 
 // 3. Extensions use the derived type with domain-specific fields
 // Note: Instance IDs do NOT end with ~ (only schema IDs do)
 const analyticsExtension: Extension = {
-  id: 'gts.hai3.mfe.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.v1',
-  domain: 'gts.hai3.mfe.domain.v1~acme.dashboard.layout.widget_slot.v1',
-  entry: 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+  id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.v1',
+  domain: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
+  entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   // Domain-specific fields (defined in derived schema):
   title: 'Analytics Dashboard',
   icon: 'chart-line',
@@ -1028,28 +970,24 @@ this.typeSystem.register(extension);
 
 // 2. Validate the registered extension instance by its ID
 // gts-ts extracts the schema ID from the instance ID automatically:
-// - Instance ID: gts.hai3.mfe.extension.v1~acme.widget.v1
-// - Schema ID:   gts.hai3.mfe.extension.v1~ (extracted automatically)
+// - Instance ID: gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1
+// - Schema ID:   gts.hai3.mfes.ext.extension.v1~ (extracted automatically)
 const instanceResult = this.typeSystem.validateInstance(extension.id);
 if (!instanceResult.valid) {
-  throw new ExtensionValidationError(instanceResult.errors);
+  throw new ExtensionValidationError(instanceResult.errors, extension.id);
 }
 
 // 3. Validate contract matching (entry vs domain)
 const contractResult = validateContract(entry, domain);
 if (!contractResult.valid) {
-  throw new ContractValidationError(contractResult.errors);
+  throw new ContractValidationError(contractResult.errors, entry.id, domain.id);
 }
 
 // 4. Validate extension type derives from domain's extensionsTypeId
 const typeResult = validateExtensionType(this.typeSystem, extension, domain);
 if (!typeResult.valid) {
-  throw new ExtensionTypeError(typeResult.errors);
+  throw new ExtensionTypeError(extension.id, domain.extensionsTypeId!);
 }
 
 // All validations pass, extension is now registered and validated
 ```
-
-**Note on Instance IDs**: Extension instance IDs do NOT end with `~`. For example:
-- Schema ID: `gts.hai3.mfe.extension.v1~` (ends with `~`)
-- Instance ID: `gts.hai3.mfe.extension.v1~acme.widget.v1` (no trailing `~`)

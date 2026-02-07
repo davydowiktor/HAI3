@@ -17,14 +17,14 @@ function createMockPlugin(): TypeSystemPlugin {
 
   // Add first-class citizen schemas
   const coreTypeIds = [
-    'gts.hai3.screensets.mfe.entry.v1~',
-    'gts.hai3.screensets.ext.domain.v1~',
-    'gts.hai3.screensets.ext.extension.v1~',
-    'gts.hai3.screensets.ext.shared_property.v1~',
-    'gts.hai3.screensets.ext.action.v1~',
-    'gts.hai3.screensets.ext.actions_chain.v1~',
-    'gts.hai3.screensets.ext.lifecycle_stage.v1~',
-    'gts.hai3.screensets.ext.lifecycle_hook.v1~',
+    'gts.hai3.mfes.mfe.entry.v1~',
+    'gts.hai3.mfes.ext.domain.v1~',
+    'gts.hai3.mfes.ext.extension.v1~',
+    'gts.hai3.mfes.comm.shared_property.v1~',
+    'gts.hai3.mfes.comm.action.v1~',
+    'gts.hai3.mfes.comm.actions_chain.v1~',
+    'gts.hai3.mfes.lifecycle.stage.v1~',
+    'gts.hai3.mfes.lifecycle.hook.v1~',
   ];
 
   for (const typeId of coreTypeIds) {
@@ -174,14 +174,14 @@ describe('ScreensetsRegistry - Phase 4', () => {
       const registry = createScreensetsRegistry(createTestConfig());
 
       const coreTypeIds = [
-        'gts.hai3.screensets.mfe.entry.v1~',
-        'gts.hai3.screensets.ext.domain.v1~',
-        'gts.hai3.screensets.ext.extension.v1~',
-        'gts.hai3.screensets.ext.shared_property.v1~',
-        'gts.hai3.screensets.ext.action.v1~',
-        'gts.hai3.screensets.ext.actions_chain.v1~',
-        'gts.hai3.screensets.ext.lifecycle_stage.v1~',
-        'gts.hai3.screensets.ext.lifecycle_hook.v1~',
+        'gts.hai3.mfes.mfe.entry.v1~',
+        'gts.hai3.mfes.ext.domain.v1~',
+        'gts.hai3.mfes.ext.extension.v1~',
+        'gts.hai3.mfes.comm.shared_property.v1~',
+        'gts.hai3.mfes.comm.action.v1~',
+        'gts.hai3.mfes.comm.actions_chain.v1~',
+        'gts.hai3.mfes.lifecycle.stage.v1~',
+        'gts.hai3.mfes.lifecycle.hook.v1~',
       ];
 
       for (const typeId of coreTypeIds) {
@@ -233,7 +233,6 @@ describe('ScreensetsRegistry - Phase 4', () => {
         sharedProperties: [],
         actions: [],
         extensionsActions: [],
-        extensionsUiMeta: {},
         defaultActionTimeout: 5000,
         lifecycleStages: [],
         extensionsLifecycleStages: [],
@@ -295,11 +294,11 @@ describe('ScreensetsRegistry - Phase 4', () => {
       expect(result.completed).toBe(true);
     });
 
-    it.skip('should return validation error on payload failure', async () => {
-      // TODO: Phase 9 - Action payload validation
-      // Payload validation requires a different approach than the GTS-native register+validateInstance
-      // pattern because payloads are not GTS entities (no id field).
-      // This will be properly implemented in Phase 9 (ActionsChainsMediator).
+    it('should return validation error on payload failure', async () => {
+      // Action validation happens through GTS-native validateInstance() on the action.
+      // The ACTION itself is the GTS entity (it has a type ID). The payload is a PROPERTY
+      // within the action. When validateInstance() is called, GTS validates the entire
+      // action instance including the payload against the derived type's schema.
       const failingPlugin: TypeSystemPlugin = {
         ...createMockPlugin(),
         validateInstance: () => ({
@@ -361,7 +360,6 @@ describe('ScreensetsRegistry - Phase 4', () => {
         sharedProperties: [],
         actions: [],
         extensionsActions: [],
-        extensionsUiMeta: {},
         defaultActionTimeout: 5000,
         lifecycleStages: [],
         extensionsLifecycleStages: [],
@@ -384,7 +382,6 @@ describe('ScreensetsRegistry - Phase 4', () => {
         sharedProperties: [],
         actions: [],
         extensionsActions: [],
-        extensionsUiMeta: {},
         defaultActionTimeout: 5000,
         lifecycleStages: [],
         extensionsLifecycleStages: [],
@@ -405,7 +402,6 @@ describe('ScreensetsRegistry - Phase 4', () => {
         sharedProperties: [],
         actions: [],
         extensionsActions: [],
-        extensionsUiMeta: {},
         defaultActionTimeout: 5000,
         lifecycleStages: [],
         extensionsLifecycleStages: [],

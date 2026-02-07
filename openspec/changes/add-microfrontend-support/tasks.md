@@ -111,18 +111,18 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 ### 3.2 Create GTS JSON Schemas
 
 **Core Type Schemas (8 types):**
-- [x] 3.2.1 Create schema for `gts.hai3.mfe.entry.v1~` with id field
-- [x] 3.2.2 Create schema for `gts.hai3.mfe.domain.v1~` with id, defaultActionTimeout (required), extensionsTypeId (optional), lifecycleStages, extensionsLifecycleStages fields
-- [x] 3.2.3 Create schema for `gts.hai3.mfe.extension.v1~` with id field
-- [x] 3.2.4 Create schema for `gts.hai3.mfe.shared_property.v1~` with id and value fields
-- [x] 3.2.5 Create schema for `gts.hai3.mfe.action.v1~` with type, target, timeout (optional) fields (no id)
-- [x] 3.2.6 Create schema for `gts.hai3.mfe.actions_chain.v1~` with $ref syntax (no id field)
-- [x] 3.2.6a Create schema for `gts.hai3.mfe.lifecycle_stage.v1~` with id, description? fields
-- [x] 3.2.6b Create schema for `gts.hai3.mfe.lifecycle_hook.v1~` with stage, actions_chain fields
+- [x] 3.2.1 Create schema for `gts.hai3.mfes.mfe.entry.v1~` with id field
+- [x] 3.2.2 Create schema for `gts.hai3.mfes.ext.domain.v1~` with id, defaultActionTimeout (required), extensionsTypeId (optional), lifecycleStages, extensionsLifecycleStages fields
+- [x] 3.2.3 Create schema for `gts.hai3.mfes.ext.extension.v1~` with id field
+- [x] 3.2.4 Create schema for `gts.hai3.mfes.comm.shared_property.v1~` with id and value fields
+- [x] 3.2.5 Create schema for `gts.hai3.mfes.comm.action.v1~` with type, target, timeout (optional) fields (no id)
+- [x] 3.2.6 Create schema for `gts.hai3.mfes.comm.actions_chain.v1~` with $ref syntax (no id field)
+- [x] 3.2.6a Create schema for `gts.hai3.mfes.lifecycle.stage.v1~` with id, description? fields
+- [x] 3.2.6b Create schema for `gts.hai3.mfes.lifecycle.hook.v1~` with stage, actions_chain fields
 
 **Module Federation Schemas (2 types):**
-- [x] 3.2.7 Create schema for `gts.hai3.mfe.manifest.v1~` (MfManifest) with id field
-- [x] 3.2.8 Create schema for `gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~` (MfeEntryMF derived)
+- [x] 3.2.7 Create schema for `gts.hai3.mfes.mfe.mf_manifest.v1~` (MfManifest) with id field
+- [x] 3.2.8 Create schema for `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~` (MfeEntryMF derived)
 - [x] 3.2.9 Export schemas from `packages/screensets/src/mfe/schemas/gts-schemas.ts`
 
 **Traceability**: Requirement "Type System Plugin Abstraction" - HAI3 type registration via plugin
@@ -289,25 +289,29 @@ The GTS entities are organized into two packages with JSON file storage:
 **Directory Structure:**
 ```
 packages/screensets/src/mfe/gts/
-  hai3.mfe/                          # Core MFE GTS package (hardcoded in @hai3/screensets)
+  hai3.mfes/                          # Core MFE GTS package (hardcoded in @hai3/screensets)
     schemas/
-      entry.v1.json                  # MfeEntry schema
-      domain.v1.json                 # ExtensionDomain schema
-      extension.v1.json              # Extension schema
-      action.v1.json                 # Action schema
-      actions_chain.v1.json          # ActionsChain schema
-      shared_property.v1.json        # SharedProperty schema
-      lifecycle_stage.v1.json        # LifecycleStage schema
-      lifecycle_hook.v1.json         # LifecycleHook schema
-      manifest.v1.json               # MfManifest schema
-      entry_mf.v1.json               # MfeEntryMF schema (derives from entry)
+      mfe/
+        entry.v1.json                # MfeEntry schema (gts.hai3.mfes.mfe.entry.v1~)
+        mf_manifest.v1.json          # MfManifest schema (gts.hai3.mfes.mfe.mf_manifest.v1~)
+        entry_mf.v1.json             # MfeEntryMF schema (gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~)
+      ext/
+        domain.v1.json               # ExtensionDomain schema (gts.hai3.mfes.ext.domain.v1~)
+        extension.v1.json            # Extension schema (gts.hai3.mfes.ext.extension.v1~)
+      comm/
+        shared_property.v1.json      # SharedProperty schema (gts.hai3.mfes.comm.shared_property.v1~)
+        action.v1.json               # Action schema (gts.hai3.mfes.comm.action.v1~)
+        actions_chain.v1.json        # ActionsChain schema (gts.hai3.mfes.comm.actions_chain.v1~)
+      lifecycle/
+        stage.v1.json                # LifecycleStage schema (gts.hai3.mfes.lifecycle.stage.v1~)
+        hook.v1.json                 # LifecycleHook schema (gts.hai3.mfes.lifecycle.hook.v1~)
     instances/
-      lifecycle-stages/
+      lifecycle/
         init.v1.json                 # init lifecycle stage instance
         activated.v1.json            # activated lifecycle stage instance
         deactivated.v1.json          # deactivated lifecycle stage instance
         destroyed.v1.json            # destroyed lifecycle stage instance
-      actions/
+      comm/
         load_ext.v1.json             # load_ext action instance
         unload_ext.v1.json           # unload_ext action instance
   hai3.screensets/                   # Screensets layout GTS package (added at framework level)
@@ -321,61 +325,61 @@ packages/screensets/src/mfe/gts/
 
 **Key Principle**: TypeScript interfaces provide compile-time safety, JSON files provide runtime validation via GTS.
 
-### 7.1 Core MFE Schemas (`hai3.mfe` package)
+### 7.1 Core MFE Schemas (`hai3.mfes` package)
 
-**Location**: `packages/screensets/src/mfe/gts/hai3.mfe/schemas/`
+**Location**: `packages/screensets/src/mfe/gts/hai3.mfes/schemas/`
 
-- [x] 7.1.1 Create `entry.v1.json` - MfeEntry schema with `$id: "gts://gts.hai3.mfe.entry.v1~"`
-- [x] 7.1.2 Create `domain.v1.json` - ExtensionDomain schema with `$id: "gts://gts.hai3.mfe.domain.v1~"`
-- [x] 7.1.3 Create `extension.v1.json` - Extension schema with `$id: "gts://gts.hai3.mfe.extension.v1~"`
-- [x] 7.1.4 Create `action.v1.json` - Action schema with `$id: "gts://gts.hai3.mfe.action.v1~"`
-- [x] 7.1.5 Create `actions_chain.v1.json` - ActionsChain schema with `$id: "gts://gts.hai3.mfe.actions_chain.v1~"`
-- [x] 7.1.6 Create `shared_property.v1.json` - SharedProperty schema with `$id: "gts://gts.hai3.mfe.shared_property.v1~"`
-- [x] 7.1.7 Create `lifecycle_stage.v1.json` - LifecycleStage schema with `$id: "gts://gts.hai3.mfe.lifecycle_stage.v1~"`
-- [x] 7.1.8 Create `lifecycle_hook.v1.json` - LifecycleHook schema with `$id: "gts://gts.hai3.mfe.lifecycle_hook.v1~"`
-- [x] 7.1.9 Create `manifest.v1.json` - MfManifest schema with `$id: "gts://gts.hai3.mfe.manifest.v1~"`
-- [x] 7.1.10 Create `entry_mf.v1.json` - MfeEntryMF schema with `$id: "gts://gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~"`
+- [x] 7.1.1 Create `mfe/entry.v1.json` - MfeEntry schema with `$id: "gts://gts.hai3.mfes.mfe.entry.v1~"`
+- [x] 7.1.2 Create `ext/domain.v1.json` - ExtensionDomain schema with `$id: "gts://gts.hai3.mfes.ext.domain.v1~"`
+- [x] 7.1.3 Create `ext/extension.v1.json` - Extension schema with `$id: "gts://gts.hai3.mfes.ext.extension.v1~"`
+- [x] 7.1.4 Create `comm/action.v1.json` - Action schema with `$id: "gts://gts.hai3.mfes.comm.action.v1~"`
+- [x] 7.1.5 Create `comm/actions_chain.v1.json` - ActionsChain schema with `$id: "gts://gts.hai3.mfes.comm.actions_chain.v1~"`
+- [x] 7.1.6 Create `comm/shared_property.v1.json` - SharedProperty schema with `$id: "gts://gts.hai3.mfes.comm.shared_property.v1~"`
+- [x] 7.1.7 Create `lifecycle/stage.v1.json` - LifecycleStage schema with `$id: "gts://gts.hai3.mfes.lifecycle.stage.v1~"`
+- [x] 7.1.8 Create `lifecycle/hook.v1.json` - LifecycleHook schema with `$id: "gts://gts.hai3.mfes.lifecycle.hook.v1~"`
+- [x] 7.1.9 Create `mfe/mf_manifest.v1.json` - MfManifest schema with `$id: "gts://gts.hai3.mfes.mfe.mf_manifest.v1~"`
+- [x] 7.1.10 Create `mfe/entry_mf.v1.json` - MfeEntryMF schema with `$id: "gts://gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~"`
 
 **Traceability**: Requirement "GTS Entity Storage Format" in design/schemas.md - JSON as native GTS format
 
-### 7.2 Base Lifecycle Stage Instances (`hai3.mfe` package)
+### 7.2 Base Lifecycle Stage Instances (`hai3.mfes` package)
 
-**Location**: `packages/screensets/src/mfe/gts/hai3.mfe/instances/lifecycle-stages/`
+**Location**: `packages/screensets/src/mfe/gts/hai3.mfes/instances/lifecycle/`
 
 - [x] 7.2.1 Create `init.v1.json` - init lifecycle stage instance
   ```json
   {
-    "id": "gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1",
+    "id": "gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1",
     "description": "After registration"
   }
   ```
 - [x] 7.2.2 Create `activated.v1.json` - activated lifecycle stage instance
   ```json
   {
-    "id": "gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1",
+    "id": "gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1",
     "description": "After mount"
   }
   ```
 - [x] 7.2.3 Create `deactivated.v1.json` - deactivated lifecycle stage instance
   ```json
   {
-    "id": "gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1",
+    "id": "gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1",
     "description": "After unmount"
   }
   ```
 - [x] 7.2.4 Create `destroyed.v1.json` - destroyed lifecycle stage instance
   ```json
   {
-    "id": "gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1",
+    "id": "gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1",
     "description": "Before unregistration"
   }
   ```
 
 **Traceability**: Requirement "Default Lifecycle Stages" - 4 default lifecycle stage instances
 
-### 7.3 Base Action Instances (`hai3.mfe` package)
+### 7.3 Base Action Instances (`hai3.mfes` package)
 
-**Location**: `packages/screensets/src/mfe/gts/hai3.mfe/instances/actions/`
+**Location**: `packages/screensets/src/mfe/gts/hai3.mfes/instances/comm/`
 
 - [x] 7.3.1 Create `load_ext.v1.json` - load_ext action instance (base action type for loading extensions)
 - [x] 7.3.2 Create `unload_ext.v1.json` - unload_ext action instance (base action type for unloading extensions)
@@ -389,11 +393,11 @@ packages/screensets/src/mfe/gts/
 - [x] 7.4.1 Create `sidebar.v1.json` - Sidebar domain instance
   ```json
   {
-    "id": "gts.hai3.mfe.domain.v1~hai3.screensets.layout.sidebar.v1",
+    "id": "gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1",
     "sharedProperties": [],
     "actions": [
-      "gts.hai3.mfe.action.v1~hai3.mfe.actions.load_ext.v1",
-      "gts.hai3.mfe.action.v1~hai3.mfe.actions.unload_ext.v1"
+      "gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1",
+      "gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1"
     ],
     "extensionsActions": [],
     "defaultActionTimeout": 5000,
@@ -432,9 +436,11 @@ packages/screensets/src/mfe/gts/
 
 **Traceability**: Requirement "Framework Plugin Propagation" - Base domains loaded from JSON files
 
-### 7.7 Framework Microfrontends Plugin
+### 7.7 Framework Microfrontends Plugin Stub
 
-- [ ] 7.7.1 Implement `microfrontends()` plugin factory with NO configuration parameters
+**Scope boundary**: Phase 7.7-7.8 creates the plugin SKELETON and TypeSystemPlugin propagation ONLY. Full Flux integration (actions, effects, slice) is implemented in Phase 13.
+
+- [ ] 7.7.1 Create `packages/framework/src/plugins/microfrontends/index.ts` with plugin skeleton (file creation and basic exports only)
 
 **Traceability**: Requirement "Framework Plugin Propagation" - Framework microfrontends plugin (zero-config)
 
@@ -446,18 +452,19 @@ packages/screensets/src/mfe/gts/
 
 **Traceability**: Requirement "Framework Plugin Propagation" - Plugin consistency across layers
 
-### 7.9 Framework Plugin Tests
+### 7.9 Framework Plugin Propagation Tests
 
 **Test file**: `packages/framework/__tests__/plugins/microfrontends.test.ts`
 
-- [ ] 7.9.1 Test microfrontends() accepts no parameters
-- [ ] 7.9.2 Test microfrontends({ anything }) throws error
-- [ ] 7.9.3 Test plugin obtains screensetsRegistry from framework
-- [ ] 7.9.4 Test runtime.registerDomain() works for base domains at runtime
-- [ ] 7.9.5 Test JSON schema loading works correctly
-- [ ] 7.9.6 Test JSON instance loading works correctly
+**Scope boundary**: These tests validate plugin propagation and JSON loading ONLY. Flux integration tests (actions, effects, slice) are in Phase 13.8.
 
-**Traceability**: Requirement "Framework Plugin Propagation" - all scenarios (zero-config, dynamic registration, JSON loading)
+- [ ] 7.9.1 Test plugin obtains screensetsRegistry from framework
+- [ ] 7.9.2 Test same TypeSystemPlugin instance is propagated through layers
+- [ ] 7.9.3 Test runtime.registerDomain() works for base domains at runtime
+- [ ] 7.9.4 Test JSON schema loading works correctly
+- [ ] 7.9.5 Test JSON instance loading works correctly
+
+**Traceability**: Requirement "Framework Plugin Propagation" - Plugin consistency across layers, JSON loading
 
 ---
 
@@ -560,10 +567,10 @@ packages/screensets/src/mfe/gts/
 
 ### 10.1 Define Base Domain Contracts
 
-- [ ] 10.1.1 Define sidebar domain: `gts.hai3.mfe.domain.v1~hai3.screensets.layout.sidebar.v1`
-- [ ] 10.1.2 Define popup domain: `gts.hai3.mfe.domain.v1~hai3.screensets.layout.popup.v1`
-- [ ] 10.1.3 Define screen domain: `gts.hai3.mfe.domain.v1~hai3.screensets.layout.screen.v1`
-- [ ] 10.1.4 Define overlay domain: `gts.hai3.mfe.domain.v1~hai3.screensets.layout.overlay.v1`
+- [ ] 10.1.1 Define sidebar domain: `gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1`
+- [ ] 10.1.2 Define popup domain: `gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1`
+- [ ] 10.1.3 Define screen domain: `gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1`
+- [ ] 10.1.4 Define overlay domain: `gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1`
 
 **Traceability**: Requirement "Hierarchical Extension Domains" - Base layout domains
 
@@ -668,13 +675,14 @@ packages/screensets/src/mfe/gts/
 
 **Goal**: Implement the microfrontends plugin that wires ScreensetsRegistry into Flux data flow.
 
-### 13.1 Plugin Infrastructure
+### 13.1 Plugin Flux Wiring (builds on Phase 7.7 skeleton)
 
-- [ ] 13.1.1 Create `packages/framework/src/plugins/microfrontends/index.ts`
-- [ ] 13.1.2 Implement `microfrontends()` plugin factory with NO configuration parameters
-- [ ] 13.1.3 Add test verifying that `microfrontends({ anything })` throws an error - plugin accepts NO config
-- [ ] 13.1.4 Verify screensetsRegistry is available from framework
-- [ ] 13.1.5 Export plugin from `@hai3/framework`
+**Scope boundary**: Phase 7.7 created the plugin file skeleton and propagation. Phase 13.1 completes the `microfrontends()` factory with full Flux integration (actions, effects, slice registration) and zero-config enforcement.
+
+- [ ] 13.1.1 Implement `microfrontends()` plugin factory with NO configuration parameters and Flux wiring (actions, effects, slice)
+- [ ] 13.1.2 Add test verifying that `microfrontends({ anything })` throws an error - plugin accepts NO config
+- [ ] 13.1.3 Verify screensetsRegistry is available from framework
+- [ ] 13.1.4 Export plugin from `@hai3/framework`
 
 **Traceability**: Requirement "Microfrontends Plugin" - Plugin registration (zero-config)
 
@@ -872,15 +880,15 @@ packages/screensets/src/mfe/gts/
 
 ### 16.2 Error Classes
 
-- [ ] 16.2.1 Create `packages/screensets/src/mfe/errors/index.ts`
-- [ ] 16.2.2 Implement `MfeError` base class
-- [ ] 16.2.3 Implement `MfeLoadError` with entryTypeId
-- [ ] 16.2.4 Implement `ContractValidationError` with errors array
-- [ ] 16.2.5 Implement `ExtensionTypeError` with extensionTypeId and requiredBaseTypeId
-- [ ] 16.2.6 Implement `ChainExecutionError` with execution path
-- [ ] 16.2.7 Implement `MfeVersionMismatchError` with version details
-- [ ] 16.2.8 Implement `MfeTypeConformanceError` with type details
-- [ ] 16.2.9 Export all error classes from `@hai3/screensets`
+- [x] 16.2.1 Create `packages/screensets/src/mfe/errors/index.ts`
+- [x] 16.2.2 Implement `MfeError` base class
+- [x] 16.2.3 Implement `MfeLoadError` with entryTypeId
+- [x] 16.2.4 Implement `ContractValidationError` with errors array
+- [x] 16.2.5 Implement `ExtensionTypeError` with extensionTypeId and requiredBaseTypeId
+- [x] 16.2.6 Implement `ChainExecutionError` with execution path
+- [x] 16.2.7 Implement `MfeVersionMismatchError` with version details
+- [x] 16.2.8 Implement `MfeTypeConformanceError` with type details
+- [x] 16.2.9 Export all error classes from `@hai3/screensets`
 
 **Traceability**: Requirement "MFE Error Classes"
 
@@ -949,6 +957,8 @@ packages/screensets/src/mfe/gts/
 **Traceability**: Requirement "GTS Type ID Utilities"
 
 ### 18.2 HAI3 Constants
+
+> **Note**: These are ADDITIONAL convenience constants (action instance IDs, domain instance IDs, etc.) beyond the type ID reference constants (`HAI3_CORE_TYPE_IDS`, `HAI3_MF_TYPE_IDS`, `HAI3_LIFECYCLE_STAGE_IDS`) already defined in Phase 3.3.
 
 - [ ] 18.2.1 Create `packages/screensets/src/mfe/constants/index.ts`
 - [ ] 18.2.2 Define `HAI3_MFE_ENTRY`, `HAI3_MFE_ENTRY_MF`, `HAI3_MF_MANIFEST` constants

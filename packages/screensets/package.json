@@ -34,9 +34,6 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "dependencies": {
-    "@globaltypesystem/gts-ts": "^0.1.0"
-  },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.18",
     "tsup": "^8.0.0",
@@ -54,5 +51,8 @@
     "vertical-slices"
   ],
   "author": "HAI3",
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@globaltypesystem/gts-ts": "^0.1.1"
+  }
 }

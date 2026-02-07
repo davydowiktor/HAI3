@@ -52,7 +52,7 @@ class ScreensetsRegistry {
     // 2. Validate the registered domain instance by its ID
     // Note: domain.id does NOT end with ~ (it's an instance ID, not a schema ID)
     const validation = this.typeSystem.validateInstance(domain.id);
-    if (!validation.valid) throw new DomainValidationError(validation.errors);
+    if (!validation.valid) throw new DomainValidationError(validation.errors, domain.id);
 
     this.domains.set(domain.id, {
       domain,
@@ -107,17 +107,17 @@ class ScreensetsRegistry {
     // Re-validate the registered instance by its ID (optional, for safety)
     // Note: extensionId does NOT end with ~ (it's an instance ID)
     const validation = this.typeSystem.validateInstance(extensionId);
-    if (!validation.valid) throw new ExtensionValidationError(validation.errors);
+    if (!validation.valid) throw new ExtensionValidationError(validation.errors, extensionId);
 
     const domainState = this.domains.get(extension.domain);
     if (!domainState) throw new Error(`Domain '${extension.domain}' not registered`);
 
     const entry = this.getEntry(extension.entry);
     const contractResult = validateContract(entry, domainState.domain);
-    if (!contractResult.valid) throw new ContractValidationError(contractResult.errors);
+    if (!contractResult.valid) throw new ContractValidationError(contractResult.errors, extension.entry, extension.domain);
 
-    const typeResult = validateExtensionType(this.typeSystem, domainState.domain, extension);
-    if (!typeResult.valid) throw new ExtensionTypeError(typeResult.errors);
+    const typeResult = validateExtensionType(this.typeSystem, extension, domainState.domain);
+    if (!typeResult.valid) throw new ExtensionTypeError(extension.id, domainState.domain.extensionsTypeId!);
 
     const instanceId = generateInstanceId();
     const bridge = this.createBridge(domainState, entry, instanceId);
@@ -353,9 +353,9 @@ settingsButton.onClick = async () => {
   // Extension using derived type that includes domain-specific fields
   // Note: Instance IDs do NOT end with ~ (only schema IDs do)
   await runtime.registerExtension({
-    id: 'gts.hai3.mfe.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1',
-    domain: 'gts.hai3.mfe.domain.v1~acme.dashboard.layout.widget_slot.v1',
-    entry: 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+    id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1',
+    domain: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
+    entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
     // Domain-specific fields from derived Extension type (no uiMeta wrapper)
     title: 'Analytics',
     size: 'medium',

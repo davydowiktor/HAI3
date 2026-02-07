@@ -13,7 +13,7 @@ A Microfrontend (MFE) is an independently developed, deployed, and versioned UI 
 An extension point where MFE instances can be mounted. Domains can exist at **any level of the hierarchy** - the host application can define domains, and MFEs themselves can define their own domains for nested extensions. This enables hierarchical composition where an MFE acts as both an extension (to its parent's domain) and a domain provider (for its own child extensions). Domains define the contract with extensions by declaring shared properties, supported action types, and UI metadata schemas. See [mfe-domain.md](./mfe-domain.md).
 
 ### Extension
-A binding that connects an MFE entry to a specific domain, creating a concrete MFE instance. Extensions include UI metadata that must conform to the domain's schema and are registered dynamically at runtime. See [mfe-domain.md](./mfe-domain.md#extension). For isolation model, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
+A binding that connects an MFE entry to a specific domain, creating a concrete MFE instance. Domain-specific fields are defined in derived Extension types, validated natively by GTS. Extensions are registered dynamically at runtime. See [mfe-domain.md](./mfe-domain.md#extension). For isolation model, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
 
 ### Entry (MfeEntry)
 The contract that an MFE declares with its parent domain. Specifies required/optional properties and bidirectional action capabilities. MfeEntry is abstract; derived types (like MfeEntryMF) add loader-specific fields. See [mfe-entry-mf.md](./mfe-entry-mf.md).
@@ -64,7 +64,10 @@ An abstract class that handles loading MFE bundles for specific entry types. Han
 An abstract factory that creates bridge instances for specific entry types. Each handler has an associated bridge factory. Custom handlers can provide rich bridges with additional services (routing, API clients, etc.).
 
 ### ActionsChainsMediator
-The runtime component that routes action chains to their targets and handles success/failure branching. Validates action types against domain contracts before delivery. Each isolated runtime has its own mediator instance. **Note**: Always use the full name "ActionsChainsMediator" (not abbreviated) to maintain clarity. See [mfe-actions.md](./mfe-actions.md).
+The runtime component that routes action chains to their targets and handles success/failure branching. Validates action types against domain contracts before delivery. Each isolated runtime has its own mediator instance. **Note**: Always use the full name "ActionsChainsMediator" (not abbreviated) to maintain clarity. The public API is `registry.executeActionsChain()`, which delegates to the ActionsChainsMediator internally. See [mfe-actions.md](./mfe-actions.md).
+
+### Runtime
+Conventional variable name for a `ScreensetsRegistry` instance. Example: `const runtime = new ScreensetsRegistry(config);`. Throughout these documents, "runtime" and "registry" refer to the same `ScreensetsRegistry` instance.
 
 ---
 

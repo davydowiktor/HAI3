@@ -10,7 +10,7 @@ import type { LifecycleHook } from './lifecycle';
 
 /**
  * Binds an MFE entry to an extension domain
- * GTS Type: gts.hai3.mfe.extension.v1~
+ * GTS Type: gts.hai3.mfes.ext.extension.v1~
  *
  * Domain-specific fields are defined in derived Extension types.
  * If domain.extensionsTypeId is specified, extension must use a type deriving from it.

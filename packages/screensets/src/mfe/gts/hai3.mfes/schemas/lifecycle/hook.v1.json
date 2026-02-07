@@ -1,15 +1,15 @@
 {
-  "$id": "gts://gts.hai3.mfe.lifecycle_hook.v1~",
+  "$id": "gts://gts.hai3.mfes.lifecycle.hook.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "stage": {
-      "x-gts-ref": "gts.hai3.mfe.lifecycle_stage.v1~*",
+      "x-gts-ref": "gts.hai3.mfes.lifecycle.stage.v1~*",
       "$comment": "The lifecycle stage that triggers this hook"
     },
     "actions_chain": {
       "type": "object",
-      "$ref": "gts://gts.hai3.mfe.actions_chain.v1~",
+      "$ref": "gts://gts.hai3.mfes.comm.actions_chain.v1~",
       "$comment": "The actions chain to execute when the stage triggers"
     }
   },

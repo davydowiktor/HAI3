@@ -209,7 +209,7 @@ See [MFE API](./mfe-api.md) for the mount/unmount interface that MFEs must imple
 
 ## Error Handling
 
-When things go wrong, the system provides [specific error types](./mfe-errors.md). See [MFE Errors](./mfe-errors.md) for the complete error class hierarchy including all 10 error classes.
+When things go wrong, the system provides [specific error types](./mfe-errors.md). See [MFE Errors](./mfe-errors.md) for the complete error class hierarchy including all 11 error classes.
 
 ---
 

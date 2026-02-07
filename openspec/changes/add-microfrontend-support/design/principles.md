@@ -91,34 +91,14 @@ PUBLIC (Architecture Level)     PRIVATE (Implementation Level)
 - Routers (each MFE instance has its own, no sharing needed)
 - Any potential "singleton service" pattern (avoided in favor of per-instance isolation)
 
-### Trade-offs and Clarifications
+### Trade-offs
 
-**1. Memory Overhead**
-
-The concern about duplicate service instances is about **runtime memory**, not **bundle size**. Module Federation 2.0 handles bundle sharing at load time - code isn't duplicated on disk or over the network. Only runtime instances are duplicated in memory (one per MFE instance).
-
-This is an acceptable trade-off for the instance-level isolation benefits. If memory becomes a measurable issue, the private optimization layer can address it without changing public contracts.
-
-**2. Cache Invalidation Complexity**
-
-Cache invalidation would be equally complex for a singleton service approach. The challenge of invalidating stale data, coordinating updates, and handling race conditions is universal to any caching system - it's not additional complexity unique to the independent MFE approach.
-
-**3. Opt-in Optimization**
-
-MFE instances can use axios, fetch, or any HTTP client instead of `@hai3/api` - the system still works, just without cross-instance cache optimization. This is intentional: **graceful degradation over mandatory coupling**.
-
-Adding cache keys or coordination metadata to the public MFE contract would defeat the thin contracts principle. If optimization requires MFE-level declarations, we're back to tight coupling. The optimization must remain at the library level to preserve MFE instance independence.
+- **Memory**: Duplicate runtime instances (not bundles - MF handles code sharing). Acceptable for isolation benefits; private optimization layer can address if needed.
+- **Cache Invalidation**: Equally complex for singleton or per-instance approaches.
+- **Opt-in**: MFEs can use any HTTP client; `@hai3/api` optimization is optional. Optimization stays at library level to preserve MFE independence.
 
 ### Guarantees and Scope
 
-**1. Cross-Instance Data Consistency**
-
-Cross-instance data consistency IS guaranteed at the architecture level when HAI3's own tooling is used (e.g., `@hai3/api`). This guarantee holds even across different frameworks (React, Vue, Angular, Svelte) and across multiple instances of the same MFE entry. MFE instances using third-party HTTP clients (axios, fetch) opt out of this guarantee but the system continues to function.
-
-**2. Platform-Level Shared Data**
-
-Essential platform-level data (authentication state, user context, feature flags) is shared via the SharedProperty mechanism and is guaranteed to be in sync at the architecture level. This is the appropriate channel for inherently host-level concerns, not library-level sharing.
-
-**3. Tooling Implementation (Out of Scope)**
-
-The private optimization layer (e.g., `@hai3/api` cache synchronization) is referenced in this proposal to illustrate how performance concerns will be addressed at the tooling level. The actual implementation of these libraries is out of scope for this proposal and will be addressed in separate tooling proposals.
+- **Cross-Instance Consistency**: Guaranteed when using HAI3 tooling (`@hai3/api`); third-party HTTP clients opt out.
+- **Platform-Level Data**: Auth, user context, feature flags shared via SharedProperty mechanism.
+- **Tooling Implementation**: Private optimization layer (`@hai3/api` cache sync) is out of scope for this proposal.

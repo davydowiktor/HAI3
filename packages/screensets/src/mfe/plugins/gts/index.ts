@@ -7,8 +7,8 @@
  * GTS-Native Validation Model:
  * - All runtime entities (schemas AND instances) must be registered with gtsStore
  * - Validation happens on registered instances by their instance ID
- * - Schema IDs end with `~` (e.g., `gts.hai3.mfe.extension.v1~`)
- * - Instance IDs do NOT end with `~` (e.g., `gts.hai3.mfe.extension.v1~acme.widget.v1`)
+ * - Schema IDs end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~`)
+ * - Instance IDs do NOT end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~acme.widget.v1`)
  * - gts-ts extracts the schema ID from the chained instance ID automatically
  * - gts-ts uses Ajv INTERNALLY - we do NOT need Ajv as a direct dependency
  *
@@ -116,6 +116,9 @@ export function createGtsPlugin(): TypeSystemPlugin {
       const entity = gtsStore.get(typeId);
       if (!entity) return undefined;
       // JsonEntity.content contains the actual schema/instance data
+      if (!entity.content || typeof entity.content !== 'object') {
+        return undefined;
+      }
       return entity.content as JSONSchema;
     },
 
@@ -132,8 +135,8 @@ export function createGtsPlugin(): TypeSystemPlugin {
     validateInstance(instanceId: string): ValidationResult {
       // GtsStore.validateInstance takes the instance ID (NOT schema ID)
       // gts-ts extracts the schema ID from the chained instance ID:
-      // - Instance ID: gts.hai3.mfe.extension.v1~acme.widget.v1
-      // - Schema ID:   gts.hai3.mfe.extension.v1~ (extracted automatically)
+      // - Instance ID: gts.hai3.mfes.ext.extension.v1~acme.widget.v1
+      // - Schema ID:   gts.hai3.mfes.ext.extension.v1~ (extracted automatically)
       const result: GtsValidationResult = gtsStore.validateInstance(instanceId);
       return {
         valid: result.ok && (result.valid ?? false),
@@ -164,8 +167,8 @@ export function createGtsPlugin(): TypeSystemPlugin {
     // Type Hierarchy
     isTypeOf(typeId: string, baseTypeId: string): boolean {
       // GTS type derivation: derived types include the base type ID as a prefix
-      // e.g., 'gts.hai3.mfe.entry.v1~acme.corp.mfe.entry_acme.v1~'
-      // is derived from 'gts.hai3.mfe.entry.v1~'
+      // e.g., 'gts.hai3.mfes.mfe.entry.v1~acme.corp.mfe.entry_acme.v1~'
+      // is derived from 'gts.hai3.mfes.mfe.entry.v1~'
       return typeId.startsWith(baseTypeId) || typeId === baseTypeId;
     },
 

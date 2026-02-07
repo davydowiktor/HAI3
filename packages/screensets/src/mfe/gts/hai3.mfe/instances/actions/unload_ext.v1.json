@@ -1,4 +1,0 @@
-{
-  "type": "gts.hai3.mfe.action.v1~hai3.mfe.actions.unload_ext.v1",
-  "target": "gts.hai3.mfe.domain.v1~*"
-}

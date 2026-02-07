@@ -22,59 +22,14 @@ Multiple MfeEntryMF instances can reference the same MfManifest when they are ex
 
 MfManifest is a **standalone type** containing Module Federation configuration.
 
-```json
-{
-  "$id": "gts://gts.hai3.mfe.manifest.v1~",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "id": {
-      "x-gts-ref": "/$id",
-      "$comment": "The GTS type ID for this instance"
-    },
-    "remoteEntry": {
-      "type": "string",
-      "format": "uri",
-      "$comment": "URL to the remoteEntry.js file"
-    },
-    "remoteName": {
-      "type": "string",
-      "minLength": 1,
-      "$comment": "Module Federation container name"
-    },
-    "sharedDependencies": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string", "$comment": "Package name (e.g., 'react', 'lodash')" },
-          "requiredVersion": { "type": "string", "$comment": "Semver range (e.g., '^18.0.0')" },
-          "singleton": {
-            "type": "boolean",
-            "default": false,
-            "$comment": "If true, all consumers share one instance (instance sharing). If false (default), each consumer gets its own isolated instance from the shared code (instance isolation)."
-          }
-        },
-        "required": ["name", "requiredVersion"]
-      },
-      "$comment": "Dependencies to share for bundle optimization. singleton defaults to false (isolated instances)."
-    },
-    "entries": {
-      "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~*" },
-      "$comment": "Convenience field for discovery - lists MfeEntryMF type IDs"
-    }
-  },
-  "required": ["id", "remoteEntry", "remoteName"]
-}
-```
+See [schemas.md - MF Manifest Schema](./schemas.md#mf-manifest-schema) for the JSON Schema definition.
 
 ## TypeScript Interface Definitions
 
 ```typescript
 /**
  * Module Federation manifest containing shared configuration
- * GTS Type: gts.hai3.mfe.manifest.v1~
+ * GTS Type: gts.hai3.mfes.mfe.mf_manifest.v1~
  */
 interface MfManifest {
   /** The GTS type ID for this manifest */
@@ -136,7 +91,7 @@ interface SharedDependencyConfig {
 
 ```typescript
 const analyticsManifest: MfManifest = {
-  id: 'gts.hai3.mfe.manifest.v1~acme.analytics.mfe.manifest.v1',
+  id: 'gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.mfe.manifest.v1',
   remoteEntry: 'https://cdn.acme.com/analytics/remoteEntry.js',
   remoteName: 'acme_analytics',
   // sharedDependencies configures Module Federation code sharing.
@@ -159,8 +114,8 @@ const analyticsManifest: MfManifest = {
     // { name: '@hai3/screensets', requiredVersion: '^1.0.0', singleton: false },
   ],
   entries: [
-    'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
-    'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.metrics.v1',
+    'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+    'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.metrics.v1',
   ],
 };
 ```

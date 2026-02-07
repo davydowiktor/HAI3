@@ -55,50 +55,17 @@ The @hai3/screensets package abstracts the Type System as a **pluggable dependen
 
 **Key Principle**: When metadata about a type ID is needed, call plugin methods (`parseTypeId`, `getAttribute`, etc.) directly.
 
-**Plugin Interface:**
-```typescript
-interface TypeSystemPlugin {
-  // Type ID operations
-  isValidTypeId(id: string): boolean;
-  parseTypeId(id: string): Record<string, unknown>;
-
-  // Schema registry (for vendor/dynamic schemas only)
-  // First-class citizen schemas are built into the plugin
-  registerSchema(schema: JSONSchema): void;  // Type ID extracted from schema.$id
-  getSchema(typeId: string): JSONSchema | undefined;
-
-  // Instance registry (GTS-native validation approach)
-  // All runtime entities must be registered before validation
-  register(entity: unknown): void;                    // Register any GTS entity
-  validateInstance(instanceId: string): ValidationResult;  // Validate registered instance by ID
-
-  // Query
-  query(pattern: string, limit?: number): string[];
-
-  // Type Hierarchy (REQUIRED for MfeHandler.canHandle())
-  isTypeOf(typeId: string, baseTypeId: string): boolean;
-
-  // Compatibility (REQUIRED)
-  checkCompatibility(oldTypeId: string, newTypeId: string): CompatibilityResult;
-
-  // Attribute access (REQUIRED for dynamic schema resolution)
-  getAttribute(typeId: string, path: string): AttributeResult;
-}
-```
+See [Type System - Decision 1](./design/type-system.md#decision-1-type-system-plugin-interface) for the complete `TypeSystemPlugin` interface definition.
 
 **GTS-Native Validation Model:**
-- Schema/type IDs end with `~`: `gts.hai3.mfe.extension.v1~`
-- Instance IDs do NOT end with `~`: `gts.hai3.mfe.extension.v1~acme.widget.v1`
+- Schema/type IDs end with `~`: `gts.hai3.mfes.ext.extension.v1~`
+- Instance IDs do NOT end with `~`: `gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1`
 - gts-ts extracts the schema ID from the chained instance ID automatically
 - gts-ts uses Ajv INTERNALLY - no direct Ajv dependency needed in MFE plugin
 
 **Built-in First-Class Citizen Schemas:**
 
-The GTS plugin ships with all HAI3 first-class citizen schemas built-in. No `registerSchema` calls are needed for core types. Rationale:
-- First-class types define system capabilities (well-known at compile time)
-- Changes to them require code changes in the screensets package anyway
-- Vendors can only extend within these boundaries
-- Plugin is ready to use immediately after creation
+The GTS plugin ships with all HAI3 first-class citizen schemas built-in. No `registerSchema` calls are needed for core types. See [Type System - Decision 4](./design/type-system.md#decision-4-built-in-first-class-citizen-schemas) for the rationale.
 
 ### HAI3 Internal TypeScript Types
 
@@ -110,9 +77,9 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
-| `MfeEntry` | `id, requiredProperties[], optionalProperties?[], actions[], domainActions[]` | Pure contract type (Abstract Base) |
-| `ExtensionDomain` | `id, sharedProperties[], actions[], extensionsActions[], extensionsTypeId?, defaultActionTimeout, lifecycleStages[], extensionsLifecycleStages[], lifecycle?[]` | Extension point contract |
-| `Extension` | `id, domain, entry, lifecycle?[]` | Extension binding (domain-specific fields in derived types) |
+| `MfeEntry` | `id, requiredProperties: string[], optionalProperties?: string[], actions: string[], domainActions: string[]` | Pure contract type (Abstract Base) |
+| `ExtensionDomain` | `id, sharedProperties: string[], actions: string[], extensionsActions: string[], extensionsTypeId?: string, defaultActionTimeout: number, lifecycleStages: string[], extensionsLifecycleStages: string[], lifecycle?: LifecycleHook[]` | Extension point contract |
+| `Extension` | `id, domain, entry, lifecycle?: LifecycleHook[]` | Extension binding (domain-specific fields in derived types) |
 | `SharedProperty` | `id, value` | Shared property instance |
 | `Action` | `type, target, payload?, timeout?` | Action with self-identifying type ID and optional timeout override |
 | `ActionsChain` | `action: Action, next?: ActionsChain, fallback?: ActionsChain` | Action chain for mediation (contains instances, no id) |
@@ -123,7 +90,7 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
-| `MfManifest` | `id, remoteEntry, remoteName, sharedDependencies?[], entries?` | Module Federation manifest (standalone) |
+| `MfManifest` | `id, remoteEntry, remoteName, sharedDependencies?: SharedDependencyConfig[], entries?: string[]` | Module Federation manifest (standalone) |
 | `MfeEntryMF` | `(extends MfeEntry) manifest, exposedModule` | Module Federation entry (derived) |
 
 **Framework-Agnostic Lifecycle Interface (1 type):**
@@ -136,22 +103,14 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
-| `MfeBridgeFactory<TBridge>` | `create(domainId, entryTypeId, instanceId)` | Abstract factory for creating ChildMfeBridge instances |
+| `MfeBridgeFactory<TBridge>` | `create(domainId, entryTypeId, instanceId)` | Abstract factory for creating bridge instances |
 | `MfeHandler<TEntry, TBridge>` | `bridgeFactory, canHandle(entryTypeId), load(entry), preload?(entry), priority?` | Abstract handler class for different entry types |
-| `LoadedMfe` | `lifecycle, entry, unload()` | Result of loading an MFE bundle |
+| `LoadedMfeInternal` | `lifecycle, entry, unload()` | Result of loading an MFE bundle (`@internal`) |
 
-### Intentionally Omitted Methods and Design Notes
+### Intentionally Omitted Methods
 
-The following methods and patterns were intentionally omitted from the design:
-
-**Omitted TypeSystemPlugin Methods:**
-- **`validateAgainstSchema`**: Not needed. Extension validation uses native `validateInstance()` with derived Extension types.
-- **`buildTypeId`**: GTS type IDs are consumed (validated, parsed) but never programmatically generated at runtime. All type IDs are defined as string constants, making a builder method unnecessary.
-
-**Type Design Rationale:**
-- **MfeEntry**: A pure contract type (abstract base) defining ONLY the communication contract (properties, actions). Derived types like `MfeEntryMF` add handler-specific fields. This ensures the same entry contract works with any handler and allows future handlers (ESM, Import Maps) to add their own derived types.
-- **MfeEntryLifecycle**: The lifecycle interface all MFE entries must implement. The name focuses on lifecycle semantics (mount/unmount) rather than implementation details. It defines framework-agnostic methods, is extensible for future lifecycle methods (onSuspend, onResume), and allows MFEs to be written in any UI framework.
-- **MfeHandler Extensibility**: The `MfeHandler` abstract class, `MfeBridgeFactory`, and handler registry enable companies to create custom derived entry types with richer contracts, register custom handlers, and create custom bridge factories that inject shared services. This solves the tension between 3rd-party vendors (thin, stable contracts) and enterprises (richer integration for internal MFEs). See `design/mfe-loading.md` and `design/principles.md` for details.
+- **`validateAgainstSchema`**: Not needed; extension validation uses native `validateInstance()` with derived Extension types.
+- **`buildTypeId`**: GTS type IDs are consumed but never generated at runtime; all are string constants.
 
 ### Bridge Interface Names
 
@@ -165,69 +124,11 @@ The GTS type ID format is: `gts.<vendor>.<package>.<namespace>.<type>.v<MAJOR>[.
 
 ### Type System Registration (Built-in to GTS Plugin)
 
-The GTS plugin ships with all first-class citizen schemas **built-in**. When using the GTS plugin, the following types are available immediately (no registration needed):
-
-**Core Types (8 types):**
-
-| GTS Type ID | Purpose |
-|-------------|---------|
-| `gts.hai3.mfe.entry.v1~` | Pure contract type (Abstract Base) |
-| `gts.hai3.mfe.domain.v1~` | Extension point contract |
-| `gts.hai3.mfe.extension.v1~` | Extension binding |
-| `gts.hai3.mfe.shared_property.v1~` | Property definition |
-| `gts.hai3.mfe.action.v1~` | Action type with target and self-id |
-| `gts.hai3.mfe.actions_chain.v1~` | Action chain for mediation |
-| `gts.hai3.mfe.lifecycle_stage.v1~` | Lifecycle event type |
-| `gts.hai3.mfe.lifecycle_hook.v1~` | Lifecycle stage to actions chain binding |
-
-**Default Lifecycle Stages (4 stages):**
-
-| GTS Type ID | When Triggered |
-|-------------|----------------|
-| `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.init.v1` | After registration |
-| `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.activated.v1` | After mount |
-| `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.deactivated.v1` | After unmount |
-| `gts.hai3.mfe.lifecycle_stage.v1~hai3.mfe.lifecycle.destroyed.v1` | Before unregistration |
-
-**MF-Specific Types (2 types):**
-
-| GTS Type ID | Purpose |
-|-------------|---------|
-| `gts.hai3.mfe.manifest.v1~` | Module Federation manifest (standalone) |
-| `gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~` | Module Federation entry (derived) |
+The GTS plugin ships with all first-class citizen schemas **built-in** (8 core types, 4 default lifecycle stages, 2 MF-specific types). No `registerSchema` calls are needed for core types. See [Type System - Decision 2](./design/type-system.md#decision-2-gts-type-id-format-and-registration) for the complete GTS Type ID tables.
 
 ### GTS JSON Schema Definitions
 
-Each of the 8 core types and 2 MF-specific types has a corresponding JSON Schema with proper `$id`. Example Action schema (note: Action uses `type` field for self-identification instead of `id`):
-
-```json
-{
-  "$id": "gts://gts.hai3.mfe.action.v1~",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "type": {
-      "x-gts-ref": "/$id",
-      "$comment": "Self-reference to this action's type ID"
-    },
-    "target": {
-      "type": "string",
-      "oneOf": [
-        { "x-gts-ref": "gts.hai3.mfe.domain.v1~*" },
-        { "x-gts-ref": "gts.hai3.mfe.extension.v1~*" }
-      ],
-      "$comment": "Type ID of the target ExtensionDomain or Extension"
-    },
-    "payload": {
-      "type": "object",
-      "$comment": "Optional action payload"
-    }
-  },
-  "required": ["type", "target"]
-}
-```
-
-See `design/schemas.md` for complete JSON Schema definitions of all types.
+Each of the 8 core types and 2 MF-specific types has a corresponding JSON Schema with proper `$id`. See [design/schemas.md](./design/schemas.md) for complete JSON Schema definitions of all types.
 
 **Note on `registerSchema`:** The `registerSchema(schema)` method is for vendor/dynamic schemas only. The type ID is extracted from the schema's `$id` field - no need to pass it separately. First-class citizen schemas are built into the plugin and do not require registration.
 
@@ -243,198 +144,31 @@ For mounting to be valid, the entry must be compatible with the domain. See [Con
 
 ### Domain-Specific Extension Validation via Derived Types
 
-Instead of embedding domain-specific metadata in a separate `uiMeta` field, domain-specific fields are defined in **derived Extension schemas** directly:
-
-- `ExtensionDomain.extensionsTypeId` is an optional reference to a derived Extension type ID
-- If specified, extensions registered in this domain MUST use types that derive from `extensionsTypeId`
-- Validation uses GTS-native approach: `plugin.register(extension)` then `plugin.validateInstance(extension.id)` - all fields validated together
-- One additional check: `plugin.isTypeOf(extension.id, domain.extensionsTypeId)` verifies type hierarchy
-- If `extensionsTypeId` is not specified, extensions use the base Extension type
-- This eliminates the need for separate uiMeta entities and custom Ajv validation
-- See Decision 9 in `design/type-system.md` for implementation details
-
-**Benefits of derived Extension types:**
-1. **Simpler**: One entity (Extension) instead of two (Extension + uiMeta)
-2. **Native GTS validation**: All fields validated with `register()` + `validateInstance(instanceId)`
-3. **No parallel hierarchies**: Domains remain instances, not derived types
-4. **No Ajv dependency**: gts-ts uses Ajv internally - no direct Ajv dependency needed in MFE plugin
+Domain-specific fields are defined in **derived Extension schemas** directly (not a separate `uiMeta` field). `ExtensionDomain.extensionsTypeId` optionally references a derived Extension type; extensions must derive from it. Validation uses GTS-native `register()` + `validateInstance()` + `isTypeOf()`. See [Type System - Decision 9](./design/type-system.md#decision-9-domain-specific-extension-validation-via-derived-types) for details.
 
 ### Explicit Timeout Configuration
 
-Action timeouts are configured **explicitly in type definitions**, not as implicit code defaults. This ensures the platform is fully runtime-configurable and declarative.
-
-**Timeout Resolution:**
-```
-Effective timeout = action.timeout ?? domain.defaultActionTimeout
-On timeout: execute fallback chain if defined (same as any other failure)
-```
-
-- `ExtensionDomain.defaultActionTimeout` (REQUIRED): Default timeout in milliseconds for all actions targeting this domain
-- `Action.timeout` (optional): Override timeout for a specific action
-
-**Timeout as Failure**: Timeout is treated as just another failure case. The `ActionsChain.fallback` field handles all failures uniformly, including timeouts. There is no separate `fallbackOnTimeout` flag - the existing fallback mechanism provides complete failure handling.
-
-**Chain-level configuration** only includes `chainTimeout` (total chain execution limit), not individual action timeouts.
+`Effective timeout = action.timeout ?? domain.defaultActionTimeout`. Timeout is treated as failure (triggers `ActionsChain.fallback`). Chain-level `chainTimeout` limits total chain execution. See [MFE Actions - Timeout](./design/mfe-actions.md#explicit-timeout-configuration) for details.
 
 ### Actions Chain Runtime
 
-1. ActionsChainsMediator delivers actions chain to target (domain or entry)
-2. Target executes the action (only target understands payload based on action type)
-3. Action timeout is determined by: `action.timeout ?? domain.defaultActionTimeout`
-4. On success: mediator delivers `next` chain to its target
-5. On failure (including timeout): mediator delivers `fallback` chain if defined
-6. Recursive until chain ends (no next/fallback)
+ActionsChainsMediator delivers actions chains to targets. On success: executes `next` chain; on failure/timeout: executes `fallback` chain. Recurses until chain ends. See [MFE Actions - Mediation](./design/mfe-actions.md#actions-chain-mediation) for the execution flow diagram.
 
 ### Hierarchical Extension Domains
 
-Domains can exist at **any level** of the hierarchy, enabling nested composition:
-
-- **Host-level domains**: HAI3 provides base layout domains (`sidebar`, `popup`, `screen`, `overlay`)
-- **MFE-level domains**: Any MFE can define its own domains for nested extensions
-- **Recursive nesting**: An MFE can be both an extension (to its parent) AND a domain provider (for its children)
-
-```
-Host Application
-  └── Sidebar Domain (host's)
-        └── Dashboard MFE (extension to host, also defines domains)
-              └── Widget Slot Domain (MFE's own domain)
-                    └── Chart Widget MFE (nested extension)
-                    └── Table Widget MFE (nested extension)
-```
-
-Example: A dashboard screenset defines a "widget slot" domain for third-party widgets, while itself being an extension to the host's sidebar domain.
+Domains can exist at any level: host provides base layout domains (`sidebar`, `popup`, `screen`, `overlay`); MFEs can define their own domains for nested extensions; an MFE can be both extension and domain provider simultaneously. See [MFE Domain - Hierarchical Domains](./design/mfe-domain.md#hierarchical-extension-domains) for diagrams.
 
 ### DRY Principle for Extension Actions
 
-**Key Principle**: Extension lifecycle uses generic actions (`load_ext`, `unload_ext`) instead of domain-specific actions. This follows the DRY principle - each domain handles the same action according to its specific layout behavior.
+Extension lifecycle uses two generic actions for ALL domains:
+- `HAI3_ACTION_LOAD_EXT`: `gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1`
+- `HAI3_ACTION_UNLOAD_EXT`: `gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1`
 
-**Why NOT domain-specific actions:**
-- `show_popup`, `hide_popup`, `show_sidebar`, `hide_sidebar` are semantically the same - they load/unload extensions
-- Creating separate action types for each domain violates DRY
-- When adding new domains, you would need to create new action types
-- Each extension would need to know domain-specific action types
-
-**Generic Extension Actions:**
-```typescript
-// Only two action constants needed for ALL domains
-HAI3_ACTION_LOAD_EXT: 'gts.hai3.mfe.action.v1~hai3.mfe.actions.load_ext.v1~'
-HAI3_ACTION_UNLOAD_EXT: 'gts.hai3.mfe.action.v1~hai3.mfe.actions.unload_ext.v1~'
-
-// Action payload specifies target domain and extension
-interface LoadExtPayload {
-  domainTypeId: string;     // e.g., HAI3_POPUP_DOMAIN, HAI3_SIDEBAR_DOMAIN
-  extensionTypeId: string;  // the extension to load
-  // ... additional domain-specific params
-}
-```
-
-**Benefits:**
-1. **Single action type** works for popup, sidebar, screen, overlay, and custom domains
-2. **Domain handles layout semantics** - popup shows modal, sidebar shows panel, screen navigates
-3. **Extensible** - new domains automatically support load_ext/unload_ext
-4. **Simpler API** - MFE code only needs to know two action constants
-
-### Domain-Specific Action Support
-
-**Key Principle**: Not all domains can support all actions. Each domain declares which HAI3 actions it supports via its `actions` field.
-
-**Action Support by Domain:**
-- **Popup, Sidebar, Overlay**: Support BOTH `load_ext` and `unload_ext` (can be shown/hidden)
-- **Screen**: Only supports `load_ext` (you can navigate TO a screen, but cannot have "no screen selected")
-
-**Domain declares supported actions:**
-```typescript
-// Popup domain - supports both load and unload
-{
-  id: 'gts.hai3.mfe.domain.v1~hai3.screensets.layout.popup.v1',
-  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_UNLOAD_EXT],
-  // ...
-}
-
-// Screen domain - only supports load (navigate to)
-{
-  id: 'gts.hai3.mfe.domain.v1~hai3.screensets.layout.screen.v1',
-  actions: [HAI3_ACTION_LOAD_EXT],  // No unload - can't have "no screen"
-  // ...
-}
-```
-
-**Key Principles:**
-1. **`load_ext` is universal**: All domains MUST support `HAI3_ACTION_LOAD_EXT`
-2. **`unload_ext` is optional**: Some domains (like screen) cannot semantically support unloading
-3. **ActionsChainsMediator validates**: Before delivering an action, the mediator checks if the target domain supports it
-4. **Clear error on unsupported action**: `UnsupportedDomainActionError` is thrown when attempting an unsupported action
+Each domain handles these according to its layout semantics (popup shows modal, sidebar shows panel, screen navigates). Not all domains support all actions (e.g., screen only supports `load_ext`). The `ActionsChainsMediator` validates action support before delivery, throwing `UnsupportedDomainActionError` on mismatch.
 
 ### Dynamic Registration Model
 
-**Key Principle**: Extensions and MFEs are NOT known at app initialization time. They can be registered dynamically at any point during the application lifecycle.
-
-**ScreensetsRegistry** is the central registry for MFE screensets. Each MFE instance has its own ScreensetsRegistry (for instance-level isolation). It:
-- Registers extension domains (extension points where MFE instances can mount - can be at host level OR within an MFE)
-- Registers extensions (bindings between MFE entries and domains, each creating an isolated instance)
-- Registers MFE entries and manifests
-- Manages the Type System plugin for type validation and schema registry
-- Coordinates MFE loading and lifecycle
-
-**ScreensetsRegistry API:**
-```typescript
-interface ScreensetsRegistry {
-  // === Type System ===
-
-  /** The Type System plugin instance */
-  readonly typeSystem: TypeSystemPlugin;
-
-  // === Dynamic Registration (anytime during runtime) ===
-
-  /** Register domain dynamically - can be called at any time */
-  registerDomain(domain: ExtensionDomain): void;
-
-  /** Unregister domain dynamically */
-  unregisterDomain(domainId: string): void;
-
-  /** Register extension dynamically - can be called at any time */
-  registerExtension(extension: Extension): void;
-
-  /** Unregister extension dynamically */
-  unregisterExtension(extensionId: string): void;
-
-  // === Bundle Loading (MFE system responsibility) ===
-
-  /** Load MFE bundle on demand - fetches and initializes the JS bundle via MfeHandler */
-  loadExtension(extensionId: string): Promise<void>;
-
-  /** Preload MFE bundle for performance - fetches bundle without mounting */
-  preloadExtension(extensionId: string): Promise<void>;
-
-  // === Mounting (lifecycle) ===
-
-  /** Mount loaded extension to DOM container - extension must be loaded first */
-  mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge>;
-
-  /** Unmount extension from DOM */
-  unmountExtension(extensionId: string): Promise<void>;
-
-  // === Events ===
-
-  /** Subscribe to registry events */
-  on(event: string, callback: Function): void;
-
-  /** Unsubscribe from registry events */
-  off(event: string, callback: Function): void;
-}
-```
-
-**Load vs Mount Distinction:** Loading fetches the bundle; mounting renders to DOM. See [Load vs Mount](./design/registry-runtime.md#load-vs-mount) for the complete API documentation.
-
-**System Boundary:** Entity fetching is outside MFE system scope. See [System Boundary](./design/overview.md#system-boundary) for the distinction between fetching GTS entities and loading MFE bundles.
-
-**Use Cases for Dynamic Registration:**
-1. **Feature Flags**: Register extensions based on user feature flags fetched after login
-2. **Backend Configuration**: Application fetches GTS types and instances from backend API, then registers them
-3. **User Actions**: User enables/disables features at runtime (e.g., toggle a widget)
-4. **Lazy Loading**: Mount extensions on-demand when user navigates to specific screens
-5. **Hot-Swap**: Replace extension implementation at runtime (e.g., A/B testing)
-6. **Permission Changes**: Register/unregister extensions when user permissions change
+Extensions and MFEs are NOT known at app initialization time. `ScreensetsRegistry` handles dynamic registration at any point during the application lifecycle. Loading fetches the bundle; mounting renders to DOM. Entity fetching is outside MFE system scope. See [Registry Runtime - Decision 17](./design/registry-runtime.md#decision-17-dynamic-registration-model) for the complete API and [System Boundary](./design/overview.md#system-boundary) for scope.
 
 ## Impact
 
@@ -461,45 +195,7 @@ interface ScreensetsRegistry {
 
 ### Test File Location Convention
 
-Test files for the MFE implementation MUST follow the project's established test location pattern.
-
-**Affected Packages:**
-- `@hai3/screensets`: `packages/screensets/__tests__/mfe/...`
-- `@hai3/framework`: `packages/framework/__tests__/plugins/microfrontends/...`
-- `@hai3/react`: `packages/react/__tests__/mfe/...`
-
-**Rule**: Place test files in `packages/<package>/__tests__/`, NOT co-located inside `src/` subdirectories.
-
-**Rationale**: The ROOT `tsconfig.json` is used by `npm run type-check` (which is part of `npm run arch:check`). The root tsconfig has this exclude pattern:
-
-```json
-"exclude": ["packages/*/dist", "packages/*/__tests__", "packages/*/src/__tests__"]
-```
-
-This pattern only matches `__tests__` folders directly under `packages/*/` or `packages/*/src/`. It does NOT match deeply nested paths like `packages/screensets/src/mfe/validation/__tests__/`. While the package-level `packages/screensets/tsconfig.json` has `"exclude": ["**/__tests__/**"]`, it is NOT used during the global `npm run type-check` command.
-
-**Solution**: Move test files to follow the convention (rather than modifying the root tsconfig exclude patterns).
-
-**Directory Structure**: The directory structure under `__tests__/` should mirror the `src/mfe/` structure.
-
-**Examples:**
-
-| Source File | Test File Location |
-|-------------|-------------------|
-| `src/mfe/validation/contract.ts` | `__tests__/mfe/validation/contract.test.ts` |
-| `src/mfe/mediator/actions-chains-mediator.ts` | `__tests__/mfe/mediator/actions-chains-mediator.test.ts` |
-| `src/mfe/handler/mf-handler.ts` | `__tests__/mfe/handler/mf-handler.test.ts` |
-| `src/mfe/plugins/gts/gts-plugin.ts` | `__tests__/mfe/plugins/gts/gts-plugin.test.ts` |
-
-**Existing Test Files Requiring Migration:**
-The following test files currently violate this convention and must be moved:
-- `src/mfe/plugins/gts/__tests__/gts-plugin.test.ts` -> `__tests__/mfe/plugins/gts/gts-plugin.test.ts`
-- `src/mfe/validation/__tests__/contract.test.ts` -> `__tests__/mfe/validation/contract.test.ts`
-
-**Existing Project Patterns:**
-- `packages/framework/src/__tests__/` - directly under src (allowed by tsconfig exclude)
-- `packages/api/src/__tests__/` - directly under src (allowed by tsconfig exclude)
-- `packages/screensets/__tests__/runtime/` - at package root (Phase 4 pattern, preferred)
+Test files MUST be placed in `packages/<package>/__tests__/` (mirroring `src/mfe/` structure), NOT co-located inside `src/` subdirectories. The root `tsconfig.json` exclude pattern only matches `__tests__` directly under `packages/*/` or `packages/*/src/`, not deeply nested paths.
 
 ### Interface Changes
 

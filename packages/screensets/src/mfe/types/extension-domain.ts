@@ -10,7 +10,7 @@ import type { LifecycleHook } from './lifecycle';
 
 /**
  * Defines an extension point (domain) where MFEs can be mounted
- * GTS Type: gts.hai3.mfe.domain.v1~
+ * GTS Type: gts.hai3.mfes.ext.domain.v1~
  */
 export interface ExtensionDomain {
   /** The GTS type ID for this domain */

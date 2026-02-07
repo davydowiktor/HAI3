@@ -42,7 +42,7 @@ TYPE SYSTEM (GTS)                           HANDLER REGISTRY
 MfeEntry (abstract)                         MfeHandler (abstract class)
     |                                           |
     +-- MfeEntryMF                              +-- MfeHandlerMF
-    |   (thin, stable)                          |   handledBaseTypeId: ~hai3.mfe.entry_mf.*
+    |   (thin, stable)                          |   handledBaseTypeId: ~hai3.mfes.mfe.entry_mf.*
     |                                           |   bridgeFactory: MfeBridgeFactoryDefault
     |                                           |
     +-- MfeEntryAcme                            +-- MfeHandlerAcme
@@ -152,7 +152,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
   constructor(typeSystem: TypeSystemPlugin) {
     // Pass the base type ID this handler handles
-    super(typeSystem, 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~');
+    super(typeSystem, 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~');
     // ManifestCache is created internally - not passed in
     this.manifestCache = new ManifestCache();
   }
@@ -171,12 +171,8 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     return moduleFactory();
   }
 
-  private async resolveManifest(manifestRef: string | MfManifest): Promise<MfManifest> {
-    // If inline manifest object, use directly
-    if (typeof manifestRef !== 'string') {
-      return manifestRef;
-    }
-    // If type ID reference, check cache first
+  private async resolveManifest(manifestRef: string): Promise<MfManifest> {
+    // Check cache first
     const cached = this.manifestCache.getManifest(manifestRef);
     if (cached) {
       return cached;
@@ -198,7 +194,7 @@ class MfeHandlerAcme extends MfeHandler<MfeEntryAcme, ChildMfeBridgeAcme> {
   readonly bridgeFactory: MfeBridgeFactoryAcme;
 
   constructor(typeSystem: TypeSystemPlugin, router: Router, apiClient: ApiClient) {
-    super(typeSystem, 'gts.hai3.mfe.entry.v1~acme.corp.mfe.entry_acme.v1~', 100);
+    super(typeSystem, 'gts.hai3.mfes.mfe.entry.v1~acme.corp.mfe.entry_acme.v1~', 100);
     this.bridgeFactory = new MfeBridgeFactoryAcme(router, apiClient);
   }
 
@@ -247,6 +243,8 @@ class MfeHandlerRegistry {
    * Load an entry using the appropriate handler.
    */
   async load(entry: MfeEntry): Promise<MfeEntryLifecycle> {
+    // GTS instance IDs embed the schema ID prefix, so isTypeOf() within
+    // canHandle() can match entry.id against the handler's base type hierarchy.
     const handler = this.getHandler(entry.id);
     if (!handler) {
       throw new MfeLoadError(`No handler found for entry type`, entry.id);
@@ -306,11 +304,6 @@ interface MfeLoaderConfig {
   preload?: boolean;
 }
 
-interface MfeEntryLifecycle {
-  mount(container: HTMLElement, bridge: ChildMfeBridge): void;
-  unmount(container: HTMLElement): void;
-}
-
 /** @internal */
 interface LoadedMfeInternal {
   lifecycle: MfeEntryLifecycle;
@@ -343,7 +336,7 @@ class MfeLoader {
     if (typeof loadedModule.mount !== 'function' || typeof loadedModule.unmount !== 'function') {
       throw new MfeLoadError(
         `Module '${entry.exposedModule}' must implement MfeEntryLifecycle interface`,
-        []
+        entry.id
       );
     }
 
@@ -433,9 +426,9 @@ When `loadExtension()` is called for an extension referencing MfeEntryMF:
 // Application registers extension (manifest info is embedded in MfeEntryMF)
 // Extension using derived type that includes domain-specific fields
 runtime.registerExtension({
-  id: 'gts.hai3.mfe.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1',
-  domain: 'gts.hai3.mfe.domain.v1~hai3.screensets.layout.screen.v1',
-  entry: 'gts.hai3.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+  id: 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1',
+  domain: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1',
+  entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   // Domain-specific fields from derived Extension type (no uiMeta wrapper)
   title: 'Analytics Dashboard',
 });

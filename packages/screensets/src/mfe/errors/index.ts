@@ -7,6 +7,7 @@
  */
 
 import type { ValidationError } from '../plugins/types';
+import type { Action, ActionsChain } from '../types';
 
 /**
  * Contract validation error details
@@ -79,12 +80,13 @@ export class ExtensionTypeError extends MfeError {
 export class ChainExecutionError extends MfeError {
   constructor(
     message: string,
-    public readonly failedActionType: string,
+    public readonly chain: ActionsChain,
+    public readonly failedAction: Action,
     public readonly executedPath: string[],
     public readonly cause?: Error
   ) {
     super(
-      `Actions chain execution failed at '${failedActionType}': ${message}`,
+      `Actions chain execution failed at '${failedAction.type}': ${message}`,
       'CHAIN_EXECUTION_ERROR'
     );
     this.name = 'ChainExecutionError';

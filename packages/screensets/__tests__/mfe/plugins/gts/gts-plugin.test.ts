@@ -14,13 +14,13 @@ describe('GTS Plugin', () => {
     const plugin = createGtsPlugin();
 
     it('accepts base type ID', () => {
-      const result = plugin.isValidTypeId('gts.hai3.screensets.mfe.entry.v1~');
+      const result = plugin.isValidTypeId('gts.hai3.mfes.mfe.entry.v1~');
       expect(result).toBe(true);
     });
 
     it('accepts derived type ID', () => {
       const result = plugin.isValidTypeId(
-        'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~'
+        'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~'
       );
       expect(result).toBe(true);
     });
@@ -35,17 +35,17 @@ describe('GTS Plugin', () => {
     const plugin = createGtsPlugin();
 
     it('rejects missing gts prefix', () => {
-      const result = plugin.isValidTypeId('hai3.screensets.mfe.entry.v1~');
+      const result = plugin.isValidTypeId('hai3.mfes.mfe.entry.v1~');
       expect(result).toBe(false);
     });
 
     it('rejects missing tilde', () => {
-      const result = plugin.isValidTypeId('gts.hai3.screensets.mfe.entry.v1');
+      const result = plugin.isValidTypeId('gts.hai3.mfe.entry.v1');
       expect(result).toBe(false);
     });
 
     it('rejects missing version', () => {
-      const result = plugin.isValidTypeId('gts.hai3.screensets.mfe.entry~');
+      const result = plugin.isValidTypeId('gts.hai3.mfe.entry~');
       expect(result).toBe(false);
     });
 
@@ -59,9 +59,9 @@ describe('GTS Plugin', () => {
     const plugin = createGtsPlugin();
 
     it('parses base type ID', () => {
-      const result = plugin.parseTypeId('gts.hai3.screensets.mfe.entry.v1~');
+      const result = plugin.parseTypeId('gts.hai3.mfes.mfe.entry.v1~');
       expect(result.vendor).toBe('hai3');
-      expect(result.package).toBe('screensets');
+      expect(result.package).toBe('mfes');
       expect(result.namespace).toBe('mfe');
       expect(result.type).toBe('entry');
       expect(result.verMajor).toBe(1);
@@ -69,10 +69,10 @@ describe('GTS Plugin', () => {
 
     it('parses derived type ID with multiple segments', () => {
       const result = plugin.parseTypeId(
-        'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~'
+        'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~'
       );
       expect(result.vendor).toBe('hai3');
-      expect(result.package).toBe('screensets');
+      expect(result.package).toBe('mfes');
       expect(result.namespace).toBe('mfe');
       expect(result.type).toBe('entry');
       expect(result.verMajor).toBe(1);
@@ -94,7 +94,7 @@ describe('GTS Plugin', () => {
     it('has all core schemas registered', () => {
       const schema = plugin.getSchema(HAI3_CORE_TYPE_IDS.mfeEntry);
       expect(schema).toBeDefined();
-      expect(schema?.$id).toBe('gts://gts.hai3.screensets.mfe.entry.v1~');
+      expect(schema?.$id).toBe('gts://gts.hai3.mfes.mfe.entry.v1~');
     });
 
     it('validates instance with required fields', () => {
@@ -102,7 +102,7 @@ describe('GTS Plugin', () => {
       // 1. Register the instance
       // 2. Validate by instance ID only
       const instance = {
-        id: 'gts.hai3.screensets.mfe.entry.v1~test.app.mfe.test_entry.v1',
+        id: 'gts.hai3.mfes.mfe.entry.v1~test.app.mfe.test_entry.v1',
         requiredProperties: [],
         actions: [],
         domainActions: [],
@@ -120,7 +120,7 @@ describe('GTS Plugin', () => {
       // 1. Register the instance
       // 2. Validate by instance ID only
       const instance = {
-        id: 'gts.hai3.screensets.mfe.entry.v1~test.app.mfe.invalid_entry.v1',
+        id: 'gts.hai3.mfes.mfe.entry.v1~test.app.mfe.invalid_entry.v1',
         requiredProperties: [],
         // Missing: actions, domainActions
       };
@@ -156,10 +156,10 @@ describe('GTS Plugin', () => {
     const plugin = createGtsPlugin();
 
     it('queries extension types', () => {
-      const results = plugin.query('gts.hai3.screensets.ext.*');
+      const results = plugin.query('gts.hai3.mfes.*');
       expect(results.length).toBeGreaterThan(0);
-      expect(results).toContain('gts.hai3.screensets.ext.domain.v1~');
-      expect(results).toContain('gts.hai3.screensets.ext.extension.v1~');
+      expect(results).toContain('gts.hai3.mfes.ext.domain.v1~');
+      expect(results).toContain('gts.hai3.mfes.ext.extension.v1~');
     });
 
     it('queries with limit', () => {
@@ -178,8 +178,8 @@ describe('GTS Plugin', () => {
 
     it('same version is compatible', () => {
       const result = plugin.checkCompatibility(
-        'gts.hai3.screensets.mfe.entry.v1~',
-        'gts.hai3.screensets.mfe.entry.v1~'
+        'gts.hai3.mfes.mfe.entry.v1~',
+        'gts.hai3.mfes.mfe.entry.v1~'
       );
       expect(result.compatible).toBe(true);
       expect(result.breaking).toBe(false);
@@ -188,8 +188,8 @@ describe('GTS Plugin', () => {
 
     it('major version change is breaking', () => {
       const result = plugin.checkCompatibility(
-        'gts.hai3.screensets.mfe.entry.v1~',
-        'gts.hai3.screensets.mfe.entry.v2~'
+        'gts.hai3.mfes.mfe.entry.v1~',
+        'gts.hai3.mfes.mfe.entry.v2~'
       );
       expect(result.compatible).toBe(false);
       expect(result.breaking).toBe(true);
@@ -198,8 +198,8 @@ describe('GTS Plugin', () => {
 
     it('different types are incompatible', () => {
       const result = plugin.checkCompatibility(
-        'gts.hai3.screensets.mfe.entry.v1~',
-        'gts.hai3.screensets.ext.domain.v1~'
+        'gts.hai3.mfes.mfe.entry.v1~',
+        'gts.hai3.mfes.ext.domain.v1~'
       );
       expect(result.compatible).toBe(false);
       expect(result.breaking).toBe(true);
@@ -210,9 +210,9 @@ describe('GTS Plugin', () => {
     const plugin = createGtsPlugin();
 
     it('resolves properties from domain schema', () => {
-      const result = plugin.getAttribute(HAI3_CORE_TYPE_IDS.extensionDomain, 'properties.extensionsUiMeta');
+      const result = plugin.getAttribute(HAI3_CORE_TYPE_IDS.extensionDomain, 'properties.extensionsTypeId');
       expect(result.typeId).toBe(HAI3_CORE_TYPE_IDS.extensionDomain);
-      expect(result.path).toBe('properties.extensionsUiMeta');
+      expect(result.path).toBe('properties.extensionsTypeId');
       // getAttribute may return the schema definition or undefined
       // The important part is testing the API contract
     });
@@ -245,32 +245,32 @@ describe('GTS Plugin', () => {
 
     it('same type returns true', () => {
       const result = plugin.isTypeOf(
-        'gts.hai3.screensets.mfe.entry.v1~',
-        'gts.hai3.screensets.mfe.entry.v1~'
+        'gts.hai3.mfes.mfe.entry.v1~',
+        'gts.hai3.mfes.mfe.entry.v1~'
       );
       expect(result).toBe(true);
     });
 
     it('derived type returns true for base type', () => {
       const result = plugin.isTypeOf(
-        'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~',
-        'gts.hai3.screensets.mfe.entry.v1~'
+        'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
+        'gts.hai3.mfes.mfe.entry.v1~'
       );
       expect(result).toBe(true);
     });
 
     it('base type returns false for derived type', () => {
       const result = plugin.isTypeOf(
-        'gts.hai3.screensets.mfe.entry.v1~',
-        'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~'
+        'gts.hai3.mfes.mfe.entry.v1~',
+        'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~'
       );
       expect(result).toBe(false);
     });
 
     it('different types return false', () => {
       const result = plugin.isTypeOf(
-        'gts.hai3.screensets.ext.domain.v1~',
-        'gts.hai3.screensets.mfe.entry.v1~'
+        'gts.hai3.mfes.ext.domain.v1~',
+        'gts.hai3.mfes.mfe.entry.v1~'
       );
       expect(result).toBe(false);
     });
