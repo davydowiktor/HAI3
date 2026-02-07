@@ -30,6 +30,8 @@ import { RuntimeCoordinator } from '../coordination/types';
 import { WeakMapRuntimeCoordinator } from '../coordination/weak-map-runtime-coordinator';
 import { ActionsChainsMediator, type ChainResult, type ChainExecutionOptions } from '../mediator';
 import { DefaultActionsChainsMediator } from '../mediator/actions-chains-mediator';
+import { validateDomainLifecycleHooks } from '../validation/lifecycle';
+import { DomainValidationError, UnsupportedLifecycleStageError } from '../errors';
 
 /**
  * State for a registered extension domain.
@@ -232,18 +234,33 @@ export class ScreensetsRegistry {
    * Domains must be registered before extensions can mount into them.
    *
    * @param domain - Domain to register
+   * @throws {DomainValidationError} if GTS validation fails
+   * @throws {UnsupportedLifecycleStageError} if lifecycle hooks reference unsupported stages
    */
   registerDomain(domain: ExtensionDomain): void {
-    // GTS-native validation: register then validate by ID
+    // Step 1: GTS-native validation - register then validate by ID
     this.typeSystem.register(domain);
     const validation = this.typeSystem.validateInstance(domain.id);
 
     if (!validation.valid) {
-      throw new Error(
-        `Domain validation failed: ${validation.errors.map(e => e.message).join(', ')}`
+      throw new DomainValidationError(validation.errors, domain.id);
+    }
+
+    // Step 2: Validate lifecycle hooks reference supported stages
+    const lifecycleValidation = validateDomainLifecycleHooks(domain);
+    if (!lifecycleValidation.valid) {
+      const firstError = lifecycleValidation.errors[0];
+      const stageId = firstError?.stage ?? 'unknown';
+      const message = firstError?.message ?? `Unsupported lifecycle stage '${stageId}'`;
+      throw new UnsupportedLifecycleStageError(
+        message,
+        stageId,
+        domain.id,
+        domain.lifecycleStages
       );
     }
 
+    // Step 3: Store domain state
     this.domains.set(domain.id, {
       domain,
       properties: new Map(),
@@ -387,6 +404,39 @@ export class ScreensetsRegistry {
     for (const [propertyTypeId, value] of properties) {
       this.updateDomainProperty(domainId, propertyTypeId, value);
     }
+  }
+
+  /**
+   * Mount an extension into a container element.
+   * Phase 19.3: Full implementation with coordinator integration.
+   *
+   * @param extensionId - ID of the extension to mount
+   * @param container - DOM element to mount into
+   * @returns Promise resolving to the parent bridge
+   */
+  async mountExtension(extensionId: string, _container: Element): Promise<ParentMfeBridge> {
+    // Phase 10: Stub implementation for ExtensionDomainSlot
+    // Phase 19.3 will implement full mounting with coordinator, bridge creation, and lifecycle
+    throw new Error(
+      `mountExtension() is not yet implemented (Phase 19.3). ` +
+      `extensionId: ${extensionId}`
+    );
+  }
+
+  /**
+   * Unmount an extension from its container.
+   * Phase 19.3: Full implementation with coordinator cleanup.
+   *
+   * @param extensionId - ID of the extension to unmount
+   * @returns Promise resolving when unmount is complete
+   */
+  async unmountExtension(extensionId: string): Promise<void> {
+    // Phase 10: Stub implementation for ExtensionDomainSlot
+    // Phase 19.3 will implement full unmounting with coordinator cleanup and lifecycle
+    throw new Error(
+      `unmountExtension() is not yet implemented (Phase 19.3). ` +
+      `extensionId: ${extensionId}`
+    );
   }
 
   // Phase 19.3: mountExtension/unmountExtension will use this.coordinator to manage

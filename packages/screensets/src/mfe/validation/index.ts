@@ -17,3 +17,10 @@ export {
 
 // Extension type validation (replaces uiMeta validation)
 export { validateExtensionType } from './extension-type';
+
+// Lifecycle validation
+export {
+  validateDomainLifecycleHooks,
+  validateExtensionLifecycleHooks,
+  type LifecycleValidationResult,
+} from './lifecycle';
