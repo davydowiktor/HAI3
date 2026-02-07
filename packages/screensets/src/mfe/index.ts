@@ -51,14 +51,14 @@ export {
 } from './runtime';
 export type { ScreensetsRegistryConfig } from './runtime';
 
-// Handler Types
+// Handler Types and Implementations
 export type {
   ParentMfeBridge,
+  ChildMfeBridge,
   MfeEntryLifecycle,
-  LoadedMfe,
-  MfeBridgeFactory,
-  MfeHandler,
 } from './handler/types';
+export { MfeBridgeFactory, MfeHandler } from './handler/types';
+export { MfeHandlerMF, MfeBridgeFactoryDefault, ChildMfeBridgeImpl } from './handler';
 
 // Runtime Coordination (abstract class and interface only - concrete implementation is internal)
 export { RuntimeCoordinator } from './coordination/types';
@@ -95,6 +95,10 @@ export {
   UnsupportedDomainActionError,
   UnsupportedLifecycleStageError,
 } from './errors';
+
+// Error Handling Utilities (separate export to avoid circular dependency)
+export { MfeErrorHandler, RetryHandler } from './errors/error-handler';
+export type { ErrorHandlerConfig } from './errors/error-handler';
 
 // NOTE: State Container Factory, Shared Properties Provider, and Runtime Coordination
 // are INTERNAL implementation details of ScreensetsRegistry and are NOT publicly exported.

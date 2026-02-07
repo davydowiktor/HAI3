@@ -189,3 +189,7 @@ export class UnsupportedLifecycleStageError extends MfeError {
     this.name = 'UnsupportedLifecycleStageError';
   }
 }
+
+// NOTE: MfeErrorHandler, RetryHandler, and ErrorHandlerConfig are NOT re-exported here
+// to avoid circular dependency (error-handler.ts imports from this file).
+// Import them directly from '@hai3/screensets' or from './error-handler'.

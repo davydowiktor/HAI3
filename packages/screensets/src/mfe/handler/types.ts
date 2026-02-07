@@ -20,6 +20,16 @@ export interface ParentMfeBridge {
 }
 
 /**
+ * Child MFE Bridge interface.
+ * Provided to child MFEs for communication with the host.
+ */
+export interface ChildMfeBridge {
+  readonly domainId: string;
+  readonly entryTypeId: string;
+  readonly instanceId: string;
+}
+
+/**
  * MFE lifecycle interface.
  * All MFE entries must implement this interface.
  */
@@ -41,24 +51,10 @@ export interface MfeEntryLifecycle<TBridge = ParentMfeBridge> {
 }
 
 /**
- * Result of loading an MFE bundle.
- */
-export interface LoadedMfe {
-  /** The lifecycle interface for the loaded MFE */
-  lifecycle: MfeEntryLifecycle;
-
-  /** The entry that was loaded */
-  entry: MfeEntry;
-
-  /** Unload the MFE bundle (cleanup) */
-  unload(): void | Promise<void>;
-}
-
-/**
  * Abstract factory for creating bridge instances.
  * Different handlers can provide different bridge implementations.
  */
-export abstract class MfeBridgeFactory<TBridge = unknown> {
+export abstract class MfeBridgeFactory<TBridge extends ChildMfeBridge = ChildMfeBridge> {
   /**
    * Create a bridge instance for an MFE.
    *
@@ -72,6 +68,13 @@ export abstract class MfeBridgeFactory<TBridge = unknown> {
     entryTypeId: string,
     instanceId: string
   ): TBridge;
+
+  /**
+   * Dispose a bridge and clean up resources.
+   *
+   * @param bridge - Bridge instance to dispose
+   */
+  abstract dispose(bridge: TBridge): void;
 }
 
 /**
@@ -83,7 +86,7 @@ export abstract class MfeBridgeFactory<TBridge = unknown> {
  * - Creating bridge instances
  * - Optionally preloading bundles
  */
-export abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge = unknown> {
+export abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge extends ChildMfeBridge = ChildMfeBridge> {
   /**
    * Bridge factory for creating bridge instances.
    */
@@ -93,14 +96,14 @@ export abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge = u
    * Base type ID that this handler can handle.
    * Handlers match entries using type hierarchy (isTypeOf).
    */
-  abstract readonly handledBaseTypeId: string;
+  readonly handledBaseTypeId: string;
 
   /**
    * Priority for handler selection.
    * Higher priority handlers are tried first.
    * Default: 0
    */
-  readonly priority?: number;
+  readonly priority: number;
 
   /**
    * Type system plugin instance.
@@ -108,8 +111,14 @@ export abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge = u
    */
   protected readonly typeSystem: TypeSystemPlugin;
 
-  constructor(typeSystem: TypeSystemPlugin) {
+  constructor(
+    typeSystem: TypeSystemPlugin,
+    handledBaseTypeId: string,
+    priority: number = 0
+  ) {
     this.typeSystem = typeSystem;
+    this.handledBaseTypeId = handledBaseTypeId;
+    this.priority = priority;
   }
 
   /**
@@ -126,16 +135,16 @@ export abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge = u
    * Load an MFE bundle.
    *
    * @param entry - The entry to load
-   * @returns Promise resolving to loaded MFE
+   * @returns Promise resolving to MFE lifecycle interface
    */
-  abstract load(entry: TEntry): Promise<LoadedMfe>;
+  abstract load(entry: TEntry): Promise<MfeEntryLifecycle>;
 
   /**
-   * Optional preload method for batch optimization.
-   * If not implemented, preload falls back to load.
+   * Preload MFE bundles for faster mounting.
+   * Batches container preloading for multiple entries.
    *
-   * @param entry - The entry to preload
+   * @param entries - The entries to preload
    * @returns Promise resolving when preload is complete
    */
-  preload?(entry: TEntry): Promise<void>;
+  abstract preload(entries: TEntry[]): Promise<void>;
 }

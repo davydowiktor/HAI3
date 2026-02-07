@@ -2,7 +2,7 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 10 COMPLETE
+**Current Status**: Phase 11 COMPLETE
 
 ---
 
@@ -619,31 +619,31 @@ packages/screensets/src/mfe/gts/
 
 **Goal**: Implement MFE bundle loading with error handling.
 
+**Status**: COMPLETE ✓
+
 ### 11.1 MFE Handler and Bridge Factory
 
-> **Note**: The current `MfeHandler` in `packages/screensets/src/mfe/handler/types.ts` is a partial stub from Phase 3.
-> Its constructor only takes `typeSystem` (no `handledBaseTypeId` or `priority` parameters) and `handledBaseTypeId`/`priority`
-> are declared as abstract/optional properties rather than constructor parameters. Phase 11.1 will complete the handler
-> to match the full design in `mfe-loading.md` Decision 10, where the constructor takes
-> `(typeSystem, handledBaseTypeId, priority)`. This is intentionally incomplete until Phase 11.
+> **Note**: Phase 11.1 completed the handler to match the full design in `mfe-loading.md` Decision 10,
+> where the constructor takes `(typeSystem, handledBaseTypeId, priority)`. Generic constraints updated
+> to `TBridge extends ChildMfeBridge = ChildMfeBridge` per design spec.
 
-- [ ] 11.1.1 Implement `MfeBridgeFactory` abstract class in `packages/screensets/src/mfe/handler/types.ts`
-- [ ] 11.1.2 Implement `MfeBridgeFactoryDefault` class that creates thin bridges
-- [ ] 11.1.3 Implement `MfeHandler` abstract class with `canHandle()`, `bridgeFactory`, `handledBaseTypeId`
-- [ ] 11.1.4 Implement `MfeHandlerMF` class extending `MfeHandler`
-- [ ] 11.1.5 Implement `load(entry: MfeEntryMF)` method in `MfeHandlerMF`
-- [ ] 11.1.6 Implement manifest resolution and caching in `MfeHandlerMF`
-- [ ] 11.1.7 Implement Module Federation container loading
-- [ ] 11.1.8 Implement `preload(entry)` method in `MfeHandlerMF`
+- [x] 11.1.1 Implement `MfeBridgeFactory` abstract class in `packages/screensets/src/mfe/handler/types.ts`
+- [x] 11.1.2 Implement `MfeBridgeFactoryDefault` class that creates thin bridges (`mf-handler.ts`)
+- [x] 11.1.3 Implement `MfeHandler` abstract class with `canHandle()`, `bridgeFactory`, `handledBaseTypeId`
+- [x] 11.1.4 Implement `MfeHandlerMF` class extending `MfeHandler` (`mf-handler.ts`)
+- [x] 11.1.5 Implement `load(entry: MfeEntryMF)` method in `MfeHandlerMF`
+- [x] 11.1.6 Implement manifest resolution and caching in `MfeHandlerMF` (internal `ManifestCache` class)
+- [x] 11.1.7 Implement Module Federation container loading with runtime get/init validation
+- [x] 11.1.8 Implement `preload(entries)` method in `MfeHandlerMF` (array signature per design doc)
 
 **Traceability**: Requirement "MFE Loading via MfeEntryMF and MfManifest"
 
 ### 11.2 Error Handling
 
-- [ ] 11.2.1 Implement fallback UI for load failures
-- [ ] 11.2.2 Implement retry mechanism
-- [ ] 11.2.3 Implement contract validation error display with type ID context
-- [ ] 11.2.4 Implement action handler error logging with plugin details
+- [x] 11.2.1 Implement fallback UI for load failures (`MfeErrorHandler.renderLoadFailure`)
+- [x] 11.2.2 Implement retry mechanism (`RetryHandler` with exponential backoff + `MfeHandlerMF.loadWithRetry`)
+- [x] 11.2.3 Implement contract validation error display with type ID context
+- [x] 11.2.4 Implement action handler error logging with plugin details (`MfeErrorHandler.logActionHandlerError`)
 
 **Traceability**: Requirement "MFE Error Handling" - all error scenarios
 
@@ -651,10 +651,10 @@ packages/screensets/src/mfe/gts/
 
 **Test file**: `packages/screensets/__tests__/mfe/errors/error-handling.test.ts`
 
-- [ ] 11.3.1 Test bundle load failure scenario
-- [ ] 11.3.2 Test contract validation failure at load time
-- [ ] 11.3.3 Test action handler error scenario
-- [ ] 11.3.4 Test retry functionality
+- [x] 11.3.1 Test bundle load failure scenario
+- [x] 11.3.2 Test contract validation failure at load time
+- [x] 11.3.3 Test action handler error scenario
+- [x] 11.3.4 Test retry functionality
 
 **Traceability**: Requirement "MFE Error Handling" - all scenarios
 
