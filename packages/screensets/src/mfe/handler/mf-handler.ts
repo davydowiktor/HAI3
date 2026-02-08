@@ -17,6 +17,7 @@ import {
 } from './types';
 import { MfeLoadError } from '../errors';
 import { RetryHandler } from '../errors/error-handler';
+import { ChildMfeBridgeImpl } from '../bridge/ChildMfeBridge';
 
 /**
  * Module Federation container interface.
@@ -65,35 +66,16 @@ class ManifestCache {
 }
 
 /**
- * Default child bridge implementation.
- * Minimal bridge with just identity information.
+ * Default bridge factory - creates ChildMfeBridgeImpl instances.
+ * Uses the concrete ChildMfeBridgeImpl class to avoid unsafe casts.
  */
-class ChildMfeBridgeImpl implements ChildMfeBridge {
-  constructor(
-    public readonly domainId: string,
-    public readonly entryTypeId: string,
-    public readonly instanceId: string
-  ) {}
-
-  /**
-   * Cleanup method called by bridge factory.
-   * @internal
-   */
-  cleanup(): void {
-    // Minimal cleanup - extended bridges may override
-  }
-}
-
-/**
- * Default bridge factory - creates minimal ChildMfeBridge instances.
- */
-class MfeBridgeFactoryDefault extends MfeBridgeFactory<ChildMfeBridge> {
-  create(domainId: string, entryTypeId: string, instanceId: string): ChildMfeBridge {
+class MfeBridgeFactoryDefault extends MfeBridgeFactory<ChildMfeBridgeImpl> {
+  create(domainId: string, entryTypeId: string, instanceId: string): ChildMfeBridgeImpl {
     return new ChildMfeBridgeImpl(domainId, entryTypeId, instanceId);
   }
 
-  dispose(bridge: ChildMfeBridge): void {
-    (bridge as ChildMfeBridgeImpl).cleanup();
+  dispose(bridge: ChildMfeBridgeImpl): void {
+    bridge.cleanup();
   }
 }
 
@@ -322,4 +304,4 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   }
 }
 
-export { MfeHandlerMF, MfeBridgeFactoryDefault, ChildMfeBridgeImpl };
+export { MfeHandlerMF, MfeBridgeFactoryDefault };

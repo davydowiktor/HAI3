@@ -13,4 +13,4 @@ export type {
 export { MfeBridgeFactory, MfeHandler } from './types';
 
 // Concrete implementations (public API)
-export { MfeHandlerMF, MfeBridgeFactoryDefault, ChildMfeBridgeImpl } from './mf-handler';
+export { MfeHandlerMF, MfeBridgeFactoryDefault } from './mf-handler';

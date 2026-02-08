@@ -58,7 +58,10 @@ export type {
   MfeEntryLifecycle,
 } from './handler/types';
 export { MfeBridgeFactory, MfeHandler } from './handler/types';
-export { MfeHandlerMF, MfeBridgeFactoryDefault, ChildMfeBridgeImpl } from './handler';
+export { MfeHandlerMF, MfeBridgeFactoryDefault } from './handler';
+
+// Bridge Implementations
+export { ChildMfeBridgeImpl, ParentMfeBridgeImpl } from './bridge';
 
 // Runtime Coordination (abstract class and interface only - concrete implementation is internal)
 export { RuntimeCoordinator } from './coordination/types';

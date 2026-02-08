@@ -406,6 +406,8 @@ export class ScreensetsRegistry {
     }
   }
 
+  // NOTE: Bridge factory is in ./bridge-factory.ts (used by Phase 19.3 mountExtension)
+
   /**
    * Load an extension bundle (Phase 19 stub).
    * Phase 19.1: Full implementation with MfeHandler integration.

@@ -8,14 +8,42 @@
  */
 
 import type { TypeSystemPlugin } from '../plugins/types';
-import type { MfeEntry } from '../types';
+import type { MfeEntry, ActionsChain, SharedProperty } from '../types';
+import type { ChainResult, ChainExecutionOptions } from '../mediator/types';
 
 /**
  * Parent MFE Bridge interface.
  * Used by the parent runtime to manage child MFE instances.
- * Full implementation will come in Phase 15.
  */
 export interface ParentMfeBridge {
+  /**
+   * Send an actions chain to the child MFE.
+   *
+   * @param chain - Actions chain to send
+   * @param options - Optional execution options
+   * @returns Promise resolving to chain result
+   */
+  sendActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+
+  /**
+   * Register a handler for actions sent from the child to the host.
+   *
+   * @param callback - Handler for child actions
+   */
+  onChildAction(callback: (chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>): void;
+
+  /**
+   * Receive a property update from the host domain.
+   * Called by ScreensetsRegistry when domain property updates.
+   *
+   * @param propertyTypeId - Type ID of the property
+   * @param value - New property value
+   */
+  receivePropertyUpdate(propertyTypeId: string, value: unknown): void;
+
+  /**
+   * Dispose the bridge and clean up resources.
+   */
   dispose(): void;
 }
 
@@ -27,6 +55,40 @@ export interface ChildMfeBridge {
   readonly domainId: string;
   readonly entryTypeId: string;
   readonly instanceId: string;
+
+  /**
+   * Send an actions chain to the host domain.
+   *
+   * @param chain - Actions chain to send
+   * @param options - Optional execution options
+   * @returns Promise resolving to chain result
+   */
+  sendActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+
+  /**
+   * Subscribe to a specific property's updates.
+   *
+   * @param propertyTypeId - Type ID of the property to subscribe to
+   * @param callback - Callback invoked when property updates
+   * @returns Unsubscribe function
+   */
+  subscribeToProperty(propertyTypeId: string, callback: (value: SharedProperty) => void): () => void;
+
+  /**
+   * Get a property's current value synchronously.
+   *
+   * @param propertyTypeId - Type ID of the property to get
+   * @returns Current property value, or undefined if not set
+   */
+  getProperty(propertyTypeId: string): SharedProperty | undefined;
+
+  /**
+   * Subscribe to all property updates.
+   *
+   * @param callback - Callback invoked for any property update
+   * @returns Unsubscribe function
+   */
+  subscribeToAllProperties(callback: (propertyTypeId: string, value: SharedProperty) => void): () => void;
 }
 
 /**
