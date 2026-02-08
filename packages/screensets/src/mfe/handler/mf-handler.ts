@@ -182,19 +182,56 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
   /**
    * Resolve manifest from reference.
-   * Checks cache first, then throws if not found.
+   * Supports both inline manifest objects and type ID references.
    */
-  private async resolveManifest(manifestRef: string): Promise<MfManifest> {
-    // Check cache first
-    const cached = this.manifestCache.getManifest(manifestRef);
-    if (cached) {
-      return cached;
+  private async resolveManifest(manifestRef: string | MfManifest): Promise<MfManifest> {
+    // If manifestRef is an object (inline manifest), validate and use it
+    if (typeof manifestRef === 'object' && manifestRef !== null) {
+      const manifest = manifestRef as MfManifest;
+
+      // Validate required fields
+      if (!manifest.id || typeof manifest.id !== 'string') {
+        throw new MfeLoadError(
+          'Inline manifest must have a valid "id" field',
+          'inline-manifest'
+        );
+      }
+      if (!manifest.remoteEntry || typeof manifest.remoteEntry !== 'string') {
+        throw new MfeLoadError(
+          `Inline manifest '${manifest.id}' must have a valid "remoteEntry" field`,
+          manifest.id
+        );
+      }
+      if (!manifest.remoteName || typeof manifest.remoteName !== 'string') {
+        throw new MfeLoadError(
+          `Inline manifest '${manifest.id}' must have a valid "remoteName" field`,
+          manifest.id
+        );
+      }
+
+      // Cache the inline manifest for reuse
+      this.manifestCache.cacheManifest(manifest);
+      return manifest;
     }
 
-    // Manifest must be provided inline or already cached from previous entry
+    // If manifestRef is a string (type ID), check cache
+    if (typeof manifestRef === 'string') {
+      const cached = this.manifestCache.getManifest(manifestRef);
+      if (cached) {
+        return cached;
+      }
+
+      // Manifest must be provided inline or already cached from previous entry
+      throw new MfeLoadError(
+        `Manifest '${manifestRef}' not found. Provide manifest inline in MfeEntryMF or ensure another entry from the same remote was loaded first.`,
+        manifestRef
+      );
+    }
+
+    // Invalid manifest reference type
     throw new MfeLoadError(
-      `Manifest '${manifestRef}' not found. Provide manifest inline in MfeEntryMF or ensure another entry from the same remote was loaded first.`,
-      manifestRef
+      'Manifest reference must be a string (type ID) or MfManifest object',
+      'invalid-manifest-ref'
     );
   }
 

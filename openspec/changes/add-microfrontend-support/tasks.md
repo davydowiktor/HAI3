@@ -2,7 +2,7 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 16 COMPLETE
+**Current Status**: Phase 17 COMPLETE
 
 ---
 
@@ -946,25 +946,27 @@ packages/screensets/src/mfe/gts/
 
 ---
 
-## Phase 17: MFE Handler Internal Caching
+## Phase 17: MFE Handler Internal Caching ✓
 
 **Goal**: Implement internal caching for MfeHandlerMF. MfManifest is internal to MfeHandlerMF. See [Manifest as Internal Implementation Detail](./design/mfe-loading.md#decision-12).
 
+**Status**: COMPLETE
+
 ### 17.1 Internal ManifestCache (MfeHandlerMF only)
 
-- [ ] 17.1.1 Create internal `ManifestCache` class within `packages/screensets/src/mfe/handler/mf-handler.ts`
-- [ ] 17.1.2 Implement in-memory manifest caching for reuse across entries
-- [ ] 17.1.3 Implement container caching per remoteName
-- [ ] 17.1.4 Cache manifests resolved from MfeEntryMF during load
+- [x] 17.1.1 Create internal `ManifestCache` class within `packages/screensets/src/mfe/handler/mf-handler.ts`
+- [x] 17.1.2 Implement in-memory manifest caching for reuse across entries
+- [x] 17.1.3 Implement container caching per remoteName
+- [x] 17.1.4 Cache manifests resolved from MfeEntryMF during load
 
 **Traceability**: Design Decision 12 in mfe-loading.md
 
 ### 17.2 MfeHandlerMF Manifest Resolution
 
-- [ ] 17.2.1 Implement manifest resolution from MfeEntryMF.manifest field
-- [ ] 17.2.2 Support manifest as inline object OR type ID reference
-- [ ] 17.2.3 Cache resolved manifests for entries from same remote
-- [ ] 17.2.4 Clear error messaging if manifest resolution fails
+- [x] 17.2.1 Implement manifest resolution from MfeEntryMF.manifest field
+- [x] 17.2.2 Support manifest as inline object OR type ID reference
+- [x] 17.2.3 Cache resolved manifests for entries from same remote
+- [x] 17.2.4 Clear error messaging if manifest resolution fails
 
 **Traceability**: Requirement "MFE Loading via MfeEntryMF and MfManifest"
 
@@ -972,10 +974,10 @@ packages/screensets/src/mfe/gts/
 
 **Test file**: `packages/screensets/__tests__/mfe/handler/mf-handler.test.ts`
 
-- [ ] 17.3.1 Test manifest caching reuses data for multiple entries from same remote
-- [ ] 17.3.2 Test container caching avoids redundant script loads
-- [ ] 17.3.3 Test manifest resolution from inline MfeEntryMF.manifest
-- [ ] 17.3.4 Test manifest resolution from type ID reference
+- [x] 17.3.1 Test manifest caching reuses data for multiple entries from same remote
+- [x] 17.3.2 Test container caching avoids redundant script loads
+- [x] 17.3.3 Test manifest resolution from inline MfeEntryMF.manifest
+- [x] 17.3.4 Test manifest resolution from type ID reference
 
 **Traceability**: Design Decision 12 in mfe-loading.md
 
