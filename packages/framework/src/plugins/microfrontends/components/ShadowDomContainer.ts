@@ -4,12 +4,12 @@
  * Vanilla DOM-based Shadow DOM container for MFE style isolation.
  * Framework-agnostic - no React dependencies.
  *
- * NOTE: This component depends on Shadow DOM utilities from @hai3/screensets (Phase 16).
- * Until Phase 16 is complete, this uses minimal DOM APIs directly.
- * Phase 16 will provide createShadowRoot() and injectCssVariables() utilities.
+ * Uses Shadow DOM utilities from @hai3/screensets (Phase 16).
  *
  * NOTE: React-based ShadowDomContainer should be implemented in @hai3/react (Phase 14).
  */
+
+import { createShadowRoot, injectCssVariables } from '@hai3/screensets';
 
 /**
  * Shadow DOM Container configuration
@@ -28,10 +28,7 @@ export interface ShadowDomContainerConfig {
  *
  * Creates and manages a shadow root for MFE rendering with style isolation.
  * Provides CSS variable passthrough for theme integration.
- *
- * **Phase 16 TODO**: Replace direct DOM API usage with:
- * - `createShadowRoot()` from `@hai3/screensets`
- * - `injectCssVariables()` from `@hai3/screensets`
+ * Uses Shadow DOM utilities from @hai3/screensets (Phase 16).
  *
  * @example
  * ```typescript
@@ -59,7 +56,6 @@ export class ShadowDomContainer {
   private mode: 'open' | 'closed';
   private cssVariables: Record<string, string>;
   private shadowRoot: ShadowRoot | null = null;
-  private styleElement: HTMLStyleElement | null = null;
 
   constructor(config: ShadowDomContainerConfig) {
     this.hostElement = config.hostElement;
@@ -69,66 +65,41 @@ export class ShadowDomContainer {
 
   /**
    * Create the shadow root and inject CSS variables.
-   *
-   * **Phase 16 TODO**: Replace with `createShadowRoot()` from `@hai3/screensets`
+   * Uses createShadowRoot() from @hai3/screensets.
    */
   public create(): ShadowRoot {
     if (this.shadowRoot) {
       return this.shadowRoot;
     }
 
-    // Create shadow root using native DOM API
-    // Phase 16 will replace this with: createShadowRoot(this.hostElement, { mode: this.mode })
-    this.shadowRoot = this.hostElement.attachShadow({ mode: this.mode });
+    // Create shadow root using utility from @hai3/screensets
+    this.shadowRoot = createShadowRoot(this.hostElement, { mode: this.mode });
 
     // Inject CSS variables
-    this.injectCssVariables();
+    this.injectCssVariablesInternal();
 
     return this.shadowRoot;
   }
 
   /**
    * Inject CSS variables into shadow root.
-   *
-   * **Phase 16 TODO**: Replace with `injectCssVariables()` from `@hai3/screensets`
+   * Uses injectCssVariables() from @hai3/screensets.
    */
-  private injectCssVariables(): void {
+  private injectCssVariablesInternal(): void {
     if (!this.shadowRoot) return;
 
-    // Create or update style element
-    if (!this.styleElement) {
-      this.styleElement = document.createElement('style');
-      this.shadowRoot.appendChild(this.styleElement);
-    }
-
-    // Generate CSS custom properties
-    const cssRules = Object.entries(this.cssVariables)
-      .map(([key, value]) => `  ${key}: ${value};`)
-      .join('\n');
-
-    this.styleElement.textContent = `
-:host {
-${cssRules}
-}
-
-/* Reset styles to isolate from parent */
-:host {
-  all: initial;
-  display: block;
-}
-    `;
+    injectCssVariables(this.shadowRoot, this.cssVariables);
   }
 
   /**
    * Update CSS variables.
    * Useful for theme changes.
-   *
-   * **Phase 16 TODO**: Replace with `injectCssVariables()` from `@hai3/screensets`
+   * Uses injectCssVariables() from @hai3/screensets.
    */
   public updateCssVariables(cssVariables: Record<string, string>): void {
     this.cssVariables = { ...this.cssVariables, ...cssVariables };
     if (this.shadowRoot) {
-      this.injectCssVariables();
+      this.injectCssVariablesInternal();
     }
   }
 
@@ -155,7 +126,6 @@ ${cssRules}
       // Shadow roots cannot be removed, but we can clear content
       this.shadowRoot.innerHTML = '';
       this.shadowRoot = null;
-      this.styleElement = null;
     }
   }
 }

@@ -103,6 +103,14 @@ export {
 export { MfeErrorHandler, RetryHandler } from './errors/error-handler';
 export type { ErrorHandlerConfig } from './errors/error-handler';
 
+// Shadow DOM Utilities
+export {
+  createShadowRoot,
+  injectCssVariables,
+  injectStylesheet,
+} from './shadow';
+export type { ShadowRootOptions } from './shadow';
+
 // NOTE: State Container Factory, Shared Properties Provider, and Runtime Coordination
 // are INTERNAL implementation details of ScreensetsRegistry and are NOT publicly exported.
 // These are encapsulated within the registry class per SOLID principles.
