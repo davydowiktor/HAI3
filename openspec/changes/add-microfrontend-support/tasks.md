@@ -2,13 +2,14 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 21 complete. All phases 1-21 fully complete (including 21.6 encapsulation fix).
+**Current Status**: Phase 21.7 complete. All phases 1-21 fully complete (including 21.7 EventEmitter removal).
 - **Phase 7.4** (tasks 7.4.1-7.4.4): ✓ Layout domain instance JSON files moved to `@hai3/framework`
 - **Phase 7.5.5**: ✓ `loadLayoutDomains()` moved to `@hai3/framework`
 - **Phase 18** (all tasks): ✓ Complete -- `GtsTypeId` and `ParsedGtsId` removed, users should use `gts-ts` directly
 - **Phase 19** (all tasks): ✓ Complete -- Dynamic registration model implemented with full lifecycle triggering. Test coverage: 366/366 tests passing
 - **Phase 20** (all tasks): ✓ Complete -- Framework dynamic registration actions, effects, slice, and React hook implemented with full test coverage
-- **Phase 21** (all tasks): ✓ Complete -- Abstract class layers with factory construction. ScreensetsRegistry split into abstract + DefaultScreensetsRegistry + factory. Collaborators split: extension-manager, lifecycle-manager, mount-manager. Mediator refactored to callback injection. Internal methods moved from abstract to concrete-only (ExtensionManager 5, LifecycleManager 1, EventEmitter 1, ParentMfeBridge 2). Zero circular dependencies. 367/367 tests passing
+- **Phase 21** (21.1-21.6): ✓ Complete -- Abstract class layers with factory construction. ScreensetsRegistry split into abstract + DefaultScreensetsRegistry + factory. Collaborators split: extension-manager, lifecycle-manager, mount-manager. Mediator refactored to callback injection. Internal methods moved from abstract to concrete-only (ExtensionManager 5, LifecycleManager 1, ParentMfeBridge 2; EventEmitter removed entirely in Phase 21.7). Zero circular dependencies. 367/367 tests passing
+- **Phase 21.7**: ✓ Complete -- EventEmitter system removed entirely. `event-emitter.ts` deleted, `on`/`off` removed from abstract ScreensetsRegistry, all `emit()` calls removed from collaborators. `useExtensionEvents` renamed to `useDomainExtensions` with store subscription. Specs updated. 363/363 screensets + 19/19 react tests passing
 
 ---
 
@@ -1046,7 +1047,7 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 - [x] 19.2.3 Resolve entry from extension, find appropriate MfeHandler
 - [x] 19.2.4 Call handler.load(entry) to fetch and initialize bundle
 - [x] 19.2.5 Cache loaded lifecycle for mounting
-- [x] 19.2.6 Emit `extensionLoaded` event
+- [x] 19.2.6 Emit `extensionLoaded` event -- SUPERSEDED by Phase 21.7
 - [x] 19.2.7 Implement `preloadExtension(extensionId): Promise<void>` method
 - [x] 19.2.8 Same as loadExtension but semantically for preloading
 - [x] 19.2.9 Use handler.preload() if available for batch optimization
@@ -1062,16 +1063,18 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 - [x] 19.3.3 Create bridge connection via handler.bridgeFactory
 - [x] 19.3.4 Register with RuntimeCoordinator
 - [x] 19.3.5 Call lifecycle.mount(container, bridge)
-- [x] 19.3.6 Emit `extensionMounted` event
+- [x] 19.3.6 Emit `extensionMounted` event -- SUPERSEDED by Phase 21.7
 - [x] 19.3.7 Implement `unmountExtension(extensionId): Promise<void>` method
 - [x] 19.3.8 Call lifecycle.unmount(container)
 - [x] 19.3.9 Dispose bridge and unregister from coordinator
 - [x] 19.3.10 Keep extension registered and bundle loaded after unmount
-- [x] 19.3.11 Emit `extensionUnmounted` event
+- [x] 19.3.11 Emit `extensionUnmounted` event -- SUPERSEDED by Phase 21.7
 
 **Traceability**: Requirement "ScreensetsRegistry Dynamic API" - mountExtension/unmountExtension scenarios
 
-### 19.4 Registration Events
+### 19.4 Registration Events -- SUPERSEDED by Phase 21.7
+
+> **Note**: Tasks 19.4.1-19.4.9 were completed but are now superseded by Phase 21.7 which removes the entire EventEmitter system. The `emit`, `on`, and `off` methods and all event emission calls will be deleted.
 
 - [x] 19.4.1 Implement `emit(event, data)` method on ScreensetsRegistry
 - [x] 19.4.2 Emit `extensionRegistered` event with `{ extensionId }`
@@ -1083,7 +1086,7 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 - [x] 19.4.8 Emit `extensionUnmounted` event with `{ extensionId }`
 - [x] 19.4.9 Implement `on(event, callback)` and `off(event, callback)` for subscriptions
 
-**Traceability**: Requirement "ScreensetsRegistry Dynamic API" - Registration events
+**Traceability**: Requirement "ScreensetsRegistry Dynamic API" - Registration events. **SUPERSEDED by Phase 21.7.**
 
 ### 19.5 Dynamic Registration Tests
 
@@ -1184,7 +1187,9 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - slice
 
-### 20.4 Extension Events Hook (L3 - @hai3/react)
+### 20.4 Extension Events Hook (L3 - @hai3/react) -- SUPERSEDED by Phase 21.7
+
+> **Note**: Tasks 20.4.1-20.4.7 were completed but are now superseded by Phase 21.7 which removes the event system and renames/rewrites the hook to `useDomainExtensions` with store slice subscription.
 
 > **Layer placement**: `useExtensionEvents` is a React hook and belongs in `@hai3/react` (L3), not `@hai3/framework` (L2). React hooks must not live in framework-agnostic packages per the layer architecture.
 
@@ -1196,7 +1201,7 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 - [x] 20.4.6 Trigger re-render on changes
 - [x] 20.4.7 Export from `@hai3/react` (NOT from `@hai3/framework`)
 
-**Traceability**: Requirement "Dynamic Registration Support in Framework" - events hook. Layer architecture: React hooks in L3 (@hai3/react)
+**Traceability**: Requirement "Dynamic Registration Support in Framework" - events hook. Layer architecture: React hooks in L3 (@hai3/react). **SUPERSEDED by Phase 21.7.**
 
 ### 20.5 Framework Dynamic Registration Tests
 
@@ -1240,7 +1245,7 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 - [x] 21.2.1 Split `extension-manager.ts` (643 lines): extract `DefaultExtensionManager` class into `default-extension-manager.ts` (~460 lines). Keep abstract `ExtensionManager` class, `ExtensionDomainState`, `ExtensionState`, and related types in `extension-manager.ts` (~185 lines).
 - [x] 21.2.2 Split `lifecycle-manager.ts` (270 lines): extract `DefaultLifecycleManager` class into `default-lifecycle-manager.ts` (~170 lines). Keep abstract `LifecycleManager` class and callback type definitions (`ActionChainExecutor`, `ErrorHandler`, `LifecycleStageInternalTrigger`) in `lifecycle-manager.ts` (~100 lines).
 - [x] 21.2.3 Split `mount-manager.ts` (414 lines): extract `DefaultMountManager` class into `default-mount-manager.ts` (~320 lines). Keep abstract `MountManager` class and callback type definitions (`Logger`, `ErrorHandler`, `ActionChainExecutor`, `LifecycleTrigger`) in `mount-manager.ts` (~97 lines).
-- [x] 21.2.4 Leave `event-emitter.ts` (130 lines) as-is -- too small to split.
+- [x] 21.2.4 Leave `event-emitter.ts` (130 lines) as-is -- too small to split. -- SUPERSEDED by Phase 21.7 (file deleted)
 - [x] 21.2.5 Leave `operation-serializer.ts` (70 lines) as-is -- too small to split.
 - [x] 21.2.6 Update imports in `DefaultScreensetsRegistry.ts` to import concrete classes from the new `default-*.ts` files.
 
@@ -1256,7 +1261,7 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 - [x] 21.3.6 Update `packages/framework/src/types.ts`: ensure `MfeScreensetsRegistry` type alias maps to abstract `ScreensetsRegistry`.
 - [x] 21.3.7 Update `packages/screensets/src/mfe/runtime/bridge-factory.ts`: change `import { ExtensionDomainState } from './ScreensetsRegistry'` to `import { ExtensionDomainState } from './extension-manager'` (type moves to abstract file after Phase 21.2.1 split).
 - [x] 21.3.8 Verify no module imports `DefaultScreensetsRegistry` directly except `create-screensets-registry.ts` and test files.
-- [x] 21.3.9 **PREREQUISITE for 21.1.1**: Refactor `DefaultActionsChainsMediator` to receive `getDomainState` as an injected callback instead of calling it on `ScreensetsRegistry`. Specifically: (a) Change the mediator constructor from `constructor(typeSystem, registry: ScreensetsRegistry)` to `constructor(config: { typeSystem: TypeSystemPlugin; getDomainState: (domainId: string) => ExtensionDomainState | undefined })`. (b) Replace all `this.registry.getDomainState(...)` calls with `this.getDomainState(...)` using the injected callback. (c) Remove the `import { ScreensetsRegistry }` from `mediator/actions-chains-mediator.ts` entirely -- the mediator no longer depends on the ScreensetsRegistry type. (d) Update `DefaultScreensetsRegistry` constructor wiring to pass `getDomainState: (domainId) => this.extensionManager.getDomainState(domainId)` in the mediator config. (e) Update mediator tests to inject the callback directly instead of passing a full registry mock. This task MUST be completed BEFORE task 21.1.1 (removing getDomainState from abstract ScreensetsRegistry), otherwise removing getDomainState from the abstract class causes a compile error in the mediator. **Note on `config.mediator`**: This callback injection applies ONLY to `DefaultActionsChainsMediator` (the built-in default). The abstract `ActionsChainsMediator` class and the `config.mediator` injection point on `ScreensetsRegistryConfig` are unaffected -- the abstract class does not depend on `getDomainState`. Custom mediator subclasses provided via `config.mediator` continue to work as before because they extend the abstract class directly and manage their own state access. **Additional cleanup in this task**: Remove the magic number fallback `return 30000` (30s) in `DefaultActionsChainsMediator.resolveTimeout()`. The current implementation falls back to a hardcoded 30000ms when no domain is found, violating the spec principle "there SHALL be NO implicit code defaults for action timeouts (no magic numbers in code)". Since `ExtensionDomain.defaultActionTimeout` is a required field, the domain lookup path always provides a timeout for registered domains. The unreachable fallback should be replaced with an explicit error: `throw new Error('Cannot resolve timeout: no domain found for target "${action.target}"')`. This makes the failure visible rather than silently applying a magic number.
+- [x] 21.3.9 **PREREQUISITE for 21.1.1**: Refactor `DefaultActionsChainsMediator` to receive `getDomainState` as an injected callback in its constructor config instead of depending on the `ScreensetsRegistry` type. Replace all `this.registry.getDomainState(...)` calls with the injected callback. Remove the `ScreensetsRegistry` import from the mediator entirely. Update `DefaultScreensetsRegistry` constructor wiring and mediator tests accordingly. Also added `config.mediator` field to `ScreensetsRegistryConfig` for custom mediator injection.
 - [x] 21.3.10 Move `getDomainsMap()` and `getExtensionsMap()` from abstract `ExtensionManager` to concrete `DefaultExtensionManager` only. These are `@internal` test-only accessors that should not be on the abstract class. Specifically: (a) Remove `abstract getDomainsMap()` and `abstract getExtensionsMap()` from abstract `ExtensionManager` in `extension-manager.ts`. (b) Keep these methods as concrete (non-abstract) methods on `DefaultExtensionManager` in `default-extension-manager.ts`. (c) In `DefaultScreensetsRegistry`, ensure the `extensionManager` field is typed as `DefaultExtensionManager` (not abstract `ExtensionManager`) so that `this.extensionManager.getDomainsMap()` and `this.extensionManager.getExtensionsMap()` remain callable from the concrete-only `get domains()` and `get extensions()` test shims.
 
 **Traceability**: Requirement "Abstract Class Layers with Factory Construction" - DIP compliance for ScreensetsRegistry references. Task 21.3.9 traces to Decision 18 encapsulation principle (test-only accessors on concrete class only) and the callback injection pattern established by ExtensionManager and MountManager collaborators. Task 21.3.10 traces to the same Decision 18 encapsulation principle applied to ExtensionManager.
@@ -1313,31 +1318,135 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 **Traceability**: [Design - Group B: LifecycleManager](./design/registry-runtime.md#group-b-lifecyclemanager----1-method-to-concrete-only). Traces to Decision 18 encapsulation principle.
 
-#### Group C: EventEmitter (1 method)
+#### Group C: EventEmitter (1 method) -- SUPERSEDED by Phase 21.7
+
+> **Note**: Tasks 21.6.11-21.6.12 were completed but are now superseded by Phase 21.7 which removes the EventEmitter entirely.
 
 - [x] 21.6.11 Remove `clear()` from abstract `EventEmitter` in `packages/screensets/src/mfe/runtime/event-emitter.ts`. Keep it on `DefaultEventEmitter` in the same file (event-emitter.ts is not split). The abstract `EventEmitter` retains: `on()`, `off()`, `emit()`.
 - [x] 21.6.12 Change `DefaultScreensetsRegistry.eventEmitter` field type from `EventEmitter` (abstract) to `DefaultEventEmitter` (concrete). Update the import in `DefaultScreensetsRegistry.ts` to import `DefaultEventEmitter` from `event-emitter.ts`. This ensures `this.eventEmitter.clear()` compiles.
 
-**Traceability**: [Design - Group C: EventEmitter](./design/registry-runtime.md#group-c-eventemitter----1-method-to-concrete-only). Traces to Decision 18 encapsulation principle.
+**Traceability**: Traced to Decision 18 encapsulation principle. Design section removed as part of EventEmitter elimination in Phase 21.7. **SUPERSEDED by Phase 21.7.**
 
-#### Group D: ParentMfeBridge interface (2 methods)
+#### Group C: ParentMfeBridge interface (2 methods)
 
 - [x] 21.6.13 Remove `getPropertySubscribers()` from the `ParentMfeBridge` interface in `packages/screensets/src/mfe/handler/types.ts`. The method remains on `ParentMfeBridgeImpl` class in `bridge/ParentMfeBridge.ts` (unchanged).
 - [x] 21.6.14 Remove `registerPropertySubscriber(propertyTypeId, subscriber)` from the `ParentMfeBridge` interface in `packages/screensets/src/mfe/handler/types.ts`. The method remains on `ParentMfeBridgeImpl` class (unchanged).
 - [x] 21.6.15 Verify `bridge-factory.ts` `createBridge()` compiles after removing `registerPropertySubscriber()` from the `ParentMfeBridge` interface. The local `parentBridge` variable is already constructed via `new ParentMfeBridgeImpl(childBridge)`, so TypeScript infers the concrete `ParentMfeBridgeImpl` type and the call to `parentBridge.registerPropertySubscriber()` compiles against the concrete class. The function return type remains `{ parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge }` (narrow public interface). The import for `ParentMfeBridgeImpl` from `'../bridge/ParentMfeBridge'` already exists. No code changes expected -- this is a verification-only task.
-- [x] 21.6.16 Update `bridge-factory.ts` `disposeBridge()`: keep the `parentBridge` parameter typed as `ParentMfeBridge` (the public interface). This is required because callers (`DefaultMountManager.unmountExtension()`) pass `extensionState.bridge` which is typed as `ParentMfeBridge | null` (from `ExtensionState.bridge` in `extension-manager.ts`). Changing to `ParentMfeBridgeImpl` would cause a type mismatch. Instead, add an internal cast at the top of the function body: `const impl = parentBridge as ParentMfeBridgeImpl;` and call `impl.getPropertySubscribers()` instead of `parentBridge.getPropertySubscribers()`. This cast is safe because `disposeBridge` is `@internal` and only ever receives `ParentMfeBridgeImpl` instances (created by `createBridge` in the same file). No changes to `ExtensionState.bridge` type or `DefaultMountManager` callers.
+- [x] 21.6.16 Update `disposeBridge()` in `bridge-factory.ts`: cast `parentBridge` to `ParentMfeBridgeImpl` internally to access `getPropertySubscribers()`. Keep parameter typed as `ParentMfeBridge`.
 
 **Test file verification**: After removing `getPropertySubscribers()` and `registerPropertySubscriber()` from the `ParentMfeBridge` interface, verify that test files calling these methods still compile:
 - `packages/screensets/__tests__/mfe/bridge/bridge.test.ts` -- creates `ParentMfeBridgeImpl` instances directly (typed as `ParentMfeBridgeImpl`), so calls to these methods compile against the concrete class. No changes expected.
 - `packages/screensets/__tests__/mfe/runtime/bridge-factory.test.ts` -- already uses `(parentBridge as ParentMfeBridgeImpl)` casts to access these methods. No changes expected.
 
-**Traceability**: [Design - Group D: ParentMfeBridge interface](./design/registry-runtime.md#group-d-parentmfebridge-interface----2-methods-removed-from-public-type). Public interface cleanup: internal-only methods must not appear on public types.
+**Traceability**: [Design - Group C: ParentMfeBridge interface](./design/registry-runtime.md#group-c-parentmfebridge-interface----2-methods-removed-from-public-type). Public interface cleanup: internal-only methods must not appear on public types.
 
 #### Validation
 
 - [x] 21.6.17 Run `npm run type-check` -- must pass with no errors.
 - [x] 21.6.18 Run `npm run test` -- all existing tests must pass with no behavioral changes.
 - [x] 21.6.19 Run `npm run build` -- must pass.
-- [x] 21.6.20 Verify `getPropertySubscribers` and `registerPropertySubscriber` are NOT present in `ParentMfeBridge` type in `.d.ts` output. Verify `getDomainState`, `getExtensionState`, `getExtensionStatesForDomain`, `resolveEntry`, `clear` are NOT present on abstract `ExtensionManager` in `.d.ts` output. Verify `triggerLifecycleStageInternal` is NOT present on abstract `LifecycleManager` in `.d.ts` output. Verify `clear` is NOT present on abstract `EventEmitter` in `.d.ts` output.
+- [x] 21.6.20 Verify `getPropertySubscribers` and `registerPropertySubscriber` are NOT present in `ParentMfeBridge` type in `.d.ts` output. Verify `getDomainState`, `getExtensionState`, `getExtensionStatesForDomain`, `resolveEntry`, `clear` are NOT present on abstract `ExtensionManager` in `.d.ts` output. Verify `triggerLifecycleStageInternal` is NOT present on abstract `LifecycleManager` in `.d.ts` output. (Note: EventEmitter `clear` verification was here but is now superseded by Phase 21.7 which removes EventEmitter entirely.)
 
 **Traceability**: Encapsulation fix validation -- no regressions, public API surface is correct.
+
+### 21.7 Remove EventEmitter System
+
+**Goal**: Remove the entire EventEmitter pub-sub system from the MFE runtime. Lifecycle stages with actions chains are the **only** mechanism for reacting to runtime transitions. The "events" (`domainRegistered`, `extensionRegistered`, `extensionLoaded`, `extensionMounted`, `extensionUnmounted`, `extensionUnregistered`, `domainUnregistered`) duplicate lifecycle stages 1:1 and must be eliminated entirely. No replacement mechanism is introduced -- no callbacks, no new event system.
+
+> **Scope clarification**: This phase removes the ScreensetsRegistry EventEmitter pub-sub system only. Flux store actions/events (`mfe/loadRequested`, `mfe/mountRequested`, etc.) are unrelated and retained.
+
+**Prerequisite**: Phase 21.6 complete. This phase removes a parallel notification system that duplicates lifecycle stage transitions.
+
+**Architectural Reference**: [Registry Runtime - No Event System](./design/registry-runtime.md#no-event-system----lifecycle-stages-with-actions-chains-only)
+
+**Ordering**: Tasks are ordered so that usages are removed before the source files. Remove consumers first (abstract class methods, concrete implementations, emit call sites), then delete the file, then clean up exports and tests.
+
+#### Step 1: Remove `on`/`off` from abstract ScreensetsRegistry
+
+- [x] 21.7.1 Remove the `on(event, callback)` abstract method from `ScreensetsRegistry` abstract class in `packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts`.
+- [x] 21.7.2 Remove the `off(event, callback)` abstract method from `ScreensetsRegistry` abstract class in `packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts`.
+
+**Traceability**: Design note "No Event System" in registry-runtime.md. The abstract class must not declare event subscription methods.
+
+#### Step 2: Remove `on`/`off` implementations and `eventEmitter` field from DefaultScreensetsRegistry
+
+- [x] 21.7.3 Remove the `on(event, callback)` method implementation from `DefaultScreensetsRegistry` in `packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts`.
+- [x] 21.7.4 Remove the `off(event, callback)` method implementation from `DefaultScreensetsRegistry` in `packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts`.
+- [x] 21.7.5 Remove the `eventEmitter` field declaration from `DefaultScreensetsRegistry`.
+- [x] 21.7.6 Remove the `eventEmitter` construction/wiring from the `DefaultScreensetsRegistry` constructor (including any `DefaultEventEmitter` import).
+- [x] 21.7.7 Remove the `this.eventEmitter.clear()` call from `DefaultScreensetsRegistry.dispose()`.
+
+**Traceability**: Design note "No Event System" in registry-runtime.md. The concrete class must not own or wire an EventEmitter.
+
+#### Step 3: Remove `emit` callback from DefaultExtensionManager
+
+- [x] 21.7.8 Remove all `this.emit(...)` calls from `DefaultExtensionManager` in `packages/screensets/src/mfe/runtime/default-extension-manager.ts`. These calls emit: `domainRegistered`, `domainUnregistered`, `extensionRegistered`, `extensionUnregistered`.
+- [x] 21.7.9 Remove the `emit` callback from `DefaultExtensionManager`'s constructor config type.
+- [x] 21.7.10 Remove the `EventEmitCallback` type from `packages/screensets/src/mfe/runtime/extension-manager.ts` if it is no longer used by any other module after removing it from `DefaultExtensionManager`.
+
+**Traceability**: Design note "No Event System" in registry-runtime.md. Extension registration/unregistration transitions are lifecycle stages, not events.
+
+#### Step 4: Remove `eventEmitter` from DefaultMountManager
+
+- [x] 21.7.11 Remove all `this.eventEmitter.emit(...)` calls from `DefaultMountManager` in `packages/screensets/src/mfe/runtime/default-mount-manager.ts`. These calls emit: `extensionLoaded`, `extensionMounted`, `extensionUnmounted`.
+- [x] 21.7.12 Remove the `eventEmitter` field from `DefaultMountManager`'s constructor config type.
+
+**Traceability**: Design note "No Event System" in registry-runtime.md. Mount/unmount/load transitions are lifecycle stages or internal details, not events.
+
+#### Step 5: Delete the event-emitter.ts file
+
+- [x] 21.7.13 Delete `packages/screensets/src/mfe/runtime/event-emitter.ts` entirely (both the `EventEmitter` abstract class and `DefaultEventEmitter` concrete class).
+
+**Traceability**: Design note "No Event System" in registry-runtime.md. The file is no longer referenced by any module.
+
+#### Step 6: Clean up exports
+
+- [x] 21.7.14 Remove any `EventEmitter` or `DefaultEventEmitter` exports from `packages/screensets/src/mfe/runtime/index.ts` barrel (if any exist).
+
+**Traceability**: Design note "No Event System" in registry-runtime.md. No event types should be publicly exported.
+
+#### Step 7: Rename and rewrite `useExtensionEvents` hook to `useDomainExtensions`
+
+- [x] 21.7.15 Rename `useExtensionEvents` to `useDomainExtensions` and rewrite the implementation in `packages/react/src/mfe/hooks/`. Specifically: (a) Rename the file from `useExtensionEvents.ts` to `useDomainExtensions.ts`. (b) Rename the hook export from `useExtensionEvents` to `useDomainExtensions`. (c) Replace the event-based implementation (which subscribed to `extensionRegistered`/`extensionUnregistered` events via `runtime.on`/`runtime.off`) with a **store slice subscription**. The hook subscribes to the `registrationStates` field in the MFE store slice (implemented in Phase 20.3) to detect when extensions are registered or unregistered. When the slice state changes, the hook calls `runtime.getExtensionsForDomain(domainId)` to get the current extension list and triggers a re-render. (d) The hook signature becomes `useDomainExtensions(domainId: string): Extension[]`. (e) Update the `@hai3/react` barrel export to export `useDomainExtensions` instead of `useExtensionEvents`. (f) Remove the old `useExtensionEvents.ts` file if not already replaced by the rename.
+- [x] 21.7.16 Update all imports and references to `useExtensionEvents` in application code to use `useDomainExtensions`. Search for `useExtensionEvents` across the codebase to ensure no references remain.
+
+**Traceability**: Phase 20.4 tasks (20.4.1-20.4.7) originally implemented this hook using events. Phase 21.7 removes the event system. The replacement uses the store slice from Phase 20.3 (`registrationStates`) as the change-detection mechanism. The name changes from "events" to "extensions" because there are no events anymore -- the hook returns the list of extensions for a domain.
+
+#### Step 8: Update `specs/screensets/spec.md` -- remove all event-emission assertions
+
+- [x] 21.7.17 Remove `**AND** an \`extensionRegistered\` event SHALL be emitted` from the "Register extension dynamically after user action" scenario (line 958 area).
+- [x] 21.7.18 Remove `**AND** an \`extensionUnregistered\` event SHALL be emitted` from the "Unregister extension when user disables feature" scenario (line 973 area).
+- [x] 21.7.19 Remove `**AND** a \`domainRegistered\` event SHALL be emitted` from the "Register domain dynamically" scenario (line 988 area).
+- [x] 21.7.20 Remove `**AND** a \`domainUnregistered\` event SHALL be emitted` from the "Unregister domain dynamically" scenario (line 997 area).
+- [x] 21.7.21 Remove `**AND** \`domainRegistered\` event SHALL be emitted` from the "ScreensetsRegistry registerDomain method" scenario (line 1045 area).
+- [x] 21.7.22 Remove the entire "Registration events" scenario (lines 1102-1113 area) which lists all 7 event types (`extensionRegistered`, `extensionUnregistered`, `domainRegistered`, `domainUnregistered`, `extensionLoaded`, `extensionMounted`, `extensionUnmounted`) and the `external systems MAY subscribe` clause. This scenario directly contradicts the "No Event System" design note.
+
+**Traceability**: Blocker -- spec assertions must not mandate event emission when the design explicitly forbids an event system. All "SHALL emit" clauses for events are removed. The "Registration events" scenario is removed entirely. Lifecycle stages with actions chains are the only mechanism for reacting to runtime transitions.
+
+#### Step 9: Update `specs/microfrontends/spec.md` -- rewrite "Listen to registration events" scenario
+
+- [x] 21.7.23 Rewrite the "Listen to registration events" scenario (lines 856-879 area) in `specs/microfrontends/spec.md`. The scenario title must change to "Observe domain extensions via store slice" (or similar, no "events" in the title). The code example must show `useDomainExtensions` (renamed hook from Step 7) imported from `@hai3/react`, subscribing to the store slice state -- NOT to `extensionRegistered`/`extensionUnregistered` events. The acceptance criteria must state: (a) `useDomainExtensions(domainId)` SHALL subscribe to the MFE store slice `registrationStates` (from Phase 20.3) to detect registration changes. (b) It SHALL call `runtime.getExtensionsForDomain(domainId)` to resolve the current extension list. (c) It SHALL trigger re-render when the slice state changes. (d) It SHALL return the current list of extensions for the domain. Remove ALL references to `extensionRegistered`/`extensionUnregistered` events, `runtime.on`, and `runtime.off`.
+
+**Traceability**: Blocker -- the spec scenario must not mandate event-based subscription when the design explicitly forbids an event system. The hook is renamed from `useExtensionEvents` to `useDomainExtensions` and uses store slice subscription instead of events.
+
+#### Step 10: Update tests
+
+- [x] 21.7.24 Remove or update test cases in `packages/screensets/__tests__/mfe/runtime/` that test `on`/`off`/event emission behavior (e.g., tests for `domainRegistered`, `extensionRegistered`, `extensionLoaded`, `extensionMounted`, `extensionUnmounted`, `extensionUnregistered`, `domainUnregistered` events).
+- [x] 21.7.25 Rename test file from `useExtensionEvents.test.tsx` to `useDomainExtensions.test.tsx` in `packages/react/__tests__/mfe/hooks/`. Rewrite the test cases to verify the renamed hook `useDomainExtensions` works via store slice subscription, not via `on`/`off` events.
+- [x] 21.7.26 Verify no remaining test files import from `event-emitter.ts`.
+- [x] 21.7.27 Verify no remaining test files reference `useExtensionEvents` (old hook name).
+
+**Traceability**: Tests must reflect the removal of the event system and the hook rename. No test should reference `on`, `off`, `emit`, any event name from the removed system, or the old hook name `useExtensionEvents`.
+
+#### Validation
+
+- [x] 21.7.28 Run `npm run type-check` -- must pass with no errors.
+- [x] 21.7.29 Run `npm run test` -- all remaining tests must pass.
+- [x] 21.7.30 Run `npm run build` -- must pass.
+- [x] 21.7.31 Verify `event-emitter.ts` does not exist in the built output.
+- [x] 21.7.32 Verify `on` and `off` are NOT present on the `ScreensetsRegistry` type in `.d.ts` output.
+- [x] 21.7.33 Verify no source file imports from `event-emitter.ts`.
+- [x] 21.7.34 Verify no "SHALL emit" clauses referencing events remain in `specs/screensets/spec.md`.
+- [x] 21.7.35 Verify no references to `useExtensionEvents` remain in any spec or source file.
+
+**Traceability**: EventEmitter removal validation -- no regressions, event system is fully eliminated from implementation, specs, and tests.

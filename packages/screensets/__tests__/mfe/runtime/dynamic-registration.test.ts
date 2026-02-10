@@ -189,41 +189,6 @@ describe('Dynamic Registration', () => {
     });
   });
 
-  describe('registration events', () => {
-    it('should emit extensionRegistered event', async () => {
-      const callback = vi.fn();
-      registry.on('extensionRegistered', callback);
-
-      // Register domain
-      registry.registerDomain(testDomain);
-
-      // Mock resolveEntry
-      const internals = getRegistryInternals(registry);
-      internals.extensions.set(testExtension.id, {
-        extension: testExtension,
-        entry: testEntry,
-        bridge: null,
-        loadState: 'idle',
-        mountState: 'unmounted',
-        container: null,
-        lifecycle: null,
-      });
-
-      await registry.registerExtension(testExtension);
-
-      expect(callback).toHaveBeenCalledWith({ extensionId: testExtension.id });
-    });
-
-    it('should emit domainRegistered event', () => {
-      const callback = vi.fn();
-      registry.on('domainRegistered', callback);
-
-      registry.registerDomain(testDomain);
-
-      expect(callback).toHaveBeenCalledWith({ domainId: testDomain.id });
-    });
-  });
-
   describe('loadExtension and preloadExtension', () => {
     let mockLifecycle: { mount: ReturnType<typeof vi.fn>; unmount: ReturnType<typeof vi.fn> };
     let mockHandler: {

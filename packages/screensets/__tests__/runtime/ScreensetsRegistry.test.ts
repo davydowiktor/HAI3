@@ -386,51 +386,6 @@ describe('ScreensetsRegistry - Phase 4', () => {
     });
   });
 
-  describe('Registry Events', () => {
-    it('should emit domainRegistered event', () => {
-      const registry = createScreensetsRegistry(createTestConfig());
-      const callback = vi.fn();
-
-      registry.on('domainRegistered', callback);
-
-      const domain: ExtensionDomain = {
-        id: 'gts.hai3.screensets.ext.domain.v1~test.domain.v1~',
-        sharedProperties: [],
-        actions: [],
-        extensionsActions: [],
-        defaultActionTimeout: 5000,
-        lifecycleStages: [],
-        extensionsLifecycleStages: [],
-      };
-
-      registry.registerDomain(domain);
-
-      expect(callback).toHaveBeenCalledWith({ domainId: domain.id });
-    });
-
-    it('should allow unsubscribing from events', () => {
-      const registry = createScreensetsRegistry(createTestConfig());
-      const callback = vi.fn();
-
-      registry.on('domainRegistered', callback);
-      registry.off('domainRegistered', callback);
-
-      const domain: ExtensionDomain = {
-        id: 'gts.hai3.screensets.ext.domain.v1~test.domain.v1~',
-        sharedProperties: [],
-        actions: [],
-        extensionsActions: [],
-        defaultActionTimeout: 5000,
-        lifecycleStages: [],
-        extensionsLifecycleStages: [],
-      };
-
-      registry.registerDomain(domain);
-
-      expect(callback).not.toHaveBeenCalled();
-    });
-  });
-
   describe('Registry Disposal', () => {
     it('should dispose registry and clean up resources', () => {
       const registry = createScreensetsRegistry(createTestConfig());

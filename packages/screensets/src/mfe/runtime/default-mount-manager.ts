@@ -11,10 +11,9 @@
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type { RuntimeCoordinator } from '../coordination/types';
 import { DefaultExtensionManager } from './default-extension-manager';
-import type { EventEmitter } from './event-emitter';
 import type { ScreensetsRegistry } from './ScreensetsRegistry';
 import { MountManager } from './mount-manager';
-import type { Logger, ErrorHandler, ActionChainExecutor, LifecycleTrigger } from './mount-manager';
+import type { Logger, ActionChainExecutor, LifecycleTrigger } from './mount-manager';
 
 /**
  * Default mount manager implementation.
@@ -45,11 +44,6 @@ export class DefaultMountManager extends MountManager {
   private readonly triggerLifecycle: LifecycleTrigger;
 
   /**
-   * Event emitter for emitting mount/unmount events.
-   */
-  private readonly eventEmitter: EventEmitter;
-
-  /**
    * Action chain executor for connecting parent bridge.
    */
   private readonly executeActionsChain: ActionChainExecutor;
@@ -58,11 +52,6 @@ export class DefaultMountManager extends MountManager {
    * Logger for debug messages.
    */
   private readonly log: Logger;
-
-  /**
-   * Error handler for runtime errors.
-   */
-  private readonly errorHandler: ErrorHandler;
 
   /**
    * Host runtime for RuntimeConnection registration.
@@ -74,10 +63,8 @@ export class DefaultMountManager extends MountManager {
     handlers: MfeHandler[];
     coordinator: RuntimeCoordinator;
     triggerLifecycle: LifecycleTrigger;
-    eventEmitter: EventEmitter;
     executeActionsChain: ActionChainExecutor;
     log: Logger;
-    errorHandler: ErrorHandler;
     hostRuntime: ScreensetsRegistry;
   }) {
     super();
@@ -85,10 +72,8 @@ export class DefaultMountManager extends MountManager {
     this.handlers = config.handlers;
     this.coordinator = config.coordinator;
     this.triggerLifecycle = config.triggerLifecycle;
-    this.eventEmitter = config.eventEmitter;
     this.executeActionsChain = config.executeActionsChain;
     this.log = config.log;
-    this.errorHandler = config.errorHandler;
     this.hostRuntime = config.hostRuntime;
   }
 
@@ -138,8 +123,6 @@ export class DefaultMountManager extends MountManager {
       extensionState.lifecycle = lifecycle;
       extensionState.loadState = 'loaded';
 
-      // Emit event
-      this.eventEmitter.emit('extensionLoaded', { extensionId }, this.errorHandler);
       this.log('Extension loaded', { extensionId, handlerBaseTypeId: handler.handledBaseTypeId });
     } catch (error) {
       extensionState.loadState = 'error';
@@ -249,8 +232,6 @@ export class DefaultMountManager extends MountManager {
         'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1'
       );
 
-      // Emit event
-      this.eventEmitter.emit('extensionMounted', { extensionId }, this.errorHandler);
       this.log('Extension mounted', { extensionId, domainId: extensionState.extension.domain });
 
       return parentBridge;
@@ -322,8 +303,6 @@ export class DefaultMountManager extends MountManager {
       extensionState.mountState = 'unmounted';
       extensionState.error = undefined;
 
-      // Emit event
-      this.eventEmitter.emit('extensionUnmounted', { extensionId }, this.errorHandler);
       this.log('Extension unmounted', { extensionId });
     } catch (error) {
       extensionState.mountState = 'error';

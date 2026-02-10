@@ -29,16 +29,25 @@ These functions receive all dependencies as parameters and produce a `ContractVa
 
 **Small stateful utilities** are also exempt when their surface area is minimal. `OperationSerializer` (70 lines, single public method) manages a per-entity-ID promise chain but does not warrant an abstract class split due to its small size and single responsibility.
 
+### No Event System -- Lifecycle Stages with Actions Chains Only
+
+The MFE runtime intentionally has **no pub-sub event system** (no `EventEmitter`, no `on`/`off` callbacks). Lifecycle stages with actions chains are the **only** mechanism for reacting to runtime transitions (registration, activation, deactivation, destruction).
+
+**Why**: An event system would duplicate lifecycle stages 1:1. Every "event" (`domainRegistered`, `extensionMounted`, etc.) maps directly to a lifecycle stage transition (`init`, `activated`, etc.) on the corresponding entity. Having two parallel systems for the same moments in time creates confusion about which to use, forces maintenance of two notification paths, and violates the single-responsibility principle.
+
+**How entities react to lifecycle transitions**: Entities declare `lifecycle` hooks that bind lifecycle stages to actions chains. When a stage transition occurs, the `LifecycleManager` triggers the corresponding actions chain through the `ActionsChainsMediator`. This is the same mechanism used for all other inter-entity communication and is already fully specified in [mfe-lifecycle.md](./mfe-lifecycle.md).
+
+**What about `extensionLoaded`?** Loading is an internal implementation detail (fetching a JavaScript bundle), not a lifecycle stage. There is no need to observe it externally. If an extension needs to react to being loaded, it does so in its `MfeEntryLifecycle.mount()` callback (which is called after loading completes).
+
 ### ScreensetsRegistry as Facade
 
-`ScreensetsRegistry` has a large public API surface (~28 methods spanning registration, loading, mounting, property management, action chain execution, lifecycle triggering, and events). This is intentional: it serves as a **facade** that provides a single entry point for the MFE runtime while internally delegating to specialized collaborators:
+`ScreensetsRegistry` has a large public API surface (~24 methods spanning registration, loading, mounting, property management, action chain execution, and lifecycle triggering). This is intentional: it serves as a **facade** that provides a single entry point for the MFE runtime while internally delegating to specialized collaborators:
 
 | Responsibility | Internal Collaborator | Design Document |
 |---|---|---|
 | Extension/domain registration | `ExtensionManager` (abstract) / `DefaultExtensionManager` (concrete) | This document |
 | Lifecycle stage triggering | `LifecycleManager` (abstract) / `DefaultLifecycleManager` (concrete) | [mfe-lifecycle.md](./mfe-lifecycle.md) |
 | MFE loading and mounting | `MountManager` (abstract) / `DefaultMountManager` (concrete) | This document |
-| Event subscription/emission | `EventEmitter` (abstract) / `DefaultEventEmitter` (concrete) | This document |
 | Operation serialization | `OperationSerializer` (concrete, small utility) | This document |
 | Action chain execution | `ActionsChainsMediator` (abstract) / `DefaultActionsChainsMediator` (concrete) | [mfe-actions.md](./mfe-actions.md) |
 | WeakMap runtime coordination | `RuntimeCoordinator` (abstract) / `WeakMapRuntimeCoordinator` (concrete) | This document |
@@ -48,7 +57,7 @@ These functions receive all dependencies as parameters and produce a `ContractVa
 
 The public API is cohesive (all methods relate to MFE runtime management), and the internal delegation keeps each collaborator focused on a single responsibility. Consumer code interacts only with the **abstract** `ScreensetsRegistry`; both the concrete `DefaultScreensetsRegistry` and all collaborators are implementation details hidden behind the factory.
 
-**Abstract class layer**: `ScreensetsRegistry` is an abstract class (~80 lines) defining the public method signatures. `DefaultScreensetsRegistry` is the concrete implementation (~670 lines) that wires all collaborators together. Consumers obtain an instance exclusively through `createScreensetsRegistry()`, which returns the abstract type. See [Decision 18](#decision-18-abstract-class-layers-with-factory-construction) for the complete design.
+**Abstract class layer**: `ScreensetsRegistry` is an abstract class (~75 lines) defining the public method signatures. `DefaultScreensetsRegistry` is the concrete implementation (~650 lines) that wires all collaborators together. Consumers obtain an instance exclusively through `createScreensetsRegistry()`, which returns the abstract type. See [Decision 18](#decision-18-abstract-class-layers-with-factory-construction) for the complete design.
 
 ### Concurrency and Operation Serialization
 
@@ -184,7 +193,6 @@ ScreensetsRegistry                  -->  DefaultScreensetsRegistry
 ExtensionManager                    -->  DefaultExtensionManager
 LifecycleManager                    -->  DefaultLifecycleManager
 MountManager                        -->  DefaultMountManager
-EventEmitter                        -->  DefaultEventEmitter
 RuntimeCoordinator                  -->  WeakMapRuntimeCoordinator
 ActionsChainsMediator               -->  DefaultActionsChainsMediator
 MfeHandler                          -->  MfeHandlerMF
@@ -201,7 +209,7 @@ createScreensetsRegistry(config)    -->  returns ScreensetsRegistry (abstract ty
 
 ```typescript
 // packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts
-// ~80 lines -- abstract class with public method signatures
+// ~75 lines -- abstract class with public method signatures
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
@@ -255,10 +263,6 @@ export abstract class ScreensetsRegistry {
   abstract registerDomainActionHandler(domainId: string, handler: ActionHandler): void;
   abstract unregisterDomainActionHandler(domainId: string): void;
 
-  // --- Events ---
-  abstract on(event: string, callback: (data: Record<string, unknown>) => void): void;
-  abstract off(event: string, callback: (data: Record<string, unknown>) => void): void;
-
   // --- Handlers ---
   abstract registerHandler(handler: MfeHandler): void;
 
@@ -292,7 +296,7 @@ export function createScreensetsRegistry(
 
 ```typescript
 // packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts
-// ~670 lines -- full implementation, NOT exported from public barrel
+// ~650 lines -- full implementation, NOT exported from public barrel
 
 import { ScreensetsRegistry } from './ScreensetsRegistry';
 // ... all collaborator imports ...
@@ -331,7 +335,6 @@ Collaborators that currently co-locate abstract + concrete in a single file are 
 | `extension-manager.ts` (643 lines) | `extension-manager.ts` (~185 lines: abstract class + ExtensionDomainState + ExtensionState types) | `default-extension-manager.ts` (~460 lines) | Yes |
 | `lifecycle-manager.ts` (270 lines) | `lifecycle-manager.ts` (~100 lines: abstract class + callback types) | `default-lifecycle-manager.ts` (~170 lines) | Yes |
 | `mount-manager.ts` (414 lines) | `mount-manager.ts` (~97 lines: abstract class + callback types) | `default-mount-manager.ts` (~320 lines) | Yes |
-| `event-emitter.ts` (130 lines) | -- | -- | No (too small) |
 | `operation-serializer.ts` (70 lines) | -- | -- | No (too small) |
 
 **Import rule after split**: Only the `DefaultScreensetsRegistry` constructor imports concrete collaborator classes. All other code imports only abstract classes.
@@ -343,7 +346,7 @@ Collaborators that currently co-locate abstract + concrete in a single file are 
 1. **Action support validation** (line ~173 in implementation): check that the target domain supports the action type before delivery.
 2. **Timeout resolution** (line ~367 in implementation): resolve `domain.defaultActionTimeout` for actions that do not specify an explicit timeout.
 
-Since `getDomainState()` is concrete-only (`@internal` on `DefaultScreensetsRegistry`) and must NOT appear on the abstract `ScreensetsRegistry`, the mediator receives this capability via **callback injection** in its constructor config -- consistent with how `DefaultExtensionManager` receives `emit`, `triggerLifecycle`, `log`, etc. and how `DefaultMountManager` receives `triggerLifecycle`, `executeActionsChain`, `log`, `errorHandler`, etc.
+Since `getDomainState()` is concrete-only (`@internal` on `DefaultScreensetsRegistry`) and must NOT appear on the abstract `ScreensetsRegistry`, the mediator receives this capability via **callback injection** in its constructor config -- consistent with how `DefaultExtensionManager` receives `triggerLifecycle`, `log`, etc. and how `DefaultMountManager` receives `triggerLifecycle`, `executeActionsChain`, `log`, `errorHandler`, etc.
 
 **Before (broken -- calls concrete-only method via abstract type):**
 ```typescript
@@ -389,7 +392,7 @@ The `DefaultScreensetsRegistry` concrete class already accesses these via `this.
 
 The abstract classes for internal collaborators (`@internal`, not barrel-exported) must expose only the methods that define the public **contract** of the abstraction. Methods that are only called by sibling concrete collaborators or by `DefaultScreensetsRegistry` for disposal/test purposes must live on the concrete class only. This section documents which methods must be moved from abstract to concrete-only.
 
-**Principle**: Since `ExtensionManager`, `LifecycleManager`, and `EventEmitter` are all `@internal` (never exported from the `@hai3/screensets` barrel), the internal collaborators that call these methods can safely type their fields as the concrete type (`DefaultExtensionManager`, `DefaultLifecycleManager`, `DefaultEventEmitter`) rather than the abstract type. This is an acceptable trade-off for internal wiring code: it preserves a clean abstract contract while allowing concrete-to-concrete access for internal implementation details.
+**Principle**: Since `ExtensionManager` and `LifecycleManager` are both `@internal` (never exported from the `@hai3/screensets` barrel), the internal collaborators that call these methods can safely type their fields as the concrete type (`DefaultExtensionManager`, `DefaultLifecycleManager`) rather than the abstract type. This is an acceptable trade-off for internal wiring code: it preserves a clean abstract contract while allowing concrete-to-concrete access for internal implementation details.
 
 ##### Group A: ExtensionManager -- 5 methods to concrete-only
 
@@ -427,23 +430,7 @@ The following methods on abstract `ExtensionManager` are only used internally by
 **Collaborator field type change**:
 - `DefaultScreensetsRegistry`: its `lifecycleManager` field typed as `DefaultLifecycleManager` instead of `LifecycleManager`, so it can call `triggerLifecycleStageInternal()`.
 
-##### Group C: EventEmitter -- 1 method to concrete-only
-
-| Method | Return Type | Callers | Reason |
-|---|---|---|---|
-| `clear()` | `void` | `DefaultScreensetsRegistry.dispose()` | Disposal cleanup only |
-
-**After move**, the abstract `EventEmitter` keeps only:
-- `on(event, callback)`
-- `off(event, callback)`
-- `emit(event, data, errorHandler?)`
-
-**Collaborator field type change**:
-- `DefaultScreensetsRegistry`: its `eventEmitter` field typed as `DefaultEventEmitter` instead of `EventEmitter`, so it can call `clear()`.
-
-**Note**: `event-emitter.ts` is NOT split into separate files (too small, 130 lines). Both the abstract `EventEmitter` and concrete `DefaultEventEmitter` remain co-located. The `clear()` method is simply removed from the abstract class definition; it remains on the concrete class.
-
-##### Group D: ParentMfeBridge interface -- 2 methods removed from public type
+##### Group C: ParentMfeBridge interface -- 2 methods removed from public type
 
 | Method | Return Type | Callers | Reason |
 |---|---|---|---|
@@ -466,7 +453,6 @@ After all encapsulation fixes, `DefaultScreensetsRegistry` types its internal co
 |---|---|---|
 | `extensionManager` | `DefaultExtensionManager` (concrete) | Needs `getDomainState()`, `getExtensionState()`, `getExtensionStatesForDomain()`, `clear()`, `getDomainsMap()`, `getExtensionsMap()` |
 | `lifecycleManager` | `DefaultLifecycleManager` (concrete) | Needs `triggerLifecycleStageInternal()` |
-| `eventEmitter` | `DefaultEventEmitter` (concrete) | Needs `clear()` |
 | `mountManager` | `MountManager` (abstract) | No concrete-only methods needed |
 | `mediator` | `ActionsChainsMediator` (abstract) | No concrete-only methods needed (uses callback injection) |
 | `coordinator` | `RuntimeCoordinator` (abstract) | No concrete-only methods needed |
@@ -492,8 +478,8 @@ All modules that currently reference the concrete `ScreensetsRegistry` class are
 
 ```
 packages/screensets/src/mfe/runtime/
-  ScreensetsRegistry.ts              # ABSTRACT class (~80 lines)
-  DefaultScreensetsRegistry.ts       # CONCRETE class (~670 lines, NOT exported)
+  ScreensetsRegistry.ts              # ABSTRACT class (~75 lines)
+  DefaultScreensetsRegistry.ts       # CONCRETE class (~650 lines, NOT exported)
   create-screensets-registry.ts      # Factory function (only file that imports concrete)
   config.ts                          # ScreensetsRegistryConfig interface (unchanged)
   extension-manager.ts               # ABSTRACT class + types (~185 lines)
@@ -502,7 +488,6 @@ packages/screensets/src/mfe/runtime/
   default-lifecycle-manager.ts       # CONCRETE class (~170 lines)
   mount-manager.ts                   # ABSTRACT class + callback types (~97 lines)
   default-mount-manager.ts           # CONCRETE class (~320 lines)
-  event-emitter.ts                   # ABSTRACT + CONCRETE together (130 lines, too small to split)
   operation-serializer.ts            # CONCRETE only (70 lines, too small to split)
 ```
 

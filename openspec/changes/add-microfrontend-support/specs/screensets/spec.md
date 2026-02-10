@@ -955,7 +955,6 @@ The system SHALL support dynamic registration of extensions, domains, and MFEs a
 - **THEN** the system SHALL allow calling `runtime.registerExtension(extension)` at any time
 - **AND** the extension SHALL be validated against schema and contract before registration
 - **AND** the extension SHALL be available for mounting immediately after registration
-- **AND** an `extensionRegistered` event SHALL be emitted
 
 #### Scenario: Register extension after backend API response
 
@@ -970,7 +969,6 @@ The system SHALL support dynamic registration of extensions, domains, and MFEs a
 - **THEN** the system SHALL allow calling `runtime.unregisterExtension(extensionId)`
 - **AND** if the extension's MFE is currently mounted, it SHALL be unmounted first
 - **AND** the bridge SHALL be disposed
-- **AND** an `extensionUnregistered` event SHALL be emitted
 
 #### Scenario: Hot-swap extension at runtime
 
@@ -985,7 +983,6 @@ The system SHALL support dynamic registration of extensions, domains, and MFEs a
 - **WHEN** a screenset needs to add a new extension point at runtime
 - **THEN** the system SHALL allow calling `runtime.registerDomain(domain)` at any time
 - **AND** the domain SHALL be validated against schema before registration
-- **AND** a `domainRegistered` event SHALL be emitted
 - **AND** extensions MAY then be registered for this domain
 
 #### Scenario: Unregister domain dynamically
@@ -994,7 +991,6 @@ The system SHALL support dynamic registration of extensions, domains, and MFEs a
 - **THEN** the system SHALL allow calling `runtime.unregisterDomain(domainId)`
 - **AND** all extensions in this domain SHALL be unregistered first
 - **AND** all mounted MFEs in this domain SHALL be unmounted
-- **AND** a `domainUnregistered` event SHALL be emitted
 
 #### Scenario: Mount extension on demand
 
@@ -1042,7 +1038,6 @@ The ScreensetsRegistry SHALL provide a complete API for dynamic registration and
 - **THEN** the method SHALL return `void` (synchronous)
 - **AND** the domain SHALL be validated against GTS schema
 - **AND** the domain SHALL be added to registry
-- **AND** `domainRegistered` event SHALL be emitted
 
 #### Scenario: ScreensetsRegistry unregisterDomain method
 
@@ -1098,16 +1093,3 @@ Loading fetches the bundle; mounting renders to DOM. See [Load vs Mount](../../d
 - **THEN** `loadExtension()` SHALL fetch and initialize the JavaScript bundle only
 - **AND** `mountExtension()` SHALL render the loaded extension to a DOM container
 - **AND** an extension CAN be loaded but not mounted (preloading scenario)
-
-#### Scenario: Registration events
-
-- **WHEN** extensions or domains are registered/unregistered
-- **THEN** the runtime SHALL emit events:
-  - `extensionRegistered` with `{ extensionId: string }`
-  - `extensionUnregistered` with `{ extensionId: string }`
-  - `domainRegistered` with `{ domainId: string }`
-  - `domainUnregistered` with `{ domainId: string }`
-  - `extensionLoaded` with `{ extensionId: string }`
-  - `extensionMounted` with `{ extensionId: string }`
-  - `extensionUnmounted` with `{ extensionId: string }`
-- **AND** external systems MAY subscribe to these events for coordination

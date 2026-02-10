@@ -853,14 +853,14 @@ eventBus.on('auth/loginSuccess', async ({ token }) => {
 - **AND** application code SHALL call `registerDomain()` / `registerExtension()` for each entity
 - **AND** the MFE system SHALL NOT provide fetch/refresh methods
 
-#### Scenario: Listen to registration events
+#### Scenario: Observe domain extensions via store slice
 
 ```typescript
-import { useExtensionEvents } from '@hai3/react';
+import { useDomainExtensions } from '@hai3/react';
 
 function WidgetSlot() {
   // Re-render when extensions are registered/unregistered for this domain
-  const extensions = useExtensionEvents('gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1');
+  const extensions = useDomainExtensions('gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1');
 
   return (
     <div>
@@ -872,8 +872,8 @@ function WidgetSlot() {
 }
 ```
 
-- **WHEN** using `useExtensionEvents(domainId)` hook
-- **THEN** it SHALL subscribe to runtime's `extensionRegistered` and `extensionUnregistered` events
-- **AND** it SHALL filter events by domain
-- **AND** it SHALL trigger re-render when extensions change
-- **AND** it SHALL return current list of extensions for the domain
+- **WHEN** using `useDomainExtensions(domainId)` hook
+- **THEN** it SHALL subscribe to store changes to detect registration state updates
+- **AND** it SHALL call `runtime.getExtensionsForDomain(domainId)` to resolve the current extension list
+- **AND** it SHALL trigger re-render when the extension list for the domain changes
+- **AND** it SHALL return the current list of extensions for the domain

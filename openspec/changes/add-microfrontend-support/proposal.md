@@ -174,7 +174,7 @@ Extensions and MFEs are NOT known at app initialization time. `ScreensetsRegistr
 
 Every major stateful component MUST have an abstract class defining the public contract and a concrete implementation hidden behind a factory function. This enforces the Dependency Inversion Principle (DIP) at every boundary -- consumers type against stable abstractions, enabling testability, encapsulation of test shims on the concrete class, and prevention of circular imports.
 
-This applies to `ScreensetsRegistry` and all its collaborators (`ExtensionManager`, `LifecycleManager`, `MountManager`, `EventEmitter`, `RuntimeCoordinator`, `ActionsChainsMediator`, `MfeHandler`, `MfeBridgeFactory`). Collaborator files exceeding ~200 lines are split into separate abstract and concrete modules; smaller files (e.g., `event-emitter.ts`, `operation-serializer.ts`) remain co-located.
+This applies to `ScreensetsRegistry` and all its collaborators (`ExtensionManager`, `LifecycleManager`, `MountManager`, `RuntimeCoordinator`, `ActionsChainsMediator`, `MfeHandler`, `MfeBridgeFactory`). Collaborator files exceeding ~200 lines are split into separate abstract and concrete modules; smaller files (e.g., `operation-serializer.ts`) remain co-located.
 
 See [Registry Runtime - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-factory-construction) for the complete design including the abstract class definition, factory function, collaborator file splits, DIP consumer reference table, and file layout.
 

@@ -30,7 +30,6 @@ import { LifecycleManager } from './lifecycle-manager';
 import { DefaultLifecycleManager } from './default-lifecycle-manager';
 import { MountManager } from './mount-manager';
 import { DefaultMountManager } from './default-mount-manager';
-import { DefaultEventEmitter } from './event-emitter';
 import { OperationSerializer } from './operation-serializer';
 
 /**
@@ -78,13 +77,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * INTERNAL: Delegates loading and mounting operations.
    */
   private readonly mountManager: MountManager;
-
-  /**
-   * Event emitter for registry events.
-   * INTERNAL: Delegates event subscription and emission.
-   * Note: Typed as DefaultEventEmitter (concrete) to allow access to concrete-only methods.
-   */
-  private readonly eventEmitter: DefaultEventEmitter;
 
   /**
    * Operation serializer for per-entity concurrency control.
@@ -148,14 +140,12 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       getDomainState: (domainId) => this.extensionManager.getDomainState(domainId),
     });
 
-    // Initialize event emitter and operation serializer
-    this.eventEmitter = new DefaultEventEmitter();
+    // Initialize operation serializer
     this.operationSerializer = new OperationSerializer();
 
     // Initialize extension manager (needs dependencies for business logic)
     this.extensionManager = new DefaultExtensionManager({
       typeSystem: this.typeSystem,
-      emit: (event, data, errorHandler) => this.eventEmitter.emit(event, data, errorHandler),
       triggerLifecycle: (extensionId, stageId) => this.triggerLifecycleStage(extensionId, stageId),
       triggerDomainOwnLifecycle: (domainId, stageId) => this.triggerDomainOwnLifecycleStage(domainId, stageId),
       log: (message, context) => this.log(message, context),
@@ -184,10 +174,8 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       handlers: this.handlers,
       coordinator: this.coordinator,
       triggerLifecycle: (extensionId, stageId) => this.triggerLifecycleStage(extensionId, stageId),
-      eventEmitter: this.eventEmitter,
       executeActionsChain: (chain, options) => this.executeActionsChain(chain, options),
       log: (message, context) => this.log(message, context),
-      errorHandler: (error, context) => this.handleError(error, context),
       hostRuntime: this,
     });
 
@@ -390,7 +378,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * 4. Validate extension type (if domain specifies extensionsTypeId)
    * 5. Register in internal state
    * 6. Trigger 'init' lifecycle stage
-   * 7. Emit 'extensionRegistered' event
    *
    * @param extension - Extension to register
    * @returns Promise resolving when registration is complete
@@ -557,28 +544,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
   }
 
   /**
-   * Subscribe to registry events.
-   * Delegates to EventEmitter.
-   *
-   * @param event - Event name
-   * @param callback - Callback function
-   */
-  on(event: string, callback: (data: Record<string, unknown>) => void): void {
-    this.eventEmitter.on(event, callback);
-  }
-
-  /**
-   * Unsubscribe from registry events.
-   * Delegates to EventEmitter.
-   *
-   * @param event - Event name
-   * @param callback - Callback function
-   */
-  off(event: string, callback: (data: Record<string, unknown>) => void): void {
-    this.eventEmitter.off(event, callback);
-  }
-
-  /**
    * Log a message if debug is enabled.
    *
    * @param message - Message to log
@@ -698,7 +663,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
 
     // Clear collaborator state
     this.extensionManager.clear();
-    this.eventEmitter.clear();
     this.operationSerializer.clear();
 
     // Clear handlers

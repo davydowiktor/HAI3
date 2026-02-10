@@ -19,7 +19,6 @@ import {
   ExtensionManager,
   type ExtensionDomainState,
   type ExtensionState,
-  type EventEmitCallback,
   type LifecycleTriggerCallback,
   type DomainLifecycleTriggerCallback,
   type LoggerCallback,
@@ -61,11 +60,6 @@ export class DefaultExtensionManager extends ExtensionManager {
   private readonly typeSystem: TypeSystemPlugin;
 
   /**
-   * Event emitter for emitting events.
-   */
-  private readonly emit: EventEmitCallback;
-
-  /**
    * Lifecycle trigger for extensions.
    */
   private readonly triggerLifecycle: LifecycleTriggerCallback;
@@ -92,7 +86,6 @@ export class DefaultExtensionManager extends ExtensionManager {
 
   constructor(config: {
     typeSystem: TypeSystemPlugin;
-    emit: EventEmitCallback;
     triggerLifecycle: LifecycleTriggerCallback;
     triggerDomainOwnLifecycle: DomainLifecycleTriggerCallback;
     log: LoggerCallback;
@@ -101,7 +94,6 @@ export class DefaultExtensionManager extends ExtensionManager {
   }) {
     super();
     this.typeSystem = config.typeSystem;
-    this.emit = config.emit;
     this.triggerLifecycle = config.triggerLifecycle;
     this.triggerDomainOwnLifecycle = config.triggerDomainOwnLifecycle;
     this.log = config.log;
@@ -111,7 +103,7 @@ export class DefaultExtensionManager extends ExtensionManager {
 
   /**
    * Register a domain.
-   * Performs validation, stores state, triggers init lifecycle, and emits event.
+   * Performs validation, stores state, and triggers init lifecycle.
    *
    * @param domain - Domain to register
    */
@@ -159,16 +151,12 @@ export class DefaultExtensionManager extends ExtensionManager {
       );
     });
 
-    // Step 5: Emit event
-    this.emit('domainRegistered', { domainId: domain.id }, (error, context) =>
-      this.handleError(error, context)
-    );
     this.log('Domain registered', { domainId: domain.id });
   }
 
   /**
    * Unregister a domain.
-   * Cascade-unregisters all extensions, triggers destroyed lifecycle, and emits event.
+   * Cascade-unregisters all extensions and triggers destroyed lifecycle.
    *
    * @param domainId - ID of the domain to unregister
    * @returns Promise resolving when unregistration is complete
@@ -195,16 +183,12 @@ export class DefaultExtensionManager extends ExtensionManager {
     // 3. Remove domain
     this.domains.delete(domainId);
 
-    // 4. Emit event
-    this.emit('domainUnregistered', { domainId }, (error, context) =>
-      this.handleError(error, context)
-    );
     this.log('Domain unregistered', { domainId });
   }
 
   /**
    * Register an extension.
-   * Performs validation, stores state, triggers init lifecycle, and emits event.
+   * Performs validation, stores state, and triggers init lifecycle.
    *
    * @param extension - Extension to register
    * @returns Promise resolving when registration is complete
@@ -294,16 +278,12 @@ export class DefaultExtensionManager extends ExtensionManager {
       'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1'
     );
 
-    // 8. Emit event
-    this.emit('extensionRegistered', { extensionId: extension.id }, (error, context) =>
-      this.handleError(error, context)
-    );
     this.log('Extension registered', { extensionId: extension.id, domainId: extension.domain });
   }
 
   /**
    * Unregister an extension.
-   * Auto-unmounts if mounted, triggers destroyed lifecycle, and emits event.
+   * Auto-unmounts if mounted and triggers destroyed lifecycle.
    *
    * @param extensionId - ID of the extension to unregister
    * @returns Promise resolving when unregistration is complete
@@ -335,10 +315,6 @@ export class DefaultExtensionManager extends ExtensionManager {
 
     this.extensions.delete(extensionId);
 
-    // 4. Emit event
-    this.emit('extensionUnregistered', { extensionId }, (error, context) =>
-      this.handleError(error, context)
-    );
     this.log('Extension unregistered', { extensionId });
   }
 

@@ -90,7 +90,6 @@ export abstract class ScreensetsRegistry {
    * 4. Validate extension type (if domain specifies extensionsTypeId)
    * 5. Register in internal state
    * 6. Trigger 'init' lifecycle stage
-   * 7. Emit 'extensionRegistered' event
    *
    * @param extension - Extension to register
    * @returns Promise resolving when registration is complete
@@ -299,24 +298,6 @@ export abstract class ScreensetsRegistry {
    * @param domainId - ID of the domain
    */
   abstract unregisterDomainActionHandler(domainId: string): void;
-
-  // --- Events ---
-
-  /**
-   * Subscribe to registry events.
-   *
-   * @param event - Event name
-   * @param callback - Callback function
-   */
-  abstract on(event: string, callback: (data: Record<string, unknown>) => void): void;
-
-  /**
-   * Unsubscribe from registry events.
-   *
-   * @param event - Event name
-   * @param callback - Callback function
-   */
-  abstract off(event: string, callback: (data: Record<string, unknown>) => void): void;
 
   // --- Handlers ---
 

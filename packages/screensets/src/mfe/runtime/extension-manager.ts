@@ -42,15 +42,6 @@ export interface ExtensionState {
 }
 
 /**
- * Event emitter callback type.
- */
-export type EventEmitCallback = (
-  event: string,
-  data: Record<string, unknown>,
-  errorHandler: (error: Error, context: Record<string, unknown>) => void
-) => void;
-
-/**
  * Lifecycle trigger callback type.
  */
 export type LifecycleTriggerCallback = (extensionId: string, stageId: string) => Promise<void>;
@@ -91,7 +82,7 @@ export type ErrorHandlerCallback = (error: Error, context: Record<string, unknow
 export abstract class ExtensionManager {
   /**
    * Register a domain.
-   * Performs validation, stores state, triggers init lifecycle, and emits event.
+   * Performs validation, stores state, and triggers init lifecycle.
    *
    * @param domain - Domain to register
    */
@@ -99,7 +90,7 @@ export abstract class ExtensionManager {
 
   /**
    * Unregister a domain.
-   * Cascade-unregisters all extensions, triggers destroyed lifecycle, and emits event.
+   * Cascade-unregisters all extensions and triggers destroyed lifecycle.
    *
    * @param domainId - ID of the domain to unregister
    * @returns Promise resolving when unregistration is complete
@@ -108,7 +99,7 @@ export abstract class ExtensionManager {
 
   /**
    * Register an extension.
-   * Performs validation, stores state, triggers init lifecycle, and emits event.
+   * Performs validation, stores state, and triggers init lifecycle.
    *
    * @param extension - Extension to register
    * @returns Promise resolving when registration is complete
@@ -117,7 +108,7 @@ export abstract class ExtensionManager {
 
   /**
    * Unregister an extension.
-   * Auto-unmounts if mounted, triggers destroyed lifecycle, and emits event.
+   * Auto-unmounts if mounted and triggers destroyed lifecycle.
    *
    * @param extensionId - ID of the extension to unregister
    * @returns Promise resolving when unregistration is complete

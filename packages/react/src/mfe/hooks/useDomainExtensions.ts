@@ -1,7 +1,8 @@
 /**
- * useExtensionEvents Hook - Extension registration event subscription
+ * useDomainExtensions Hook - Domain extension list subscription
  *
- * Subscribes to extension registration/unregistration events for a specific domain.
+ * Subscribes to store changes to detect when extensions are registered or unregistered,
+ * and returns the current list of extensions for a domain.
  *
  * React Layer: L3
  */
@@ -15,18 +16,18 @@ import type { Extension } from '@hai3/screensets';
 // ============================================================================
 
 /**
- * Hook for subscribing to extension registration events for a domain.
+ * Hook for observing extensions registered for a domain.
  *
- * Subscribes to extensionRegistered and extensionUnregistered events from the runtime,
- * filters by domainId, and returns the current list of extensions for that domain.
+ * Subscribes to the HAI3 store to detect registration state changes,
+ * and returns the current list of extensions for the specified domain.
  *
- * @param domainId - Domain ID to filter events by
+ * @param domainId - Domain ID to query extensions for
  * @returns Array of extensions currently registered for the domain
  *
  * @example
  * ```tsx
  * function SidebarExtensions() {
- *   const extensions = useExtensionEvents('gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1');
+ *   const extensions = useDomainExtensions('gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1');
  *
  *   return (
  *     <div>
@@ -38,32 +39,25 @@ import type { Extension } from '@hai3/screensets';
  * }
  * ```
  */
-export function useExtensionEvents(domainId: string): Extension[] {
+export function useDomainExtensions(domainId: string): Extension[] {
   const app = useHAI3();
   const registry = app.screensetsRegistry;
 
   if (!registry) {
     throw new Error(
-      'useExtensionEvents requires the microfrontends plugin. ' +
+      'useDomainExtensions requires the microfrontends plugin. ' +
       'Add microfrontends() to your HAI3 app configuration.'
     );
   }
 
-  // Subscribe to extension registration events.
-  // The callback notifies useSyncExternalStore that external state may have changed.
-  // Domain filtering happens in getSnapshot via the cached snapshot comparison.
+  // Subscribe to store changes.
+  // Any dispatch (including registration state updates) triggers a snapshot check.
+  // The snapshot comparison ensures only actual extension list changes cause re-renders.
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
-      const handler = () => onStoreChange();
-      registry.on('extensionRegistered', handler);
-      registry.on('extensionUnregistered', handler);
-
-      return () => {
-        registry.off('extensionRegistered', handler);
-        registry.off('extensionUnregistered', handler);
-      };
+      return app.store.subscribe(onStoreChange);
     },
-    [registry]
+    [app.store]
   );
 
   // Cache the snapshot to maintain referential stability for useSyncExternalStore.
