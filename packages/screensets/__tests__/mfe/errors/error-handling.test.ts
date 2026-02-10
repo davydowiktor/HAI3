@@ -7,13 +7,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  MfeHandlerMF,
   MfeLoadError,
   ContractValidationError,
   ChainExecutionError,
   MfeErrorHandler,
   RetryHandler,
 } from '../../../src/mfe';
+import { MfeHandlerMF } from '../../../src/mfe/handler/mf-handler';
 import type { TypeSystemPlugin } from '../../../src/mfe/plugins/types';
 import type { MfeEntryMF, Action, ActionsChain } from '../../../src/mfe/types';
 

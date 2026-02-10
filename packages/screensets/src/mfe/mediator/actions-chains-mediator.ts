@@ -226,7 +226,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
 
     if (!handler) {
       // No handler registered - treat as successful no-op
-      // This allows validation-only tests to pass (Phase 4 tests)
+      // This allows validation-only tests to pass
       // In production, handlers should be registered before executing chains
       return;
     }

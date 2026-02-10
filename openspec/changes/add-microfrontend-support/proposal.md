@@ -170,6 +170,14 @@ Each domain handles these according to its layout semantics (popup shows modal, 
 
 Extensions and MFEs are NOT known at app initialization time. `ScreensetsRegistry` handles dynamic registration at any point during the application lifecycle. Loading fetches the bundle; mounting renders to DOM. Entity fetching is outside MFE system scope. See [Registry Runtime - Decision 17](./design/registry-runtime.md#decision-17-dynamic-registration-model) for the complete API and [System Boundary](./design/overview.md#system-boundary) for scope.
 
+### Architectural Requirement: Abstract Class Layers with Factory Construction
+
+Every major stateful component MUST have an abstract class defining the public contract and a concrete implementation hidden behind a factory function. This enforces the Dependency Inversion Principle (DIP) at every boundary -- consumers type against stable abstractions, enabling testability, encapsulation of test shims on the concrete class, and prevention of circular imports.
+
+This applies to `ScreensetsRegistry` and all its collaborators (`ExtensionManager`, `LifecycleManager`, `MountManager`, `EventEmitter`, `RuntimeCoordinator`, `ActionsChainsMediator`, `MfeHandler`, `MfeBridgeFactory`). Collaborator files exceeding ~200 lines are split into separate abstract and concrete modules; smaller files (e.g., `event-emitter.ts`, `operation-serializer.ts`) remain co-located.
+
+See [Registry Runtime - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-factory-construction) for the complete design including the abstract class definition, factory function, collaborator file splits, DIP consumer reference table, and file layout.
+
 ## Impact
 
 ### Affected specs
@@ -214,3 +222,6 @@ Note: HAI3 is in alpha stage. Backward-incompatible interface changes are expect
 6. Support runtime registration of extensions, domains, and MFEs at any time
 7. Propagate plugin through @hai3/framework layers
 8. Update documentation and examples
+9. Refactor ScreensetsRegistry into abstract class + DefaultScreensetsRegistry concrete (factory-hidden)
+10. Split collaborator files into separate abstract/concrete modules
+11. Update all DIP consumer references to type against abstract ScreensetsRegistry

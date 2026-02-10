@@ -4,7 +4,7 @@
  * Vanilla DOM-based error boundary for MFE loading and mounting errors.
  * Framework-agnostic - no React dependencies.
  *
- * NOTE: React-based error boundaries should be implemented in @hai3/react (Phase 14).
+ * NOTE: React-based error boundaries should be implemented in @hai3/react.
  */
 
 /**

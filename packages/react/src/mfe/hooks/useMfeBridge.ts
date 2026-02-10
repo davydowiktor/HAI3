@@ -26,7 +26,7 @@ import type { ChildMfeBridge } from '@hai3/screensets';
  * function MyMfeComponent() {
  *   const bridge = useMfeBridge();
  *
- *   // Bridge methods will be available in Phase 15
+ *   // Bridge methods:
  *   // bridge.sendActionsChain(chain);
  *   // bridge.subscribeToProperty(propertyTypeId, callback);
  *

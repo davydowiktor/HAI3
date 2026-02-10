@@ -10,8 +10,8 @@
  * - Domain property management
  * - Bridge lifecycle management
  * - Runtime coordination (internal)
- * - Action chain mediation (Phase 9)
- * - MFE loading and mounting (Phase 11+)
+ * - Action chain mediation
+ * - MFE loading and mounting
  *
  * @packageDocumentation
  */
@@ -23,38 +23,19 @@ import type {
   ExtensionDomain,
   Extension,
   ActionsChain,
-  MfeEntry,
-  SharedProperty,
 } from '../types';
 import { RuntimeCoordinator } from '../coordination/types';
 import { WeakMapRuntimeCoordinator } from '../coordination/weak-map-runtime-coordinator';
 import { ActionsChainsMediator, type ChainResult, type ChainExecutionOptions } from '../mediator';
 import { DefaultActionsChainsMediator } from '../mediator/actions-chains-mediator';
-import { validateDomainLifecycleHooks } from '../validation/lifecycle';
-import { DomainValidationError, UnsupportedLifecycleStageError } from '../errors';
+import { ExtensionManager, DefaultExtensionManager, type ExtensionDomainState, type ExtensionState } from './extension-manager';
+import { LifecycleManager, DefaultLifecycleManager } from './lifecycle-manager';
+import { MountManager, DefaultMountManager } from './mount-manager';
+import { EventEmitter, DefaultEventEmitter } from './event-emitter';
+import { OperationSerializer } from './operation-serializer';
 
-/**
- * State for a registered extension domain.
- * INTERNAL: Used by ActionsChainsMediator for domain resolution.
- */
-export interface ExtensionDomainState {
-  domain: ExtensionDomain;
-  properties: Map<string, SharedProperty>;
-  extensions: Set<string>;
-  propertySubscribers: Map<string, Set<(value: SharedProperty) => void>>;
-}
-
-/**
- * State for a registered extension.
- */
-interface ExtensionState {
-  extension: Extension;
-  entry: MfeEntry;
-  bridge: ParentMfeBridge | null;
-  loadState: 'idle' | 'loading' | 'loaded' | 'error';
-  mountState: 'unmounted' | 'mounting' | 'mounted' | 'error';
-  error?: Error;
-}
+// Re-export ExtensionDomainState for external consumers (e.g., ActionsChainsMediator)
+export type { ExtensionDomainState } from './extension-manager';
 
 
 /**
@@ -96,24 +77,39 @@ export class ScreensetsRegistry {
   private readonly config: ScreensetsRegistryConfig;
 
   /**
-   * Registered extension domains.
+   * Extension manager for managing extension and domain state.
+   * INTERNAL: Delegates extension/domain registration and query operations.
    */
-  private readonly domains = new Map<string, ExtensionDomainState>();
+  private readonly extensionManager: ExtensionManager;
 
   /**
-   * Registered extensions.
+   * Lifecycle manager for triggering lifecycle stages.
+   * INTERNAL: Delegates lifecycle hook execution.
    */
-  private readonly extensions = new Map<string, ExtensionState>();
+  private readonly lifecycleManager: LifecycleManager;
+
+  /**
+   * Mount manager for loading and mounting MFEs.
+   * INTERNAL: Delegates loading and mounting operations.
+   */
+  private readonly mountManager: MountManager;
+
+  /**
+   * Event emitter for registry events.
+   * INTERNAL: Delegates event subscription and emission.
+   */
+  private readonly eventEmitter: EventEmitter;
+
+  /**
+   * Operation serializer for per-entity concurrency control.
+   * INTERNAL: Ensures operations on the same entity are serialized.
+   */
+  private readonly operationSerializer: OperationSerializer;
 
   /**
    * Registered MFE handlers.
    */
   private readonly handlers: MfeHandler[] = [];
-
-  /**
-   * Event listeners.
-   */
-  private readonly eventListeners = new Map<string, Set<(data: Record<string, unknown>) => void>>();
 
   /**
    * Child MFE bridges (parent -> child communication).
@@ -132,8 +128,6 @@ export class ScreensetsRegistry {
    * INTERNAL: Uses Dependency Inversion Principle - depends on abstract RuntimeCoordinator.
    * Defaults to WeakMapRuntimeCoordinator if not provided in config.
    * Maps container elements to runtime connections for MFE coordination.
-   *
-   * NOTE: This replaces the previous _runtimeConnections WeakMap (Phase 8.4).
    */
   private readonly coordinator: RuntimeCoordinator;
 
@@ -141,8 +135,6 @@ export class ScreensetsRegistry {
    * Actions chains mediator for action chain execution.
    * INTERNAL: Uses Dependency Inversion Principle - depends on abstract ActionsChainsMediator.
    * Handles action routing, validation, and success/failure branching.
-   *
-   * NOTE: Introduced in Phase 9.
    */
   private readonly mediator: ActionsChainsMediator;
 
@@ -164,6 +156,46 @@ export class ScreensetsRegistry {
 
     // Initialize mediator (Dependency Inversion: use provided or default to DefaultActionsChainsMediator)
     this.mediator = config.mediator ?? new DefaultActionsChainsMediator(this.typeSystem, this);
+
+    // Initialize event emitter and operation serializer
+    this.eventEmitter = new DefaultEventEmitter();
+    this.operationSerializer = new OperationSerializer();
+
+    // Initialize extension manager (needs dependencies for business logic)
+    this.extensionManager = new DefaultExtensionManager({
+      typeSystem: this.typeSystem,
+      emit: (event, data, errorHandler) => this.eventEmitter.emit(event, data, errorHandler),
+      triggerLifecycle: (extensionId, stageId) => this.triggerLifecycleStage(extensionId, stageId),
+      triggerDomainOwnLifecycle: (domainId, stageId) => this.triggerDomainOwnLifecycleStage(domainId, stageId),
+      log: (message, context) => this.log(message, context),
+      handleError: (error, context) => this.handleError(error, context),
+      unmountExtension: (extensionId) => this.unmountExtension(extensionId),
+    });
+
+    // Initialize lifecycle manager (needs extension manager and error handler)
+    // Pass a spy-compatible callback that routes internal calls through a method tests can spy on
+    this.lifecycleManager = new DefaultLifecycleManager(
+      this.extensionManager,
+      async (chain) => { await this.executeActionsChain(chain); },
+      (error, context) => this.handleError(error, context),
+      // Callback for test compatibility: routes internal lifecycle triggers through
+      // the registry's triggerLifecycleStageInternal method so tests can spy on it
+      // This creates an indirection: LifecycleManager -> registry.triggerLifecycleStageInternal -> LifecycleManager.impl
+      (entity, stageId) => this.triggerLifecycleStageInternalForTests(entity, stageId)
+    );
+
+    // Initialize mount manager (needs all collaborators)
+    this.mountManager = new DefaultMountManager({
+      extensionManager: this.extensionManager,
+      handlers: this.handlers,
+      coordinator: this.coordinator,
+      triggerLifecycle: (extensionId, stageId) => this.triggerLifecycleStage(extensionId, stageId),
+      eventEmitter: this.eventEmitter,
+      executeActionsChain: (chain, options) => this.executeActionsChain(chain, options),
+      log: (message, context) => this.log(message, context),
+      errorHandler: (error, context) => this.handleError(error, context),
+      hostRuntime: this,
+    });
 
     // Verify first-class schemas are available
     this.verifyFirstClassSchemas();
@@ -232,44 +264,14 @@ export class ScreensetsRegistry {
   /**
    * Register an extension domain.
    * Domains must be registered before extensions can mount into them.
+   * NOTE: registerDomain is synchronous, but lifecycle triggering happens fire-and-forget.
    *
    * @param domain - Domain to register
    * @throws {DomainValidationError} if GTS validation fails
    * @throws {UnsupportedLifecycleStageError} if lifecycle hooks reference unsupported stages
    */
   registerDomain(domain: ExtensionDomain): void {
-    // Step 1: GTS-native validation - register then validate by ID
-    this.typeSystem.register(domain);
-    const validation = this.typeSystem.validateInstance(domain.id);
-
-    if (!validation.valid) {
-      throw new DomainValidationError(validation.errors, domain.id);
-    }
-
-    // Step 2: Validate lifecycle hooks reference supported stages
-    const lifecycleValidation = validateDomainLifecycleHooks(domain);
-    if (!lifecycleValidation.valid) {
-      const firstError = lifecycleValidation.errors[0];
-      const stageId = firstError?.stage ?? 'unknown';
-      const message = firstError?.message ?? `Unsupported lifecycle stage '${stageId}'`;
-      throw new UnsupportedLifecycleStageError(
-        message,
-        stageId,
-        domain.id,
-        domain.lifecycleStages
-      );
-    }
-
-    // Step 3: Store domain state
-    this.domains.set(domain.id, {
-      domain,
-      properties: new Map(),
-      extensions: new Set(),
-      propertySubscribers: new Map(),
-    });
-
-    this.emit('domainRegistered', { domainId: domain.id });
-    this.log('Domain registered', { domainId: domain.id });
+    this.extensionManager.registerDomain(domain);
   }
 
 
@@ -338,59 +340,35 @@ export class ScreensetsRegistry {
 
   /**
    * Update a single domain property.
-   * Notifies all subscribed extensions in the domain.
+   * Delegates to ExtensionManager.
    *
    * @param domainId - ID of the domain
    * @param propertyTypeId - Type ID of the property to update
    * @param value - New property value
    */
   updateDomainProperty(domainId: string, propertyTypeId: string, value: unknown): void {
-    const domainState = this.domains.get(domainId);
-    if (!domainState) {
-      throw new Error(`Domain '${domainId}' not registered`);
+    try {
+      this.extensionManager.updateDomainProperty(domainId, propertyTypeId, value);
+      this.log('Domain property updated', { domainId, propertyTypeId });
+    } catch (error) {
+      this.handleError(
+        error instanceof Error ? error : new Error(String(error)),
+        { domainId, propertyTypeId }
+      );
+      throw error;
     }
-
-    if (!domainState.domain.sharedProperties.includes(propertyTypeId)) {
-      throw new Error(`Property '${propertyTypeId}' not declared in domain '${domainId}'`);
-    }
-
-    // Update property value
-    const sharedProperty: SharedProperty = { id: propertyTypeId, value };
-    domainState.properties.set(propertyTypeId, sharedProperty);
-
-    // Notify property subscribers
-    const subscribers = domainState.propertySubscribers.get(propertyTypeId);
-    if (subscribers) {
-      for (const callback of subscribers) {
-        try {
-          callback(sharedProperty);
-        } catch (error) {
-          this.handleError(
-            error instanceof Error ? error : new Error(String(error)),
-            { domainId, propertyTypeId }
-          );
-        }
-      }
-    }
-
-    this.log('Domain property updated', { domainId, propertyTypeId });
   }
 
   /**
    * Get a domain property value.
+   * Delegates to ExtensionManager.
    *
    * @param domainId - ID of the domain
    * @param propertyTypeId - Type ID of the property to get
    * @returns Property value, or undefined if not set
    */
   getDomainProperty(domainId: string, propertyTypeId: string): unknown {
-    const domainState = this.domains.get(domainId);
-    if (!domainState) {
-      throw new Error(`Domain '${domainId}' not registered`);
-    }
-
-    const sharedProperty = domainState.properties.get(propertyTypeId);
-    return sharedProperty?.value;
+    return this.extensionManager.getDomainProperty(domainId, propertyTypeId);
   }
 
   /**
@@ -406,116 +384,206 @@ export class ScreensetsRegistry {
     }
   }
 
-  // NOTE: Bridge factory is in ./bridge-factory.ts (used by Phase 19.3 mountExtension)
+  // NOTE: Bridge factory is in ./bridge-factory.ts (used by mountExtension)
+
 
   /**
-   * Load an extension bundle (Phase 19 stub).
-   * Phase 19.1: Full implementation with MfeHandler integration.
+   * Register an extension dynamically at runtime.
+   * Extensions can be registered at ANY time during the application lifecycle.
+   *
+   * Validation steps:
+   * 1. Validate extension against GTS schema
+   * 2. Check domain exists
+   * 3. Validate contract (entry vs domain)
+   * 4. Validate extension type (if domain specifies extensionsTypeId)
+   * 5. Register in internal state
+   * 6. Trigger 'init' lifecycle stage
+   * 7. Emit 'extensionRegistered' event
+   *
+   * @param extension - Extension to register
+   * @returns Promise resolving when registration is complete
+   * @throws {ExtensionValidationError} if GTS validation fails
+   * @throws {Error} if domain not registered
+   * @throws {ContractValidationError} if contract validation fails
+   * @throws {ExtensionTypeError} if extension type validation fails
+   */
+  async registerExtension(extension: Extension): Promise<void> {
+    return this.operationSerializer.serializeOperation(extension.id, async () => {
+      return this.extensionManager.registerExtension(extension);
+    });
+  }
+
+  /**
+   * Unregister an extension from the registry.
+   * If the extension is currently mounted, it will be unmounted first.
+   * The extension is removed from the registry and its domain.
+   *
+   * @param extensionId - ID of the extension to unregister
+   * @returns Promise resolving when unregistration is complete
+   */
+  async unregisterExtension(extensionId: string): Promise<void> {
+    return this.operationSerializer.serializeOperation(extensionId, async () => {
+      return this.extensionManager.unregisterExtension(extensionId);
+    });
+  }
+
+  /**
+   * Unregister a domain from the registry.
+   * All extensions in the domain are cascade-unregistered first.
+   * The domain is removed from the registry.
+   *
+   * @param domainId - ID of the domain to unregister
+   * @returns Promise resolving when unregistration is complete
+   */
+  async unregisterDomain(domainId: string): Promise<void> {
+    return this.operationSerializer.serializeOperation(domainId, async () => {
+      return this.extensionManager.unregisterDomain(domainId);
+    });
+  }
+
+  /**
+   * Load an extension bundle.
+   * Delegates to MountManager.
    *
    * @param extensionId - ID of the extension to load
    * @returns Promise resolving when bundle is loaded
    */
   async loadExtension(extensionId: string): Promise<void> {
-    // Phase 13: Stub for framework effects integration
-    // Phase 19.1 will implement full loading with MfeHandler
-    throw new Error(
-      `loadExtension() is not yet implemented (Phase 19.1). ` +
-      `extensionId: ${extensionId}`
-    );
+    return this.operationSerializer.serializeOperation(extensionId, async () => {
+      return this.mountManager.loadExtension(extensionId);
+    });
   }
 
   /**
-   * Preload an extension bundle without mounting (Phase 19 stub).
-   * Phase 19.1: Full implementation with MfeHandler integration.
+   * Preload an extension bundle without mounting.
+   * Delegates to MountManager.
    *
    * @param extensionId - ID of the extension to preload
    * @returns Promise resolving when bundle is preloaded
    */
   async preloadExtension(extensionId: string): Promise<void> {
-    // Phase 13: Stub for framework effects integration
-    // Phase 19.1 will implement full preloading with MfeHandler
-    throw new Error(
-      `preloadExtension() is not yet implemented (Phase 19.1). ` +
-      `extensionId: ${extensionId}`
-    );
+    return this.operationSerializer.serializeOperation(extensionId, async () => {
+      return this.mountManager.preloadExtension(extensionId);
+    });
   }
 
   /**
    * Mount an extension into a container element.
-   * Phase 19.3: Full implementation with coordinator integration.
+   * Delegates to MountManager.
    *
    * @param extensionId - ID of the extension to mount
    * @param container - DOM element to mount into
    * @returns Promise resolving to the parent bridge
    */
-  async mountExtension(extensionId: string, _container: Element): Promise<ParentMfeBridge> {
-    // Phase 10: Stub implementation for ExtensionDomainSlot
-    // Phase 19.3 will implement full mounting with coordinator, bridge creation, and lifecycle
-    throw new Error(
-      `mountExtension() is not yet implemented (Phase 19.3). ` +
-      `extensionId: ${extensionId}`
-    );
+  async mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
+    return this.operationSerializer.serializeOperation(extensionId, async () => {
+      return this.mountManager.mountExtension(extensionId, container);
+    });
   }
 
   /**
    * Unmount an extension from its container.
-   * Phase 19.3: Full implementation with coordinator cleanup.
+   * Delegates to MountManager.
    *
    * @param extensionId - ID of the extension to unmount
    * @returns Promise resolving when unmount is complete
    */
   async unmountExtension(extensionId: string): Promise<void> {
-    // Phase 10: Stub implementation for ExtensionDomainSlot
-    // Phase 19.3 will implement full unmounting with coordinator cleanup and lifecycle
-    throw new Error(
-      `unmountExtension() is not yet implemented (Phase 19.3). ` +
-      `extensionId: ${extensionId}`
-    );
+    return this.operationSerializer.serializeOperation(extensionId, async () => {
+      return this.mountManager.unmountExtension(extensionId);
+    });
   }
 
-  // Phase 19.3: mountExtension/unmountExtension will use this.coordinator to manage
-  // runtime connections during MFE lifecycle (register/get/unregister).
+  /**
+   * Get a registered extension by its ID.
+   * Delegates to ExtensionManager.
+   *
+   * @param extensionId - ID of the extension to get
+   * @returns Extension if registered, undefined otherwise
+   */
+  getExtension(extensionId: string): Extension | undefined {
+    return this.extensionManager.getExtensionState(extensionId)?.extension;
+  }
+
+  /**
+   * Get a registered domain by its ID.
+   * Delegates to ExtensionManager.
+   *
+   * @param domainId - ID of the domain to get
+   * @returns ExtensionDomain if registered, undefined otherwise
+   */
+  getDomain(domainId: string): ExtensionDomain | undefined {
+    return this.extensionManager.getDomainState(domainId)?.domain;
+  }
+
+  /**
+   * Get all extensions registered for a specific domain.
+   * Delegates to ExtensionManager.
+   *
+   * @param domainId - ID of the domain
+   * @returns Array of extensions in the domain (empty if domain not found or has no extensions)
+   */
+  getExtensionsForDomain(domainId: string): Extension[] {
+    const extensionStates = this.extensionManager.getExtensionStatesForDomain(domainId);
+    return extensionStates.map(state => state.extension);
+  }
+
+  /**
+   * Trigger a lifecycle stage for a specific extension.
+   * Delegates to LifecycleManager.
+   *
+   * @param extensionId - ID of the extension
+   * @param stageId - ID of the lifecycle stage to trigger
+   * @returns Promise resolving when all hooks have executed
+   */
+  async triggerLifecycleStage(extensionId: string, stageId: string): Promise<void> {
+    return this.lifecycleManager.triggerLifecycleStage(extensionId, stageId);
+  }
+
+  /**
+   * Trigger a lifecycle stage for all extensions in a domain.
+   * Delegates to LifecycleManager.
+   *
+   * @param domainId - ID of the domain
+   * @param stageId - ID of the lifecycle stage to trigger
+   * @returns Promise resolving when all hooks have executed
+   */
+  async triggerDomainLifecycleStage(domainId: string, stageId: string): Promise<void> {
+    return this.lifecycleManager.triggerDomainLifecycleStage(domainId, stageId);
+  }
+
+  /**
+   * Trigger a lifecycle stage for a domain itself.
+   * Delegates to LifecycleManager.
+   *
+   * @param domainId - ID of the domain
+   * @param stageId - ID of the lifecycle stage to trigger
+   * @returns Promise resolving when all hooks have executed
+   */
+  async triggerDomainOwnLifecycleStage(domainId: string, stageId: string): Promise<void> {
+    return this.lifecycleManager.triggerDomainOwnLifecycleStage(domainId, stageId);
+  }
 
   /**
    * Subscribe to registry events.
+   * Delegates to EventEmitter.
    *
    * @param event - Event name
    * @param callback - Callback function
    */
   on(event: string, callback: (data: Record<string, unknown>) => void): void {
-    if (!this.eventListeners.has(event)) {
-      this.eventListeners.set(event, new Set());
-    }
-    this.eventListeners.get(event)!.add(callback);
+    this.eventEmitter.on(event, callback);
   }
 
   /**
    * Unsubscribe from registry events.
+   * Delegates to EventEmitter.
    *
    * @param event - Event name
    * @param callback - Callback function
    */
   off(event: string, callback: (data: Record<string, unknown>) => void): void {
-    this.eventListeners.get(event)?.delete(callback);
-  }
-
-  /**
-   * Emit a registry event.
-   *
-   * @param event - Event name
-   * @param data - Event data
-   */
-  private emit(event: string, data: Record<string, unknown>): void {
-    const listeners = this.eventListeners.get(event);
-    if (listeners) {
-      for (const callback of listeners) {
-        try {
-          callback(data);
-        } catch (error) {
-          this.handleError(error instanceof Error ? error : new Error(String(error)), { event, data });
-        }
-      }
-    }
+    this.eventEmitter.off(event, callback);
   }
 
   /**
@@ -547,12 +615,76 @@ export class ScreensetsRegistry {
   /**
    * Get domain state for a registered domain.
    * INTERNAL: Used by ActionsChainsMediator for domain resolution.
+   * Delegates to ExtensionManager.
    *
    * @param domainId - ID of the domain
    * @returns Domain state, or undefined if not found
    */
   getDomainState(domainId: string): ExtensionDomainState | undefined {
-    return this.domains.get(domainId);
+    return this.extensionManager.getDomainState(domainId);
+  }
+
+  /**
+   * INTERNAL: Get extension manager (for testing).
+   * @internal
+   */
+  getExtensionManager(): ExtensionManager {
+    return this.extensionManager;
+  }
+
+  /**
+   * INTERNAL: Get lifecycle manager (for testing).
+   * @internal
+   */
+  getLifecycleManager(): LifecycleManager {
+    return this.lifecycleManager;
+  }
+
+  /**
+   * INTERNAL: Compatibility shim for tests - exposes domains map.
+   * Tests currently access internal domains property via type assertion.
+   * This getter preserves test compatibility during refactoring.
+   * @internal
+   */
+  get domains(): Map<string, ExtensionDomainState> {
+    return this.extensionManager.getDomainsMap();
+  }
+
+  /**
+   * INTERNAL: Compatibility shim for tests - exposes extensions map.
+   * Tests currently access internal extensions property via type assertion.
+   * This getter preserves test compatibility during refactoring.
+   * @internal
+   */
+  get extensions(): Map<string, ExtensionState> {
+    return this.extensionManager.getExtensionsMap();
+  }
+
+  /**
+   * INTERNAL: Test compatibility wrapper.
+   * This is called by the LifecycleManager callback and then calls triggerLifecycleStageInternal.
+   * @internal
+   */
+  private async triggerLifecycleStageInternalForTests(
+    entity: Extension | ExtensionDomain,
+    stageId: string
+  ): Promise<void> {
+    // Call the public triggerLifecycleStageInternal which tests spy on
+    return this.triggerLifecycleStageInternal(entity, stageId);
+  }
+
+  /**
+   * INTERNAL: Compatibility shim for tests - exposes triggerLifecycleStageInternal.
+   * Tests spy on this method. Directly calls the LifecycleManager's implementation.
+   * @internal
+   */
+  async triggerLifecycleStageInternal(
+    entity: Extension | ExtensionDomain,
+    stageId: string
+  ): Promise<void> {
+    // Forward directly to the LifecycleManager's implementation, skipping the callback
+    // to avoid infinite recursion (callback would call back to this method)
+    return this.lifecycleManager.triggerLifecycleStageInternal(entity, stageId, true);
   }
 
   /**
@@ -572,18 +704,16 @@ export class ScreensetsRegistry {
     }
     this.childBridges.clear();
 
-    // Clear domains and extensions
-    this.domains.clear();
-    this.extensions.clear();
+    // Clear collaborator state
+    this.extensionManager.clear();
+    this.eventEmitter.clear();
+    this.operationSerializer.clear();
 
     // Clear handlers
     this.handlers.length = 0;
 
-    // Clear event listeners
-    this.eventListeners.clear();
-
     // Note: RuntimeCoordinator (using internal WeakMap) will be garbage collected automatically.
-    // No need to manually clear it. The coordinator is used for Phase 11+ bridge coordination.
+    // No need to manually clear it. The coordinator is used for bridge coordination.
     // Reference here to avoid TypeScript unused warning:
     void this.coordinator;
 

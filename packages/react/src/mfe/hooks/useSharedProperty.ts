@@ -19,10 +19,10 @@ import { useMfeContext } from '../MfeContext';
  * Subscribes to property updates from the host and returns the current value.
  * Must be used within a MfeProvider (i.e., inside an MFE component).
  *
- * NOTE: Full bridge subscription mechanism is implemented in Phase 15.
- * This hook provides the interface and uses useSyncExternalStore with a stub subscription.
+ * NOTE: This hook provides the interface and uses useSyncExternalStore with a stub subscription.
+ * Full bridge subscription should be implemented when bridge methods are available.
  *
- * @param _propertyTypeId - Type ID of the shared property to subscribe to (currently unused until Phase 15)
+ * @param _propertyTypeId - Type ID of the shared property to subscribe to (currently unused)
  * @returns Current property value
  *
  * @example
@@ -34,31 +34,24 @@ import { useMfeContext } from '../MfeContext';
  * }
  * ```
  */
-export function useSharedProperty<T = unknown>(_propertyTypeId: string): T | undefined {
+export function useSharedProperty<T = unknown>(propertyTypeId: string): T | undefined {
   // Enforce MfeProvider context requirement
-  // Hold reference for Phase 15 when bridge methods are implemented
-  useMfeContext(); // Throws if not in MfeProvider
+  const { bridge } = useMfeContext(); // Throws if not in MfeProvider
 
-  // Phase 15 NOTE: bridge.subscribeToProperty() is not yet implemented.
-  // This hook provides the interface. When Phase 15 is complete:
-  // 1. Use bridge.subscribeToProperty(propertyTypeId, callback)
-  // 2. Use bridge.getProperty(propertyTypeId) for synchronous access
-  // 3. Replace this stub with actual subscription logic
-
-  // Stub subscription using useSyncExternalStore
-  // Returns undefined until Phase 15 implements bridge subscription
-  const subscribe = useCallback((_callback: () => void) => {
-    // Phase 15: Replace with actual bridge.subscribeToProperty(propertyTypeId, callback)
-    // For now, return a no-op unsubscribe function
-    return () => {
-      // no-op unsubscribe
-    };
-  }, []);
+  // Subscribe to property updates via bridge
+  const subscribe = useCallback((callback: () => void) => {
+    return bridge.subscribeToProperty(propertyTypeId, () => {
+      // When property changes, trigger React re-render
+      callback();
+    });
+  }, [bridge, propertyTypeId]);
 
   const getSnapshot = useCallback(() => {
-    // Phase 15: Replace with bridge.getProperty(propertyTypeId)
-    return undefined as T | undefined;
-  }, []);
+    const property = bridge.getProperty(propertyTypeId);
+    // Type narrowing: caller specifies expected type T (standard React hook pattern)
+    // Similar to useState<T>, useContext<T> - type safety is caller's responsibility
+    return property?.value as T | undefined;
+  }, [bridge, propertyTypeId]);
 
   const value = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 

@@ -16,7 +16,7 @@ This document covers the ScreensetsRegistry runtime isolation model, action chai
 
 ### Standalone Functions vs Class-Based Capabilities
 
-Phase 8.4 establishes the rule: "NEVER standalone functions, ALWAYS abstract class + concrete class." This rule applies to **stateful capabilities** -- components that manage coordination, state, or property subscriptions using internal storage (e.g., WeakMap coordination, bridge factories, handler registries). These require the abstract class + concrete class pattern for Dependency Inversion, testability, and encapsulation of mutable state.
+The established rule is: "NEVER standalone functions, ALWAYS abstract class + concrete class." This rule applies to **stateful capabilities** -- components that manage coordination, state, or property subscriptions using internal storage (e.g., WeakMap coordination, bridge factories, handler registries). These require the abstract class + concrete class pattern for Dependency Inversion, testability, and encapsulation of mutable state. See [Decision 18](#decision-18-abstract-class-layers-with-factory-construction) for the complete pattern including `ScreensetsRegistry` itself.
 
 **Pure validation helpers** are exempt from this rule. The following functions are legitimately standalone because they are stateless -- they take inputs, return results, and have no side effects or internal state:
 
@@ -27,277 +27,32 @@ Phase 8.4 establishes the rule: "NEVER standalone functions, ALWAYS abstract cla
 
 These functions receive all dependencies as parameters and produce a `ContractValidationResult`. Wrapping them in a class would add indirection without benefit since there is no state to encapsulate and no abstraction to invert.
 
+**Small stateful utilities** are also exempt when their surface area is minimal. `OperationSerializer` (70 lines, single public method) manages a per-entity-ID promise chain but does not warrant an abstract class split due to its small size and single responsibility.
+
 ### ScreensetsRegistry as Facade
 
-`ScreensetsRegistry` has a large public API surface (~15+ methods spanning registration, loading, mounting, property management, action chain execution, lifecycle triggering, and events). This is intentional: it serves as a **facade** that provides a single entry point for the MFE runtime while internally delegating to specialized collaborators:
+`ScreensetsRegistry` has a large public API surface (~28 methods spanning registration, loading, mounting, property management, action chain execution, lifecycle triggering, and events). This is intentional: it serves as a **facade** that provides a single entry point for the MFE runtime while internally delegating to specialized collaborators:
 
 | Responsibility | Internal Collaborator | Design Document |
 |---|---|---|
-| Action chain execution | `ActionsChainsMediator` | [mfe-actions.md](./mfe-actions.md) |
-| WeakMap runtime coordination | `RuntimeCoordinator` (abstract) / `WeakMapRuntimeCoordinator` (concrete) | Phase 8.4 in this document |
+| Extension/domain registration | `ExtensionManager` (abstract) / `DefaultExtensionManager` (concrete) | This document |
+| Lifecycle stage triggering | `LifecycleManager` (abstract) / `DefaultLifecycleManager` (concrete) | [mfe-lifecycle.md](./mfe-lifecycle.md) |
+| MFE loading and mounting | `MountManager` (abstract) / `DefaultMountManager` (concrete) | This document |
+| Event subscription/emission | `EventEmitter` (abstract) / `DefaultEventEmitter` (concrete) | This document |
+| Operation serialization | `OperationSerializer` (concrete, small utility) | This document |
+| Action chain execution | `ActionsChainsMediator` (abstract) / `DefaultActionsChainsMediator` (concrete) | [mfe-actions.md](./mfe-actions.md) |
+| WeakMap runtime coordination | `RuntimeCoordinator` (abstract) / `WeakMapRuntimeCoordinator` (concrete) | This document |
 | MFE bundle loading | `MfeHandler` polymorphism (`MfeHandlerMF`, custom handlers) | [mfe-loading.md](./mfe-loading.md) |
 | Bridge creation | `MfeBridgeFactory` polymorphism (`MfeBridgeFactoryDefault`, custom factories) | [mfe-loading.md](./mfe-loading.md) |
 | Type validation | `TypeSystemPlugin` (injected) | [type-system.md](./type-system.md) |
 
-The public API is cohesive (all methods relate to MFE runtime management), and the internal delegation keeps each collaborator focused on a single responsibility. Consumer code interacts only with `ScreensetsRegistry`; the collaborators are implementation details.
+The public API is cohesive (all methods relate to MFE runtime management), and the internal delegation keeps each collaborator focused on a single responsibility. Consumer code interacts only with the **abstract** `ScreensetsRegistry`; both the concrete `DefaultScreensetsRegistry` and all collaborators are implementation details hidden behind the factory.
 
----
-
-## Decisions
-
-### Decision 13: Instance-Level Isolation (Framework-Agnostic, Default Behavior)
-
-See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for the complete isolation model, architecture diagrams, and recommendations.
-
-### Decision 14: Framework-Agnostic Isolation Model (Default Behavior)
-
-See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for the complete isolation model.
-
-**Class-Based ScreensetsRegistry**:
-
-```typescript
-// packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts
-
-/**
- * State for a registered extension domain.
- * Properties are stored as SharedProperty { id, value } to preserve the
- * property type ID alongside the value during bridge propagation.
- */
-interface ExtensionDomainState {
-  domain: ExtensionDomain;
-  properties: Map<string, SharedProperty>;  // key = propertyTypeId, value = { id: propertyTypeId, value: unknown }
-  extensions: Set<string>;
-  propertySubscribers: Map<string, Set<(value: SharedProperty) => void>>;
-}
-
-/** Internal tracking state for a registered extension. */
-interface ExtensionState {
-  extension: Extension;
-  entry: MfeEntry;
-  bridge: ParentMfeBridge | null;
-}
-
-class ScreensetsRegistry {
-  private readonly domains = new Map<string, ExtensionDomainState>();
-  private readonly extensions = new Map<string, ExtensionState>();
-  private readonly childBridges = new Map<string, ParentMfeBridge>();
-  private readonly mediator: ActionsChainsMediator;
-  private readonly handlers: MfeHandler[] = [];
-  private readonly coordinator: RuntimeCoordinator; // Dependency Inversion (abstract class)
-  private parentBridge: ParentMfeBridge | null = null;
-  private readonly state: HAI3State;
-  public readonly typeSystem: TypeSystemPlugin;
-
-  constructor(config: ScreensetsRegistryConfig) {
-    this.typeSystem = config.typeSystem;
-    this.coordinator = config.coordinator ?? new WeakMapRuntimeCoordinator();
-    this.state = createHAI3State();
-    if (config.mfeHandler) {
-      this.registerHandler(config.mfeHandler);
-    }
-  }
-
-  registerDomain(domain: ExtensionDomain): void {
-    // 1. Register the domain as a GTS entity
-    this.typeSystem.register(domain);
-
-    // 2. Validate the registered domain instance by its ID
-    // Note: domain.id does NOT end with ~ (it's an instance ID, not a schema ID)
-    const validation = this.typeSystem.validateInstance(domain.id);
-    if (!validation.valid) throw new DomainValidationError(validation.errors, domain.id);
-
-    this.domains.set(domain.id, {
-      domain,
-      properties: new Map(),  // Map<string, SharedProperty>
-      extensions: new Set(),
-      propertySubscribers: new Map(),
-    });
-  }
-
-  // === Domain-Level Shared Property Management ===
-  //
-  // Domain properties are stored as Map<string, SharedProperty> where SharedProperty
-  // is { id: string, value: unknown }. This preserves the property type ID alongside
-  // the value, enabling type-safe property propagation through bridges.
-  // The public API accepts raw `value: unknown` for convenience; the registry wraps
-  // it in a SharedProperty internally.
-
-  updateDomainProperty(domainId: string, propertyTypeId: string, value: unknown): void {
-    const domainState = this.domains.get(domainId);
-    if (!domainState) throw new Error(`Domain '${domainId}' not registered`);
-    if (!domainState.domain.sharedProperties.includes(propertyTypeId)) {
-      throw new Error(`Property '${propertyTypeId}' not declared in domain`);
-    }
-
-    // Store as SharedProperty { id, value } to preserve type ID alongside value
-    const sharedProperty: SharedProperty = { id: propertyTypeId, value };
-    domainState.properties.set(propertyTypeId, sharedProperty);
-
-    // Notify all subscribed extensions in this domain
-    for (const extensionId of domainState.extensions) {
-      const extensionState = this.extensions.get(extensionId);
-      if (!extensionState?.bridge) continue;
-
-      const entry = extensionState.entry;
-      const subscribes =
-        entry.requiredProperties?.includes(propertyTypeId) ||
-        entry.optionalProperties?.includes(propertyTypeId);
-
-      if (subscribes) {
-        // Internal: bridge's receivePropertyUpdate is a private method on the concrete implementation
-        (extensionState.bridge as any).receivePropertyUpdate(propertyTypeId, value);
-      }
-    }
-  }
-
-  getDomainProperty(domainId: string, propertyTypeId: string): unknown {
-    const sharedProperty = this.domains.get(domainId)?.properties.get(propertyTypeId);
-    return sharedProperty?.value;
-  }
-
-  updateDomainProperties(domainId: string, properties: Map<string, unknown>): void {
-    for (const [propertyTypeId, value] of properties) {
-      this.updateDomainProperty(domainId, propertyTypeId, value);
-    }
-  }
-
-  async mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
-    const extension = this.extensions.get(extensionId)?.extension;
-    if (!extension) throw new Error(`Extension '${extensionId}' not registered`);
-
-    // Extension was already registered and validated during registerExtension()
-    // Re-validate the registered instance by its ID (optional, for safety)
-    // Note: extensionId does NOT end with ~ (it's an instance ID)
-    const validation = this.typeSystem.validateInstance(extensionId);
-    if (!validation.valid) throw new ExtensionValidationError(validation.errors, extensionId);
-
-    const domainState = this.domains.get(extension.domain);
-    if (!domainState) throw new Error(`Domain '${extension.domain}' not registered`);
-
-    const entry = this.resolveEntry(extension.entry);
-    const contractResult = validateContract(entry, domainState.domain);
-    if (!contractResult.valid) throw new ContractValidationError(contractResult.errors, extension.entry, extension.domain);
-
-    const typeResult = validateExtensionType(this.typeSystem, extension, domainState.domain);
-    if (!typeResult.valid) throw new ExtensionTypeError(extension.id, domainState.domain.extensionsTypeId!);
-
-    const instanceId = crypto.randomUUID();
-    const bridge = this.createBridge(domainState, entry, instanceId);
-
-    this.extensions.set(instanceId, { extension, entry, bridge });
-    this.childBridges.set(instanceId, bridge);
-    domainState.extensions.add(instanceId);
-
-    return bridge;
-  }
-
-  async executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult> {
-    const { target, type, payload } = chain.action;
-
-    // For action payload validation, we register and validate the action itself
-    // Note: Action instances have a `type` field (self-reference) instead of `id`
-    // The action's type field serves as its instance identifier
-    this.typeSystem.register(chain.action);
-    const validation = this.typeSystem.validateInstance(type);
-    if (!validation.valid) return this.handleChainFailure(chain, validation.errors);
-
-    try {
-      if (this.domains.has(target)) {
-        await this.deliverToDomain(target, chain.action);
-      } else if (this.childBridges.has(target)) {
-        await this.deliverToChild(target, chain.action);
-      } else if (this.parentBridge && target === this.parentBridge.domainId) {
-        return this.parentBridge.sendActionsChain(chain);
-      } else {
-        throw new Error(`Unknown target: ${target}`);
-      }
-
-      if (chain.next) return this.executeActionsChain(chain.next, options);
-      return { completed: true, path: [chain.action.type] };
-    } catch (error) {
-      return this.handleChainFailure(chain, error);
-    }
-  }
-
-  registerHandler(handler: MfeHandler): void {
-    this.handlers.push(handler);
-    this.handlers.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
-  }
-
-  // === Lifecycle Stage Triggering ===
-
-  /**
-   * Trigger a lifecycle stage for a specific extension.
-   * Executes all lifecycle hooks registered for the given stage.
-   */
-  async triggerLifecycleStage(extensionId: string, stageId: string): Promise<void> {
-    const extensionState = this.extensions.get(extensionId);
-    if (!extensionState) throw new Error(`Extension '${extensionId}' not registered`);
-    await this.triggerLifecycleStageInternal(extensionState.extension, stageId);
-  }
-
-  /**
-   * Trigger a lifecycle stage for all extensions in a domain.
-   * Useful for custom stages like "refresh" that affect all widgets.
-   */
-  async triggerDomainLifecycleStage(domainId: string, stageId: string): Promise<void> {
-    const domainState = this.domains.get(domainId);
-    if (!domainState) throw new Error(`Domain '${domainId}' not registered`);
-
-    for (const extensionId of domainState.extensions) {
-      const extensionState = this.extensions.get(extensionId);
-      if (extensionState) {
-        await this.triggerLifecycleStageInternal(extensionState.extension, stageId);
-      }
-    }
-  }
-
-  /**
-   * Trigger a lifecycle stage for a domain itself.
-   */
-  async triggerDomainOwnLifecycleStage(domainId: string, stageId: string): Promise<void> {
-    const domainState = this.domains.get(domainId);
-    if (!domainState) throw new Error(`Domain '${domainId}' not registered`);
-    await this.triggerLifecycleStageInternal(domainState.domain, stageId);
-  }
-
-  private async triggerLifecycleStageInternal(
-    entity: Extension | ExtensionDomain,
-    stageId: string
-  ): Promise<void> {
-    if (!entity.lifecycle) return;
-
-    const hooks = entity.lifecycle.filter(hook => hook.stage === stageId);
-    for (const hook of hooks) {
-      await this.executeActionsChain(hook.actions_chain);
-    }
-  }
-
-  /**
-   * Resolve an MfeEntry by its type ID from the registry's internal state.
-   * Looks up the extension whose `entry` field matches the given entryId
-   * and returns the corresponding MfeEntry object.
-   */
-  private resolveEntry(entryId: string): MfeEntry {
-    for (const state of this.extensions.values()) {
-      if (state.entry?.id === entryId) return state.entry;
-    }
-    throw new Error(`No entry found for '${entryId}'`);
-  }
-
-  dispose(): void {
-    this.parentBridge?.dispose();
-    for (const bridge of this.childBridges.values()) bridge.dispose();
-    this.childBridges.clear();
-    this.domains.clear();
-    this.extensions.clear();
-  }
-}
-```
+**Abstract class layer**: `ScreensetsRegistry` is an abstract class (~80 lines) defining the public method signatures. `DefaultScreensetsRegistry` is the concrete implementation (~670 lines) that wires all collaborators together. Consumers obtain an instance exclusively through `createScreensetsRegistry()`, which returns the abstract type. See [Decision 18](#decision-18-abstract-class-layers-with-factory-construction) for the complete design.
 
 ### Concurrency and Operation Serialization
 
-**Context**: Phase 19 introduces async `registerExtension()`, `unregisterExtension()`, `mountExtension()`, and `unmountExtension()` methods. Without serialization, concurrent calls on the same entity can produce undefined behavior.
+**Context**: The async `registerExtension()`, `unregisterExtension()`, `mountExtension()`, and `unmountExtension()` methods require serialization to prevent undefined behavior from concurrent calls on the same entity.
 
 **Rule**: All async registration and lifecycle operations on ScreensetsRegistry are **serialized per entity ID**. Specifically:
 
@@ -309,6 +64,16 @@ class ScreensetsRegistry {
 - **Domain unregister during extension registration**: Calling `unregisterDomain(domainId)` while `registerExtension(extId)` (which targets that domain) is in progress will not interfere -- the extension registration holds a reference to the domain state. However, the extension will be cascade-unregistered by the domain unregistration once it completes.
 
 **Implementation**: Use a per-entity-ID promise chain or mutex pattern. This avoids global locks while preventing race conditions on individual entities.
+
+---
+
+## Decisions
+
+### Decision 13: Framework-Agnostic Instance-Level Isolation (Default Behavior)
+
+See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for the complete isolation model, architecture diagrams, and recommendations.
+
+`ScreensetsRegistry` uses the abstract class + concrete implementation + factory pattern. See [Decision 18](#decision-18-abstract-class-layers-with-factory-construction) for the complete abstract class definition, `DefaultScreensetsRegistry` concrete class, factory function, and file layout.
 
 ### Decision 15: Error Class Hierarchy
 
@@ -343,102 +108,7 @@ function injectStylesheet(shadowRoot: ShadowRoot, css: string, id?: string): voi
 
 #### ScreensetsRegistry Dynamic API
 
-```typescript
-class ScreensetsRegistry {
-  // === Type System ===
-
-  /** The Type System plugin instance */
-  public readonly typeSystem: TypeSystemPlugin;
-
-  // === Dynamic Registration (anytime during runtime) ===
-
-  async registerExtension(extension: Extension): Promise<void> {
-    // Validate, verify domain exists, validate contract, verify type hierarchy, register
-    // Trigger 'init' lifecycle stage
-  }
-
-  async unregisterExtension(extensionId: string): Promise<void> {
-    // Trigger 'destroyed' lifecycle stage
-    // Unmount if mounted, remove from registry and domain, emit event
-  }
-
-  registerDomain(domain: ExtensionDomain): void {
-    // Validate, register, emit event
-  }
-
-  async unregisterDomain(domainId: string): Promise<void> {
-    // Trigger 'destroyed' lifecycle stage
-    // Unregister all extensions first, remove domain, emit event
-  }
-
-  // === Bundle Loading (MFE system responsibility) ===
-
-  async loadExtension(extensionId: string): Promise<void> {
-    // Get extension, resolve entry, find handler via registry
-    // Load bundle using handler.load(entry)
-    // Cache loaded lifecycle for mounting
-    // Does NOT mount to DOM
-  }
-
-  async preloadExtension(extensionId: string): Promise<void> {
-    // Same as loadExtension but semantically for preloading
-    // Useful for hover preload before user clicks
-    // Uses handler.preload() if available for batch optimization
-  }
-
-  // === Mounting (lifecycle) ===
-
-  async mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
-    // If not loaded, load first
-    // Create bridge, register runtime, mount
-    // Trigger 'activated' lifecycle stage
-  }
-
-  async unmountExtension(extensionId: string): Promise<void> {
-    // Trigger 'deactivated' lifecycle stage
-    // Dispose bridge, unregister runtime, update state
-    // Does NOT unload bundle (stays cached for remounting)
-  }
-
-  // === Lifecycle Stage Triggering ===
-
-  async triggerLifecycleStage(extensionId: string, stageId: string): Promise<void> {
-    // Trigger custom lifecycle stage for a specific extension
-  }
-
-  async triggerDomainLifecycleStage(domainId: string, stageId: string): Promise<void> {
-    // Trigger custom lifecycle stage for all extensions in a domain
-  }
-
-  async triggerDomainOwnLifecycleStage(domainId: string, stageId: string): Promise<void> {
-    // Trigger custom lifecycle stage for the domain itself
-  }
-
-  // === Query Methods ===
-
-  getExtension(extensionId: string): Extension | undefined {
-    // Return the registered Extension by its ID, or undefined if not registered
-  }
-
-  getDomain(domainId: string): ExtensionDomain | undefined {
-    // Return the registered ExtensionDomain by its ID, or undefined if not registered
-  }
-
-  getExtensionsForDomain(domainId: string): Extension[] {
-    // Return all registered Extensions that belong to the given domain
-  }
-
-  // === Events ===
-
-  on(event: string, callback: Function): void {
-    // Subscribe to registry events
-  }
-
-  off(event: string, callback: Function): void {
-    // Unsubscribe from registry events
-  }
-}
-```
+The `ScreensetsRegistry` is an abstract class. The dynamic API is defined as abstract method signatures. See [Decision 18](#decision-18-abstract-class-layers-with-factory-construction) for the complete abstract class definition.
 
 **System Boundary:** Entity fetching is outside MFE system scope. See [System Boundary](./overview.md#system-boundary) for details.
 
@@ -491,3 +161,219 @@ runtime.updateDomainProperties(domainId, new Map([
   [userContextPropertyId, { userId: '123' }],
 ]));
 ```
+
+---
+
+### Decision 18: Abstract Class Layers with Factory Construction
+
+**What**: Every major stateful component MUST have an abstract class defining the public contract and a concrete implementation hidden behind a factory function. External consumers ALWAYS depend on abstract types, never concrete classes.
+
+**Why**:
+- **Dependency Inversion Principle (DIP)**: Consumers depend on stable abstractions, not volatile implementations
+- **Testability**: Tests can substitute mock implementations of the abstract class without knowing the concrete class
+- **Encapsulation**: Test-only accessors (`get domains()`, `get extensions()`, `triggerLifecycleStageInternal`) live on the concrete class only and are invisible to public consumers
+- **Circular import prevention**: Modules that reference `ScreensetsRegistry` import only the abstract class, breaking circular dependency chains that occur when importing the concrete class with all its collaborator imports
+- **Consistency**: Aligns `ScreensetsRegistry` with the existing pattern used by `RuntimeCoordinator`/`WeakMapRuntimeCoordinator`, `ActionsChainsMediator`/`DefaultActionsChainsMediator`, `MfeHandler`/`MfeHandlerMF`, `ExtensionManager`/`DefaultExtensionManager`, etc.
+
+#### Architectural Principle
+
+```
+ABSTRACT (public API)                    CONCRETE (hidden implementation)
+========================                 ================================
+ScreensetsRegistry                  -->  DefaultScreensetsRegistry
+ExtensionManager                    -->  DefaultExtensionManager
+LifecycleManager                    -->  DefaultLifecycleManager
+MountManager                        -->  DefaultMountManager
+EventEmitter                        -->  DefaultEventEmitter
+RuntimeCoordinator                  -->  WeakMapRuntimeCoordinator
+ActionsChainsMediator               -->  DefaultActionsChainsMediator
+MfeHandler                          -->  MfeHandlerMF
+MfeBridgeFactory                    -->  MfeBridgeFactoryDefault
+
+FACTORY (only place that knows concrete)
+========================================
+createScreensetsRegistry(config)    -->  returns ScreensetsRegistry (abstract type)
+```
+
+**Rule**: Only factories and constructors (wiring code) reference concrete classes. All other code types against the abstract class.
+
+#### ScreensetsRegistry Abstract Class
+
+```typescript
+// packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts
+// ~80 lines -- abstract class with public method signatures
+
+import type { TypeSystemPlugin } from '../plugins/types';
+import type { MfeHandler, ParentMfeBridge } from '../handler/types';
+import type { ExtensionDomain, Extension, ActionsChain } from '../types';
+import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../mediator';
+import type { ExtensionDomainState } from './extension-manager';
+
+/**
+ * Abstract ScreensetsRegistry - public contract for the MFE runtime facade.
+ *
+ * This is the ONLY type external consumers should depend on.
+ * Create instances via createScreensetsRegistry() factory.
+ */
+export abstract class ScreensetsRegistry {
+  abstract readonly typeSystem: TypeSystemPlugin;
+
+  // --- Registration ---
+  abstract registerDomain(domain: ExtensionDomain): void;
+  abstract unregisterDomain(domainId: string): Promise<void>;
+  abstract registerExtension(extension: Extension): Promise<void>;
+  abstract unregisterExtension(extensionId: string): Promise<void>;
+
+  // --- Loading ---
+  abstract loadExtension(extensionId: string): Promise<void>;
+  abstract preloadExtension(extensionId: string): Promise<void>;
+
+  // --- Mounting ---
+  abstract mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge>;
+  abstract unmountExtension(extensionId: string): Promise<void>;
+
+  // --- Domain Properties ---
+  abstract updateDomainProperty(domainId: string, propertyTypeId: string, value: unknown): void;
+  abstract getDomainProperty(domainId: string, propertyTypeId: string): unknown;
+  abstract updateDomainProperties(domainId: string, properties: Map<string, unknown>): void;
+
+  // --- Action Chains ---
+  abstract executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+
+  // --- Lifecycle Triggering ---
+  abstract triggerLifecycleStage(extensionId: string, stageId: string): Promise<void>;
+  abstract triggerDomainLifecycleStage(domainId: string, stageId: string): Promise<void>;
+  abstract triggerDomainOwnLifecycleStage(domainId: string, stageId: string): Promise<void>;
+
+  // --- Query ---
+  abstract getExtension(extensionId: string): Extension | undefined;
+  abstract getDomain(domainId: string): ExtensionDomain | undefined;
+  abstract getExtensionsForDomain(domainId: string): Extension[];
+  abstract getDomainState(domainId: string): ExtensionDomainState | undefined;
+
+  // --- Action Handlers (mediator-facing) ---
+  abstract registerExtensionActionHandler(extensionId: string, domainId: string, entryId: string, handler: ActionHandler): void;
+  abstract unregisterExtensionActionHandler(extensionId: string): void;
+  abstract registerDomainActionHandler(domainId: string, handler: ActionHandler): void;
+  abstract unregisterDomainActionHandler(domainId: string): void;
+
+  // --- Events ---
+  abstract on(event: string, callback: (data: Record<string, unknown>) => void): void;
+  abstract off(event: string, callback: (data: Record<string, unknown>) => void): void;
+
+  // --- Handlers ---
+  abstract registerHandler(handler: MfeHandler): void;
+
+  // --- Lifecycle ---
+  abstract dispose(): void;
+}
+```
+
+#### Factory Function
+
+```typescript
+// packages/screensets/src/mfe/runtime/create-screensets-registry.ts
+// This is the ONLY file that imports DefaultScreensetsRegistry
+
+import type { ScreensetsRegistryConfig } from './config';
+import { ScreensetsRegistry } from './ScreensetsRegistry';
+import { DefaultScreensetsRegistry } from './DefaultScreensetsRegistry';
+
+/**
+ * Create a ScreensetsRegistry instance.
+ * Returns the abstract ScreensetsRegistry type -- consumers never see the concrete class.
+ */
+export function createScreensetsRegistry(
+  config: ScreensetsRegistryConfig
+): ScreensetsRegistry {
+  return new DefaultScreensetsRegistry(config);
+}
+```
+
+#### DefaultScreensetsRegistry (Concrete, NOT Exported)
+
+```typescript
+// packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts
+// ~670 lines -- full implementation, NOT exported from public barrel
+
+import { ScreensetsRegistry } from './ScreensetsRegistry';
+// ... all collaborator imports ...
+
+class DefaultScreensetsRegistry extends ScreensetsRegistry {
+  // ... full implementation of all abstract methods ...
+
+  // @internal -- test shims live ONLY on the concrete class
+  get domains(): Map<string, ExtensionDomainState> { return this.extensionManager.getDomainsMap(); }
+  get extensions(): Map<string, ExtensionState> { return this.extensionManager.getExtensionsMap(); }
+
+  async triggerLifecycleStageInternal(
+    entity: Extension | ExtensionDomain,
+    stageId: string
+  ): Promise<void> {
+    return this.lifecycleManager.triggerLifecycleStageInternal(entity, stageId);
+  }
+
+  // @internal -- concrete-only accessors for collaborator instances (NOT on abstract class)
+  getExtensionManager(): ExtensionManager { return this.extensionManager; }
+  getLifecycleManager(): LifecycleManager { return this.lifecycleManager; }
+}
+```
+
+#### Collaborator File Splits
+
+Collaborators that currently co-locate abstract + concrete in a single file are split into separate files. The abstract file contains the abstract class and related type definitions. The concrete file contains the implementation class.
+
+| Current File | Abstract File | Concrete File | Split? |
+|---|---|---|---|
+| `extension-manager.ts` (643 lines) | `extension-manager.ts` (~185 lines: abstract class + ExtensionDomainState + ExtensionState types) | `default-extension-manager.ts` (~460 lines) | Yes |
+| `lifecycle-manager.ts` (270 lines) | `lifecycle-manager.ts` (~100 lines: abstract class + callback types) | `default-lifecycle-manager.ts` (~170 lines) | Yes |
+| `mount-manager.ts` (414 lines) | `mount-manager.ts` (~97 lines: abstract class + callback types) | `default-mount-manager.ts` (~320 lines) | Yes |
+| `event-emitter.ts` (130 lines) | -- | -- | No (too small) |
+| `operation-serializer.ts` (70 lines) | -- | -- | No (too small) |
+
+**Import rule after split**: Only the `DefaultScreensetsRegistry` constructor imports concrete collaborator classes. All other code imports only abstract classes.
+
+#### DIP Consumer Reference Updates
+
+All modules that currently reference the concrete `ScreensetsRegistry` class are updated to import the abstract class. Because the abstract class replaces the concrete class at the same file path (`ScreensetsRegistry.ts`), most import statements do not change. The exceptions are noted below.
+
+| File | Note |
+|---|---|
+| `coordination/types.ts` | No import change needed |
+| `mount-manager.ts` | No import change needed; now types against abstract class, which breaks the circular import on the concrete class |
+| `mediator/actions-chains-mediator.ts` | No import change needed |
+| `components/ExtensionDomainSlot.tsx` | No import change needed |
+| `framework/effects.ts` | No import change needed |
+| `framework/types.ts` | No import change needed; `MfeScreensetsRegistry` alias now maps to abstract class |
+| `runtime/bridge-factory.ts` | **Import path changes**: `import { ExtensionDomainState } from './extension-manager'` (type moves to the abstract file after the collaborator split) |
+
+#### File Layout After Refactoring
+
+```
+packages/screensets/src/mfe/runtime/
+  ScreensetsRegistry.ts              # ABSTRACT class (~80 lines)
+  DefaultScreensetsRegistry.ts       # CONCRETE class (~670 lines, NOT exported)
+  create-screensets-registry.ts      # Factory function (only file that imports concrete)
+  config.ts                          # ScreensetsRegistryConfig interface (unchanged)
+  extension-manager.ts               # ABSTRACT class + types (~185 lines)
+  default-extension-manager.ts       # CONCRETE class (~460 lines)
+  lifecycle-manager.ts               # ABSTRACT class + callback types (~100 lines)
+  default-lifecycle-manager.ts       # CONCRETE class (~170 lines)
+  mount-manager.ts                   # ABSTRACT class + callback types (~97 lines)
+  default-mount-manager.ts           # CONCRETE class (~320 lines)
+  event-emitter.ts                   # ABSTRACT + CONCRETE together (130 lines, too small to split)
+  operation-serializer.ts            # CONCRETE only (70 lines, too small to split)
+```
+
+#### Export Policy
+
+The `@hai3/screensets` public barrel exports:
+- `ScreensetsRegistry` (abstract class)
+- `createScreensetsRegistry` (factory function)
+- `ScreensetsRegistryConfig` (interface)
+
+The barrel does NOT export:
+- `DefaultScreensetsRegistry` (concrete class)
+- `DefaultExtensionManager`, `DefaultLifecycleManager`, `DefaultMountManager` (concrete collaborators)
+
+Test files that need access to concrete internals import directly from the concrete file paths using relative imports, bypassing the public barrel.

@@ -47,14 +47,10 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
    * Send an actions chain to the child MFE.
    * Used by the host to send actions to the MFE.
    *
-   * Phase 19+ Implementation Required:
-   * - Child MFE must register an action handler (currently not in MfeEntryLifecycle)
-   * - Parent must have a way to deliver actions to child's handler
-   * - This requires integration with the mediator or a new handler registration mechanism
-   *
    * @param chain - Actions chain to send
    * @param _options - Optional execution options (reserved for future use)
    * @returns Promise resolving to chain result
+   * @throws {Error} Not yet implemented - action delivery to child MFE requires action handler registration mechanism
    */
   async sendActionsChain(
     chain: ActionsChain,
@@ -63,9 +59,8 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
     if (this.disposed) {
       throw new Error('Bridge has been disposed');
     }
-    // Phase 19+: Full implementation with action handler registration and delivery
     throw new Error(
-      `ParentMfeBridge.sendActionsChain() is not yet implemented (Phase 19+). ` +
+      `ParentMfeBridge.sendActionsChain() is not yet implemented. ` +
       `Action delivery to child MFE requires action handler registration mechanism. ` +
       `Action type: ${chain.action.type}`
     );

@@ -97,9 +97,8 @@ export type {
   MfeEntryLifecycle,
 } from './mfe';
 
-// MFE Handler Classes
+// MFE Handler Abstract Classes (concrete implementations are internal)
 export { MfeBridgeFactory, MfeHandler } from './mfe';
-export { MfeHandlerMF, MfeBridgeFactoryDefault, ChildMfeBridgeImpl } from './mfe';
 
 // HAI3 Type ID Constants
 export { HAI3_CORE_TYPE_IDS, HAI3_LIFECYCLE_STAGE_IDS, HAI3_MF_TYPE_IDS } from './mfe';

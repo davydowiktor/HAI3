@@ -2,7 +2,7 @@
  * Bridge Factory for ScreensetsRegistry
  *
  * Creates bridge connections between host and child MFEs.
- * This is extracted to avoid unused code warnings (used in Phase 19.3).
+ * This is extracted to avoid unused code warnings.
  *
  * @packageDocumentation
  * @internal
@@ -16,7 +16,7 @@ import { ParentMfeBridgeImpl } from '../bridge/ParentMfeBridge';
 
 /**
  * Create a bridge connection between host and child MFE.
- * INTERNAL: Called by mountExtension in Phase 19.3.
+ * INTERNAL: Called by mountExtension.
  *
  * @param domainState - Domain state containing properties and subscribers
  * @param extensionId - ID of the extension
@@ -65,7 +65,7 @@ export function createBridge(
 
 /**
  * Dispose a bridge connection and clean up domain subscribers.
- * INTERNAL: Called by unmountExtension in Phase 19.3.
+ * INTERNAL: Called by unmountExtension.
  *
  * @param domainState - Domain state containing property subscribers
  * @param parentBridge - Parent bridge to dispose
@@ -75,7 +75,7 @@ export function disposeBridge(
   parentBridge: ParentMfeBridge
 ): void {
   // Remove property subscribers from domain before disposing bridge
-  const subscribers = (parentBridge as ParentMfeBridgeImpl).getPropertySubscribers();
+  const subscribers = parentBridge.getPropertySubscribers();
   for (const [propertyTypeId, subscriber] of subscribers) {
     const domainSubscribers = domainState.propertySubscribers.get(propertyTypeId);
     if (domainSubscribers) {

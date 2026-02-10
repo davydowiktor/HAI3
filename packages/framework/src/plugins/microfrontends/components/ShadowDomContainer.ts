@@ -4,9 +4,9 @@
  * Vanilla DOM-based Shadow DOM container for MFE style isolation.
  * Framework-agnostic - no React dependencies.
  *
- * Uses Shadow DOM utilities from @hai3/screensets (Phase 16).
+ * Uses Shadow DOM utilities from @hai3/screensets.
  *
- * NOTE: React-based ShadowDomContainer should be implemented in @hai3/react (Phase 14).
+ * NOTE: React-based ShadowDomContainer should be implemented in @hai3/react.
  */
 
 import { createShadowRoot, injectCssVariables } from '@hai3/screensets';
@@ -28,7 +28,7 @@ export interface ShadowDomContainerConfig {
  *
  * Creates and manages a shadow root for MFE rendering with style isolation.
  * Provides CSS variable passthrough for theme integration.
- * Uses Shadow DOM utilities from @hai3/screensets (Phase 16).
+ * Uses Shadow DOM utilities from @hai3/screensets.
  *
  * @example
  * ```typescript
@@ -73,12 +73,13 @@ export class ShadowDomContainer {
     }
 
     // Create shadow root using utility from @hai3/screensets
-    this.shadowRoot = createShadowRoot(this.hostElement, { mode: this.mode });
+    const root = createShadowRoot(this.hostElement, { mode: this.mode });
+    this.shadowRoot = root;
 
     // Inject CSS variables
     this.injectCssVariablesInternal();
 
-    return this.shadowRoot;
+    return root;
   }
 
   /**

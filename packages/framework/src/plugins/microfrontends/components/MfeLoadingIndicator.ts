@@ -4,7 +4,7 @@
  * Vanilla DOM-based loading indicator for MFE loading operations.
  * Framework-agnostic - no React dependencies.
  *
- * NOTE: React-based loading components should be implemented in @hai3/react (Phase 14).
+ * NOTE: React-based loading components should be implemented in @hai3/react.
  */
 
 /**

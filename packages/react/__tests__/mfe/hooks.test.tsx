@@ -28,6 +28,10 @@ const mockBridge: ChildMfeBridge = {
   domainId: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
   entryTypeId: 'gts.hai3.mfes.mfe.entry.v1~test.sidebar_entry.v1',
   instanceId: 'test-instance-123',
+  sendActionsChain: vi.fn().mockResolvedValue({ success: true }),
+  subscribeToProperty: vi.fn().mockReturnValue(() => {}),
+  getProperty: vi.fn().mockReturnValue(undefined),
+  subscribeToAllProperties: vi.fn().mockReturnValue(() => {}),
 };
 
 const mockMfeContextValue: MfeContextValue = {
@@ -174,7 +178,7 @@ describe('MfeContext', () => {
   });
 
   describe('14.5.4 useSharedProperty subscription', () => {
-    it('should return undefined until Phase 15 implementation', () => {
+    it('should return undefined when property is not set', () => {
       const store = createMockStore();
       const wrapper = createWrapper(mockMfeContextValue, store);
 
@@ -183,8 +187,13 @@ describe('MfeContext', () => {
         { wrapper }
       );
 
-      // Phase 15 NOTE: Returns undefined until bridge.subscribeToProperty() is implemented
+      // Returns undefined when bridge.getProperty() returns undefined
       expect(result.current).toBeUndefined();
+      expect(mockBridge.getProperty).toHaveBeenCalledWith('gts.hai3.mfes.comm.shared_property.v1~test.user_data.v1');
+      expect(mockBridge.subscribeToProperty).toHaveBeenCalledWith(
+        'gts.hai3.mfes.comm.shared_property.v1~test.user_data.v1',
+        expect.any(Function)
+      );
     });
   });
 
@@ -201,10 +210,9 @@ describe('MfeContext', () => {
       expect(typeof result.current).toBe('function');
     });
 
-    it('should log Phase 15 warning when callback is invoked', () => {
+    it('should send actions chain when callback is invoked', () => {
       const store = createMockStore();
       const wrapper = createWrapper(mockMfeContextValue, store);
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const { result } = renderHook(
         () => useHostAction('gts.hai3.mfes.comm.action.v1~test.navigate.v1'),
@@ -214,18 +222,20 @@ describe('MfeContext', () => {
       // Invoke the callback
       result.current({ path: '/dashboard' });
 
-      // Phase 15 NOTE: Should log warning until bridge.sendActionsChain() is implemented
-      expect(consoleWarnSpy).toHaveBeenCalled();
-      const warnCall = consoleWarnSpy.mock.calls[0];
-      expect(warnCall[0]).toContain('Phase 15 dependency');
-
-      consoleWarnSpy.mockRestore();
+      // Should call bridge.sendActionsChain with proper structure
+      expect(mockBridge.sendActionsChain).toHaveBeenCalledWith({
+        action: {
+          type: 'gts.hai3.mfes.comm.action.v1~test.navigate.v1',
+          target: mockBridge.domainId,
+          payload: { path: '/dashboard' },
+        },
+      });
     });
   });
 
   describe('14.5.6 HAI3Provider MFE detection', () => {
-    it('is deferred to Phase 15 integration testing', () => {
-      // DEFERRED TO PHASE 15 INTEGRATION TESTING
+    it('is deferred to integration testing', () => {
+      // DEFERRED TO INTEGRATION TESTING
       //
       // HAI3Provider MFE detection (when mfeBridge prop is provided) requires:
       // 1. Full HAI3 app instance with store, registries, and plugin initialization
@@ -236,14 +246,14 @@ describe('MfeContext', () => {
       // - If mfeBridge prop is provided, wrap children with MfeProvider
       // - Pass bridge, extensionId, domainId, entryTypeId from mfeBridge to MfeProvider
       //
-      // This will be properly tested in Phase 15 when:
+      // This will be properly tested when:
       // - Bridge communication layer is complete
       // - Integration tests with Chrome DevTools MCP Runtime are available
       // - Full MFE lifecycle scenarios can be tested end-to-end
       //
       // Unit testing this feature in isolation would require extensive mocking
       // of @hai3/framework internals, providing minimal value compared to the
-      // comprehensive integration testing planned for Phase 15.
+      // comprehensive integration testing.
       expect(true).toBe(true);
     });
   });

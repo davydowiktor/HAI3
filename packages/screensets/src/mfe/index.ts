@@ -62,17 +62,13 @@ export {
 } from './runtime';
 export type { ScreensetsRegistryConfig } from './runtime';
 
-// Handler Types and Implementations
+// Handler Types and Abstract Classes (concrete implementations are internal)
 export type {
   ParentMfeBridge,
   ChildMfeBridge,
   MfeEntryLifecycle,
 } from './handler/types';
 export { MfeBridgeFactory, MfeHandler } from './handler/types';
-export { MfeHandlerMF, MfeBridgeFactoryDefault } from './handler';
-
-// Bridge Implementations
-export { ChildMfeBridgeImpl, ParentMfeBridgeImpl } from './bridge';
 
 // Runtime Coordination (abstract class and interface only - concrete implementation is internal)
 export { RuntimeCoordinator } from './coordination/types';

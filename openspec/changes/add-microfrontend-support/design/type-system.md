@@ -681,24 +681,17 @@ interface ScreensetsRegistryConfig {
   coordinator?: RuntimeCoordinator;
 }
 
+// In create-screensets-registry.ts (see Decision 18 in registry-runtime.md)
 /**
- * Create the ScreensetsRegistry with required Type System plugin
+ * Create the ScreensetsRegistry with required Type System plugin.
+ * Returns the abstract ScreensetsRegistry type -- consumers never see the concrete class.
  */
 function createScreensetsRegistry(
   config: ScreensetsRegistryConfig
 ): ScreensetsRegistry {
-  const { typeSystem, ...options } = config;
-
-  // Validate plugin
-  if (!typeSystem) {
-    throw new Error('ScreensetsRegistry requires a typeSystem');
-  }
-
-  // NOTE: No schema registration needed here.
-  // The GTS plugin already has all first-class citizen schemas built-in.
-  // It is ready to use immediately after creation.
-
-  return new ScreensetsRegistry(config);
+  // Factory internally creates DefaultScreensetsRegistry (concrete, not exported).
+  // Validation and schema readiness are handled by the concrete constructor.
+  return new DefaultScreensetsRegistry(config);
 }
 
 // Usage with GTS (default)

@@ -45,7 +45,6 @@ export function initMfeEffects(screensetsRegistry: ScreensetsRegistry): () => vo
       store.dispatch(setLoading({ extensionId }));
 
       // Call runtime to load extension
-      // NOTE: Phase 19 stub - will throw until fully implemented
       await screensetsRegistry.loadExtension(extensionId);
 
       // Update state: loaded
@@ -67,7 +66,6 @@ export function initMfeEffects(screensetsRegistry: ScreensetsRegistry): () => vo
 
     try {
       // Preload doesn't update state (it's fire-and-forget optimization)
-      // NOTE: Phase 19 stub - will throw until fully implemented
       await screensetsRegistry.preloadExtension(extensionId);
     } catch (error) {
       // Silently ignore preload errors (they're optional optimizations)
@@ -90,7 +88,6 @@ export function initMfeEffects(screensetsRegistry: ScreensetsRegistry): () => vo
       store.dispatch(setMounting({ extensionId }));
 
       // Call runtime to mount extension (auto-loads if needed)
-      // NOTE: Phase 19 stub - will throw until fully implemented
       await screensetsRegistry.mountExtension(extensionId, containerElement);
 
       // Update state: mounted
@@ -112,7 +109,6 @@ export function initMfeEffects(screensetsRegistry: ScreensetsRegistry): () => vo
 
     try {
       // Call runtime to unmount extension
-      // NOTE: Phase 19 stub - will throw until fully implemented
       await screensetsRegistry.unmountExtension(extensionId);
 
       // Update state: unmounted
@@ -135,15 +131,7 @@ export function initMfeEffects(screensetsRegistry: ScreensetsRegistry): () => vo
     try {
       // Handle host actions like load_ext/unload_ext for domains
       // This is used for popup, sidebar, overlay, and custom domains
-      // NOTE: Phase 19 implementation required for full functionality
-
-      // For now, just log the action request
       console.log(`[MFE] Host action requested: ${actionTypeId} for ${extensionId}`, actionPayload);
-
-      // In Phase 19, this will:
-      // 1. Create an ActionsChain for the action
-      // 2. Execute via mediator.executeChain()
-      // 3. Handle load_ext (mount) or unload_ext (unmount) semantics
     } catch (error) {
       console.error(`[MFE] Host action failed for ${extensionId}:`, error);
     }

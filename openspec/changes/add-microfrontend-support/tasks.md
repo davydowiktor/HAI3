@@ -2,12 +2,14 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 18 complete. Ready for Phase 19.
+**Current Status**: Phase 19 implementation code complete; 8 additive test tasks remain unchecked. Ready for Phase 20 and Phase 21.
 - **Phase 7.4** (tasks 7.4.1-7.4.4): ✓ Layout domain instance JSON files moved to `@hai3/framework`
 - **Phase 7.5.5**: ✓ `loadLayoutDomains()` moved to `@hai3/framework`
-- **Phase 18** (all tasks): ✓ Complete — `GtsTypeId` and `ParsedGtsId` removed, users should use `gts-ts` directly
-- **Phase 19** (all tasks): Dynamic registration model not yet implemented
+- **Phase 18** (all tasks): ✓ Complete -- `GtsTypeId` and `ParsedGtsId` removed, users should use `gts-ts` directly
+- **Phase 19** (implementation code): ✓ Complete -- Dynamic registration model implemented with full lifecycle triggering
+- **Phase 19** (additive test tasks): 8 unchecked test tasks in section 19.5 (19.5.3, 19.5.7-19.5.12, 19.5.14) -- these are additive integration tests, not blockers
 - **Phase 20** (all tasks): Framework dynamic registration actions not yet implemented
+- **Phase 21** (all tasks): Abstract class layers with factory construction -- ScreensetsRegistry abstraction, collaborator file splits, DIP consumer updates. Not yet started.
 
 ---
 
@@ -1007,15 +1009,15 @@ Move each file from `packages/screensets/src/mfe/gts/hai3.screensets/instances/d
 
 > **Concurrency note**: All async operations are serialized per entity ID to prevent race conditions. See [Concurrency and Operation Serialization](./design/registry-runtime.md#concurrency-and-operation-serialization) in `design/registry-runtime.md`.
 
-- [ ] 19.1.1 Implement `registerExtension(extension): Promise<void>` method
-- [ ] 19.1.2 Implement extension validation against GTS schema
-- [ ] 19.1.3 Implement domain existence check (must be registered first)
-- [ ] 19.1.4 Implement contract validation (entry vs domain)
-- [ ] 19.1.5 Implement `unregisterExtension(extensionId): Promise<void>` method
-- [ ] 19.1.6 Implement auto-unmount if MFE is currently mounted
-- [ ] 19.1.7 Implement `registerDomain(domain): void` method (synchronous)
-- [ ] 19.1.8 Implement `unregisterDomain(domainId): Promise<void>` method
-- [ ] 19.1.9 Implement cascade unregister of extensions in domain
+- [x] 19.1.1 Implement `registerExtension(extension): Promise<void>` method
+- [x] 19.1.2 Implement extension validation against GTS schema
+- [x] 19.1.3 Implement domain existence check (must be registered first)
+- [x] 19.1.4 Implement contract validation (entry vs domain)
+- [x] 19.1.5 Implement `unregisterExtension(extensionId): Promise<void>` method
+- [x] 19.1.6 Implement auto-unmount if MFE is currently mounted
+- [x] 19.1.7 Implement `registerDomain(domain): void` method (synchronous)
+- [x] 19.1.8 Implement `unregisterDomain(domainId): Promise<void>` method
+- [x] 19.1.9 Implement cascade unregister of extensions in domain
 
 Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshExtensionsFromBackend`, or `fetchInstance` methods. Entity fetching is outside MFE system scope.
 
@@ -1023,32 +1025,32 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 ### 19.1b ScreensetsRegistry Query Methods
 
-- [ ] 19.1b.1 Implement `getExtension(extensionId): Extension | undefined` method on ScreensetsRegistry -- returns the registered extension or undefined
-- [ ] 19.1b.2 Implement `getDomain(domainId): ExtensionDomain | undefined` method on ScreensetsRegistry -- returns the registered domain or undefined
-- [ ] 19.1b.3 Implement `getExtensionsForDomain(domainId): Extension[]` method on ScreensetsRegistry -- returns all extensions registered for the given domain
+- [x] 19.1b.1 Implement `getExtension(extensionId): Extension | undefined` method on ScreensetsRegistry -- returns the registered extension or undefined
+- [x] 19.1b.2 Implement `getDomain(domainId): ExtensionDomain | undefined` method on ScreensetsRegistry -- returns the registered domain or undefined
+- [x] 19.1b.3 Implement `getExtensionsForDomain(domainId): Extension[]` method on ScreensetsRegistry -- returns all extensions registered for the given domain
 
 **Test file**: `packages/screensets/__tests__/mfe/runtime/query-methods.test.ts`
 
-- [ ] 19.1b.4 Test `getExtension` returns registered extension
-- [ ] 19.1b.5 Test `getExtension` returns undefined for unregistered extension
-- [ ] 19.1b.6 Test `getDomain` returns registered domain
-- [ ] 19.1b.7 Test `getDomain` returns undefined for unregistered domain
-- [ ] 19.1b.8 Test `getExtensionsForDomain` returns all extensions for a domain
-- [ ] 19.1b.9 Test `getExtensionsForDomain` returns empty array for domain with no extensions
+- [x] 19.1b.4 Test `getExtension` returns registered extension
+- [x] 19.1b.5 Test `getExtension` returns undefined for unregistered extension
+- [x] 19.1b.6 Test `getDomain` returns registered domain
+- [x] 19.1b.7 Test `getDomain` returns undefined for unregistered domain
+- [x] 19.1b.8 Test `getExtensionsForDomain` returns all extensions for a domain
+- [x] 19.1b.9 Test `getExtensionsForDomain` returns empty array for domain with no extensions
 
 **Traceability**: Requirement "ScreensetsRegistry Query Methods" - getExtension, getDomain, getExtensionsForDomain
 
 ### 19.2 Extension Loading API
 
-- [ ] 19.2.1 Implement `loadExtension(extensionId): Promise<void>` method
-- [ ] 19.2.2 Verify extension is registered before loading
-- [ ] 19.2.3 Resolve entry from extension, find appropriate MfeHandler
-- [ ] 19.2.4 Call handler.load(entry) to fetch and initialize bundle
-- [ ] 19.2.5 Cache loaded lifecycle for mounting
-- [ ] 19.2.6 Emit `extensionLoaded` event
-- [ ] 19.2.7 Implement `preloadExtension(extensionId): Promise<void>` method
-- [ ] 19.2.8 Same as loadExtension but semantically for preloading
-- [ ] 19.2.9 Use handler.preload() if available for batch optimization
+- [x] 19.2.1 Implement `loadExtension(extensionId): Promise<void>` method
+- [x] 19.2.2 Verify extension is registered before loading
+- [x] 19.2.3 Resolve entry from extension, find appropriate MfeHandler
+- [x] 19.2.4 Call handler.load(entry) to fetch and initialize bundle
+- [x] 19.2.5 Cache loaded lifecycle for mounting
+- [x] 19.2.6 Emit `extensionLoaded` event
+- [x] 19.2.7 Implement `preloadExtension(extensionId): Promise<void>` method
+- [x] 19.2.8 Same as loadExtension but semantically for preloading
+- [x] 19.2.9 Use handler.preload() if available for batch optimization
 
 **Traceability**: Requirement "ScreensetsRegistry Dynamic API" - loadExtension/preloadExtension scenarios
 
@@ -1056,31 +1058,31 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 > **Note**: Phase 13.6 (Navigation Integration) created skeleton implementations with Phase 19 dependency. When completing Phase 19.3, also complete the Phase 13.6 navigation skeletons (tasks 13.6.1-13.6.3) by wiring them to the real `mountExtension`/`unmountExtension` methods implemented here.
 
-- [ ] 19.3.1 Implement `mountExtension(extensionId, container): Promise<ParentMfeBridge>` method
-- [ ] 19.3.2 If extension not loaded, call loadExtension first (auto-load)
-- [ ] 19.3.3 Create bridge connection via handler.bridgeFactory
-- [ ] 19.3.4 Register with RuntimeCoordinator
-- [ ] 19.3.5 Call lifecycle.mount(container, bridge)
-- [ ] 19.3.6 Emit `extensionMounted` event
-- [ ] 19.3.7 Implement `unmountExtension(extensionId): Promise<void>` method
-- [ ] 19.3.8 Call lifecycle.unmount(container)
-- [ ] 19.3.9 Dispose bridge and unregister from coordinator
-- [ ] 19.3.10 Keep extension registered and bundle loaded after unmount
-- [ ] 19.3.11 Emit `extensionUnmounted` event
+- [x] 19.3.1 Implement `mountExtension(extensionId, container): Promise<ParentMfeBridge>` method
+- [x] 19.3.2 If extension not loaded, call loadExtension first (auto-load)
+- [x] 19.3.3 Create bridge connection via handler.bridgeFactory
+- [x] 19.3.4 Register with RuntimeCoordinator
+- [x] 19.3.5 Call lifecycle.mount(container, bridge)
+- [x] 19.3.6 Emit `extensionMounted` event
+- [x] 19.3.7 Implement `unmountExtension(extensionId): Promise<void>` method
+- [x] 19.3.8 Call lifecycle.unmount(container)
+- [x] 19.3.9 Dispose bridge and unregister from coordinator
+- [x] 19.3.10 Keep extension registered and bundle loaded after unmount
+- [x] 19.3.11 Emit `extensionUnmounted` event
 
 **Traceability**: Requirement "ScreensetsRegistry Dynamic API" - mountExtension/unmountExtension scenarios
 
 ### 19.4 Registration Events
 
-- [ ] 19.4.1 Implement `emit(event, data)` method on ScreensetsRegistry
-- [ ] 19.4.2 Emit `extensionRegistered` event with `{ extensionId }`
-- [ ] 19.4.3 Emit `extensionUnregistered` event with `{ extensionId }`
-- [ ] 19.4.4 Emit `domainRegistered` event with `{ domainId }`
-- [ ] 19.4.5 Emit `domainUnregistered` event with `{ domainId }`
-- [ ] 19.4.6 Emit `extensionLoaded` event with `{ extensionId }`
-- [ ] 19.4.7 Emit `extensionMounted` event with `{ extensionId }`
-- [ ] 19.4.8 Emit `extensionUnmounted` event with `{ extensionId }`
-- [ ] 19.4.9 Implement `on(event, callback)` and `off(event, callback)` for subscriptions
+- [x] 19.4.1 Implement `emit(event, data)` method on ScreensetsRegistry
+- [x] 19.4.2 Emit `extensionRegistered` event with `{ extensionId }`
+- [x] 19.4.3 Emit `extensionUnregistered` event with `{ extensionId }`
+- [x] 19.4.4 Emit `domainRegistered` event with `{ domainId }`
+- [x] 19.4.5 Emit `domainUnregistered` event with `{ domainId }`
+- [x] 19.4.6 Emit `extensionLoaded` event with `{ extensionId }`
+- [x] 19.4.7 Emit `extensionMounted` event with `{ extensionId }`
+- [x] 19.4.8 Emit `extensionUnmounted` event with `{ extensionId }`
+- [x] 19.4.9 Implement `on(event, callback)` and `off(event, callback)` for subscriptions
 
 **Traceability**: Requirement "ScreensetsRegistry Dynamic API" - Registration events
 
@@ -1088,19 +1090,19 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 **Test file**: `packages/screensets/__tests__/mfe/runtime/dynamic-registration.test.ts`
 
-- [ ] 19.5.1 Test registerExtension after runtime initialization
-- [ ] 19.5.2 Test registerExtension fails if domain not registered
+- [x] 19.5.1 Test registerExtension after runtime initialization
+- [x] 19.5.2 Test registerExtension fails if domain not registered
 - [ ] 19.5.3 Test unregisterExtension unmounts MFE if mounted
-- [ ] 19.5.4 Test unregisterExtension is idempotent
-- [ ] 19.5.5 Test registerDomain at any time
-- [ ] 19.5.6 Test unregisterDomain cascades to extensions
+- [x] 19.5.4 Test unregisterExtension is idempotent
+- [x] 19.5.5 Test registerDomain at any time
+- [x] 19.5.6 Test unregisterDomain cascades to extensions
 - [ ] 19.5.7 Test loadExtension requires extension to be registered
 - [ ] 19.5.8 Test loadExtension caches bundle for mounting
 - [ ] 19.5.9 Test preloadExtension has same behavior as loadExtension
 - [ ] 19.5.10 Test mountExtension auto-loads if not loaded
 - [ ] 19.5.11 Test mountExtension requires extension to be registered
 - [ ] 19.5.12 Test unmountExtension keeps extension registered and bundle loaded
-- [ ] 19.5.13 Test registration events are emitted correctly
+- [x] 19.5.13 Test registration events are emitted correctly
 - [ ] 19.5.14 Test hot-swap: unregister + register with same ID
 
 **Traceability**: Requirement "Dynamic Registration Model", "ScreensetsRegistry Dynamic API" - all scenarios
@@ -1109,26 +1111,26 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 > See [mfe-lifecycle.md](./design/mfe-lifecycle.md) for triggering sequences and [registry-runtime.md](./design/registry-runtime.md) for the ScreensetsRegistry lifecycle API.
 
-- [ ] 19.6.1 Implement `triggerLifecycleStage(extensionId, stageId)` on ScreensetsRegistry -- triggers all lifecycle hooks for the given stage on a specific extension
-- [ ] 19.6.2 Implement `triggerDomainLifecycleStage(domainId, stageId)` on ScreensetsRegistry -- triggers all lifecycle hooks for the given stage on all extensions in a domain
-- [ ] 19.6.3 Implement `triggerDomainOwnLifecycleStage(domainId, stageId)` on ScreensetsRegistry -- triggers all lifecycle hooks for the given stage on the domain itself
-- [ ] 19.6.4 Implement private `triggerLifecycleStageInternal(entity, stageId)` helper -- collects hooks matching the stage and executes their actions chains in declaration order
-- [ ] 19.6.5 Integrate automatic lifecycle triggering into registration/mounting methods: `registerExtension` triggers `init`, `mountExtension` triggers `activated`, `unmountExtension` triggers `deactivated`, `unregisterExtension` triggers `destroyed`
-- [ ] 19.6.6 Integrate automatic lifecycle triggering into domain methods: `registerDomain` triggers `init`, `unregisterDomain` triggers `destroyed`
+- [x] 19.6.1 Implement `triggerLifecycleStage(extensionId, stageId)` on ScreensetsRegistry -- triggers all lifecycle hooks for the given stage on a specific extension
+- [x] 19.6.2 Implement `triggerDomainLifecycleStage(domainId, stageId)` on ScreensetsRegistry -- triggers all lifecycle hooks for the given stage on all extensions in a domain
+- [x] 19.6.3 Implement `triggerDomainOwnLifecycleStage(domainId, stageId)` on ScreensetsRegistry -- triggers all lifecycle hooks for the given stage on the domain itself
+- [x] 19.6.4 Implement private `triggerLifecycleStageInternal(entity, stageId)` helper -- collects hooks matching the stage and executes their actions chains in declaration order
+- [x] 19.6.5 Integrate automatic lifecycle triggering into registration/mounting methods: `registerExtension` triggers `init`, `mountExtension` triggers `activated`, `unmountExtension` triggers `deactivated`, `unregisterExtension` triggers `destroyed`
+- [x] 19.6.6 Integrate automatic lifecycle triggering into domain methods: `registerDomain` triggers `init`, `unregisterDomain` triggers `destroyed`
 
 **Test file**: `packages/screensets/__tests__/mfe/runtime/lifecycle-triggering.test.ts`
 
-- [ ] 19.6.7 Test `triggerLifecycleStage` executes hooks for a specific extension and stage
-- [ ] 19.6.8 Test `triggerLifecycleStage` throws if extension not registered
-- [ ] 19.6.9 Test `triggerDomainLifecycleStage` executes hooks for all extensions in a domain
-- [ ] 19.6.10 Test `triggerDomainLifecycleStage` throws if domain not registered
-- [ ] 19.6.11 Test `triggerDomainOwnLifecycleStage` executes hooks on the domain itself
-- [ ] 19.6.12 Test hooks execute in declaration order (array order)
-- [ ] 19.6.13 Test automatic `init` stage triggered during `registerExtension`
-- [ ] 19.6.14 Test automatic `activated` stage triggered during `mountExtension`
-- [ ] 19.6.15 Test automatic `deactivated` stage triggered during `unmountExtension`
-- [ ] 19.6.16 Test automatic `destroyed` stage triggered during `unregisterExtension`
-- [ ] 19.6.17 Test entity with no lifecycle hooks skips triggering gracefully
+- [x] 19.6.7 Test `triggerLifecycleStage` executes hooks for a specific extension and stage
+- [x] 19.6.8 Test `triggerLifecycleStage` throws if extension not registered
+- [x] 19.6.9 Test `triggerDomainLifecycleStage` executes hooks for all extensions in a domain
+- [x] 19.6.10 Test `triggerDomainLifecycleStage` throws if domain not registered
+- [x] 19.6.11 Test `triggerDomainOwnLifecycleStage` executes hooks on the domain itself
+- [x] 19.6.12 Test hooks execute in declaration order (array order)
+- [x] 19.6.13 Test automatic `init` stage triggered during `registerExtension`
+- [x] 19.6.14 Test automatic `activated` stage triggered during `mountExtension`
+- [x] 19.6.15 Test automatic `deactivated` stage triggered during `unmountExtension`
+- [x] 19.6.16 Test automatic `destroyed` stage triggered during `unregisterExtension`
+- [x] 19.6.17 Test entity with no lifecycle hooks skips triggering gracefully
 
 **Traceability**: Requirement "Lifecycle Stage Triggering" in design/mfe-lifecycle.md -- Stage Triggering Sequence, ScreensetsRegistry Lifecycle Methods in design/registry-runtime.md
 
@@ -1210,3 +1212,70 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 - [ ] 20.5.9 Test useExtensionEvents hook (in `packages/react/__tests__/mfe/hooks/useExtensionEvents.test.ts`)
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - all scenarios. Note: useExtensionEvents tests are in @hai3/react package per L3 layer placement
+
+---
+
+## Phase 21: Abstract Class Layers with Factory Construction
+
+**Goal**: Refactor ScreensetsRegistry into an abstract class + concrete implementation pair hidden behind a factory, split co-located collaborator files, and update all DIP consumer references.
+
+**Prerequisite**: Phase 19 implementation complete. This phase is a structural refactoring -- no new features, no behavioral changes.
+
+**Architectural Reference**: [Registry Runtime - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-factory-construction), [Principles - Abstract Class Layers](./design/principles.md#abstract-class-layers-with-factory-construction)
+
+### 21.1 Extract Abstract ScreensetsRegistry
+
+- [ ] 21.1.1 Create `packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts` as an abstract class with all public method signatures (~80 lines). Move the current concrete class out of this file.
+- [ ] 21.1.2 Create `packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts` containing the concrete class that extends the abstract `ScreensetsRegistry`. Move all implementation code (constructor, collaborator wiring, method bodies) into this file (~670 lines).
+- [ ] 21.1.3 Add `@internal` test-only accessors on `DefaultScreensetsRegistry`: `get domains()`, `get extensions()`, `triggerLifecycleStageInternal()`, `getExtensionManager()`, `getLifecycleManager()` -- these are concrete-only `@internal` accessors and must NOT exist on the abstract class.
+- [ ] 21.1.4 Create `packages/screensets/src/mfe/runtime/create-screensets-registry.ts` with the factory function that returns the abstract `ScreensetsRegistry` type. This is the ONLY file that imports `DefaultScreensetsRegistry`.
+- [ ] 21.1.5 Update `@hai3/screensets` barrel exports: export `ScreensetsRegistry` (abstract), `createScreensetsRegistry` (factory), `ScreensetsRegistryConfig` (interface). Do NOT export `DefaultScreensetsRegistry`.
+- [ ] 21.1.6 Verify `createScreensetsRegistry()` return type is the abstract `ScreensetsRegistry`, not `DefaultScreensetsRegistry`.
+
+**Traceability**: Requirement "Abstract Class Layers with Factory Construction" - ScreensetsRegistry abstraction layer
+
+### 21.2 Split Collaborator Files
+
+- [ ] 21.2.1 Split `extension-manager.ts` (643 lines): extract `DefaultExtensionManager` class into `default-extension-manager.ts` (~460 lines). Keep abstract `ExtensionManager` class, `ExtensionDomainState`, `ExtensionState`, and related types in `extension-manager.ts` (~185 lines).
+- [ ] 21.2.2 Split `lifecycle-manager.ts` (270 lines): extract `DefaultLifecycleManager` class into `default-lifecycle-manager.ts` (~170 lines). Keep abstract `LifecycleManager` class and callback type definitions (`ActionChainExecutor`, `ErrorHandler`, `LifecycleStageInternalTrigger`) in `lifecycle-manager.ts` (~100 lines).
+- [ ] 21.2.3 Split `mount-manager.ts` (414 lines): extract `DefaultMountManager` class into `default-mount-manager.ts` (~320 lines). Keep abstract `MountManager` class and callback type definitions (`Logger`, `ErrorHandler`, `ActionChainExecutor`, `LifecycleTrigger`) in `mount-manager.ts` (~97 lines).
+- [ ] 21.2.4 Leave `event-emitter.ts` (130 lines) as-is -- too small to split.
+- [ ] 21.2.5 Leave `operation-serializer.ts` (70 lines) as-is -- too small to split.
+- [ ] 21.2.6 Update imports in `DefaultScreensetsRegistry.ts` to import concrete classes from the new `default-*.ts` files.
+
+**Traceability**: Requirement "Abstract Class Layers with Factory Construction" - Collaborator file splits
+
+### 21.3 DIP Consumer Reference Updates
+
+- [ ] 21.3.1 Update `packages/screensets/src/mfe/coordination/types.ts`: ensure `RuntimeConnection.hostRuntime` types against the abstract `ScreensetsRegistry` (import from `ScreensetsRegistry.ts`, not `DefaultScreensetsRegistry.ts`).
+- [ ] 21.3.2 Update `packages/screensets/src/mfe/runtime/mount-manager.ts` (abstract file): ensure any `hostRuntime` parameter reference types against abstract `ScreensetsRegistry`.
+- [ ] 21.3.3 Update `packages/screensets/src/mfe/mediator/actions-chains-mediator.ts`: ensure references type against abstract `ScreensetsRegistry`.
+- [ ] 21.3.4 Update `packages/screensets/src/mfe/components/ExtensionDomainSlot.tsx`: ensure references type against abstract `ScreensetsRegistry`.
+- [ ] 21.3.5 Update `packages/framework/src/plugins/microfrontends/effects.ts`: ensure references type against abstract `ScreensetsRegistry`.
+- [ ] 21.3.6 Update `packages/framework/src/types.ts`: ensure `MfeScreensetsRegistry` type alias maps to abstract `ScreensetsRegistry`.
+- [ ] 21.3.7 Update `packages/screensets/src/mfe/runtime/bridge-factory.ts`: change `import { ExtensionDomainState } from './ScreensetsRegistry'` to `import { ExtensionDomainState } from './extension-manager'` (type moves to abstract file after Phase 21.2.1 split).
+- [ ] 21.3.8 Verify no module imports `DefaultScreensetsRegistry` directly except `create-screensets-registry.ts` and test files.
+
+**Traceability**: Requirement "Abstract Class Layers with Factory Construction" - DIP compliance for ScreensetsRegistry references
+
+### 21.4 Update Test Files
+
+- [ ] 21.4.1 Update test files that access `@internal` test shims (`domains`, `extensions`, `triggerLifecycleStageInternal`) to import `DefaultScreensetsRegistry` directly from `DefaultScreensetsRegistry.ts` using relative imports (NOT from public barrel).
+- [ ] 21.4.2 Update test files that create `ScreensetsRegistry` instances to use `createScreensetsRegistry()` factory instead of `new ScreensetsRegistry()`.
+- [ ] 21.4.3 Update test assertions to verify the factory returns the abstract `ScreensetsRegistry` type (i.e., `instanceof ScreensetsRegistry` is true).
+- [ ] 21.4.4 Update test files for extension-manager: import `DefaultExtensionManager` from `default-extension-manager.ts` where concrete internals are needed.
+- [ ] 21.4.5 Update test files for lifecycle-manager: import `DefaultLifecycleManager` from `default-lifecycle-manager.ts` where concrete internals are needed.
+- [ ] 21.4.6 Update test files for mount-manager: import `DefaultMountManager` from `default-mount-manager.ts` where concrete internals are needed.
+
+**Traceability**: Requirement "Abstract Class Layers with Factory Construction" - Test compatibility
+
+### 21.5 Validation
+
+- [ ] 21.5.1 Run `npm run type-check` -- must pass with no errors
+- [ ] 21.5.2 Run `npm run lint` -- must pass (no ESLint rule changes required)
+- [ ] 21.5.3 Run `npm run test` -- all existing tests must pass with no behavioral changes
+- [ ] 21.5.4 Run `npm run build` -- must pass
+- [ ] 21.5.5 Verify no circular import warnings or errors in the build output
+- [ ] 21.5.6 Verify `DefaultScreensetsRegistry` is NOT present in `@hai3/screensets` public type declarations (`.d.ts` output)
+
+**Traceability**: Requirement "Abstract Class Layers with Factory Construction" - No regressions

@@ -122,9 +122,9 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Load an MFE bundle using Module Federation.
    *
    * @param entry - MfeEntryMF to load
-   * @returns Promise resolving to MFE lifecycle interface
+   * @returns Promise resolving to MFE lifecycle interface with ChildMfeBridge
    */
-  async load(entry: MfeEntryMF): Promise<MfeEntryLifecycle> {
+  async load(entry: MfeEntryMF): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
     return this.retryHandler.retry(
       () => this.loadInternal(entry),
       this.config.retries ?? 0,
@@ -148,7 +148,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   /**
    * Internal load implementation.
    */
-  private async loadInternal(entry: MfeEntryMF): Promise<MfeEntryLifecycle> {
+  private async loadInternal(entry: MfeEntryMF): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
     // Resolve manifest from entry
     const manifest = await this.resolveManifest(entry.manifest);
 
@@ -164,20 +164,31 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     // Execute the factory to get the module
     const loadedModule = moduleFactory();
 
-    // Validate the module implements MfeEntryLifecycle
-    if (
-      typeof loadedModule !== 'object' ||
-      loadedModule === null ||
-      typeof (loadedModule as { mount?: unknown }).mount !== 'function' ||
-      typeof (loadedModule as { unmount?: unknown }).unmount !== 'function'
-    ) {
+    // Validate the module implements MfeEntryLifecycle using type guard
+    if (!this.isValidLifecycleModule(loadedModule)) {
       throw new MfeLoadError(
         `Module '${entry.exposedModule}' must implement MfeEntryLifecycle interface (mount/unmount)`,
         entry.id
       );
     }
 
-    return loadedModule as MfeEntryLifecycle;
+    return loadedModule;
+  }
+
+  /**
+   * Type guard to validate MfeEntryLifecycle interface.
+   */
+  private isValidLifecycleModule(
+    module: unknown
+  ): module is MfeEntryLifecycle<ChildMfeBridge> {
+    if (typeof module !== 'object' || module === null) {
+      return false;
+    }
+    const candidate = module as Record<string, unknown>;
+    return (
+      typeof candidate.mount === 'function' &&
+      typeof candidate.unmount === 'function'
+    );
   }
 
   /**
@@ -187,31 +198,31 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   private async resolveManifest(manifestRef: string | MfManifest): Promise<MfManifest> {
     // If manifestRef is an object (inline manifest), validate and use it
     if (typeof manifestRef === 'object' && manifestRef !== null) {
-      const manifest = manifestRef as MfManifest;
-
-      // Validate required fields
-      if (!manifest.id || typeof manifest.id !== 'string') {
+      // TypeScript knows manifestRef is MfManifest after the type guard above
+      // Validate required fields using typed properties
+      if (typeof manifestRef.id !== 'string') {
         throw new MfeLoadError(
           'Inline manifest must have a valid "id" field',
           'inline-manifest'
         );
       }
-      if (!manifest.remoteEntry || typeof manifest.remoteEntry !== 'string') {
+      if (typeof manifestRef.remoteEntry !== 'string') {
         throw new MfeLoadError(
-          `Inline manifest '${manifest.id}' must have a valid "remoteEntry" field`,
-          manifest.id
+          `Inline manifest '${manifestRef.id}' must have a valid "remoteEntry" field`,
+          manifestRef.id
         );
       }
-      if (!manifest.remoteName || typeof manifest.remoteName !== 'string') {
+      if (typeof manifestRef.remoteName !== 'string') {
         throw new MfeLoadError(
-          `Inline manifest '${manifest.id}' must have a valid "remoteName" field`,
-          manifest.id
+          `Inline manifest '${manifestRef.id}' must have a valid "remoteName" field`,
+          manifestRef.id
         );
       }
 
+      // After validation, manifestRef is already correctly typed as MfManifest
       // Cache the inline manifest for reuse
-      this.manifestCache.cacheManifest(manifest);
-      return manifest;
+      this.manifestCache.cacheManifest(manifestRef);
+      return manifestRef;
     }
 
     // If manifestRef is a string (type ID), check cache
@@ -300,6 +311,19 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   }
 
   /**
+   * Type guard for Module Federation container.
+   * Validates that value has required get/init methods.
+   */
+  private isModuleFederationContainer(value: unknown): value is ModuleFederationContainer {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as Record<string, unknown>).get === 'function' &&
+      typeof (value as Record<string, unknown>).init === 'function'
+    );
+  }
+
+  /**
    * Get the Module Federation container from the window object.
    * Validates the container implements the required get/init interface.
    */
@@ -307,18 +331,13 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     const globalScope = globalThis as Record<string, unknown>;
     const container = globalScope[remoteName];
 
-    if (!container || typeof container !== 'object') {
-      throw new Error(`Module Federation container '${remoteName}' not found on window`);
-    }
-
-    const candidate = container as Record<string, unknown>;
-    if (typeof candidate['get'] !== 'function' || typeof candidate['init'] !== 'function') {
+    if (!this.isModuleFederationContainer(container)) {
       throw new Error(
-        `Module Federation container '${remoteName}' does not implement required get/init interface`
+        `Module Federation container '${remoteName}' not found on window or does not implement required get/init interface`
       );
     }
 
-    return candidate as unknown as ModuleFederationContainer;
+    return container; // TypeScript now knows it's ModuleFederationContainer
   }
 
   /**

@@ -17,6 +17,7 @@ This document covers the core architectural principles for the MFE system.
 3. **Extensibility via Handlers** - Companies extend via custom handlers, not core changes
 4. **MFE Independence (Default)** - Each MFE instance takes full responsibility for its own needs
 5. **Hierarchical Composition** - Domains can exist at any level; MFEs can be both extensions and domain providers
+6. **Abstract Class Layers with Factory Construction** - Every major stateful component has an abstract class (public contract) and a concrete implementation (hidden behind a factory). Consumers always depend on abstract types.
 
 ---
 
@@ -102,3 +103,11 @@ PUBLIC (Architecture Level)     PRIVATE (Implementation Level)
 - **Cross-Instance Consistency**: Guaranteed when using HAI3 tooling (`@hai3/api`); third-party HTTP clients opt out.
 - **Platform-Level Data**: Auth, user context, feature flags shared via SharedProperty mechanism.
 - **Tooling Implementation**: Private optimization layer (`@hai3/api` cache sync) is out of scope for this proposal.
+
+---
+
+## Abstract Class Layers with Factory Construction
+
+Every major stateful component has an abstract class defining the public contract and a concrete implementation hidden behind a factory function. Consumers always depend on abstract types, never concrete classes. This enforces Dependency Inversion (DIP) at every boundary.
+
+See [Registry Runtime - Decision 18](./registry-runtime.md#decision-18-abstract-class-layers-with-factory-construction) for the complete design including component table, file layout, exemptions, and code examples.
