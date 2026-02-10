@@ -9,7 +9,7 @@
  */
 
 import type { ExtensionDomain, Extension } from '../types';
-import type { ExtensionManager } from './extension-manager';
+import { DefaultExtensionManager } from './default-extension-manager';
 import {
   LifecycleManager,
   type ActionChainExecutor,
@@ -28,7 +28,7 @@ export class DefaultLifecycleManager extends LifecycleManager {
   /**
    * Extension manager for accessing extension and domain state.
    */
-  private readonly extensionManager: ExtensionManager;
+  private readonly extensionManager: DefaultExtensionManager;
 
   /**
    * Action chain executor for executing lifecycle hook action chains.
@@ -47,7 +47,7 @@ export class DefaultLifecycleManager extends LifecycleManager {
   private readonly internalTriggerCallback?: LifecycleStageInternalTrigger;
 
   constructor(
-    extensionManager: ExtensionManager,
+    extensionManager: DefaultExtensionManager,
     executeActionsChain: ActionChainExecutor,
     errorHandler: ErrorHandler,
     internalTriggerCallback?: LifecycleStageInternalTrigger

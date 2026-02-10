@@ -10,7 +10,7 @@
 
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type { RuntimeCoordinator } from '../coordination/types';
-import type { ExtensionManager } from './extension-manager';
+import { DefaultExtensionManager } from './default-extension-manager';
 import type { EventEmitter } from './event-emitter';
 import type { ScreensetsRegistry } from './ScreensetsRegistry';
 import { MountManager } from './mount-manager';
@@ -27,7 +27,7 @@ export class DefaultMountManager extends MountManager {
   /**
    * Extension manager for accessing extension and domain state.
    */
-  private readonly extensionManager: ExtensionManager;
+  private readonly extensionManager: DefaultExtensionManager;
 
   /**
    * Registered MFE handlers.
@@ -70,7 +70,7 @@ export class DefaultMountManager extends MountManager {
   private readonly hostRuntime: ScreensetsRegistry;
 
   constructor(config: {
-    extensionManager: ExtensionManager;
+    extensionManager: DefaultExtensionManager;
     handlers: MfeHandler[];
     coordinator: RuntimeCoordinator;
     triggerLifecycle: LifecycleTrigger;

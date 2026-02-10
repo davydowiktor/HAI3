@@ -79,20 +79,4 @@ export abstract class LifecycleManager {
    * @returns Promise resolving when all hooks have executed
    */
   abstract triggerDomainOwnLifecycleStage(domainId: string, stageId: string): Promise<void>;
-
-  /**
-   * Internal helper for triggering lifecycle stages on entities directly.
-   * INTERNAL: Used by ScreensetsRegistry for test compatibility.
-   *
-   * @param entity - Extension or ExtensionDomain entity
-   * @param stageId - ID of the lifecycle stage to trigger
-   * @param skipCallback - If true, skip the callback and execute directly (used when called from registry shim)
-   * @returns Promise resolving when all hooks have executed
-   * @internal
-   */
-  abstract triggerLifecycleStageInternal(
-    entity: Extension | ExtensionDomain,
-    stageId: string,
-    skipCallback?: boolean
-  ): Promise<void>;
 }

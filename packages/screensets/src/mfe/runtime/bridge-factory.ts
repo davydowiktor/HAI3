@@ -35,11 +35,11 @@ export function createBridge(
   // Create child bridge
   const childBridge = new ChildMfeBridgeImpl(domainState.domain.id, entryTypeId, instanceId);
 
-  // Create parent bridge
-  const parentBridge = new ParentMfeBridgeImpl(childBridge);
+  // Create parent bridge (concrete type for access to internal methods)
+  const parentBridgeImpl = new ParentMfeBridgeImpl(childBridge);
 
   // Connect child to parent
-  childBridge.setParentBridge(parentBridge);
+  childBridge.setParentBridge(parentBridgeImpl);
 
   // Populate initial properties from domain state
   for (const [propertyTypeId, sharedProperty] of domainState.properties) {
@@ -52,15 +52,15 @@ export function createBridge(
       domainState.propertySubscribers.set(propertyTypeId, new Set());
     }
     const subscriber = (value: SharedProperty) => {
-      parentBridge.receivePropertyUpdate(value.id, value.value);
+      parentBridgeImpl.receivePropertyUpdate(value.id, value.value);
     };
     domainState.propertySubscribers.get(propertyTypeId)!.add(subscriber);
 
     // Track subscriber in parent bridge for cleanup on disposal
-    parentBridge.registerPropertySubscriber(propertyTypeId, subscriber);
+    parentBridgeImpl.registerPropertySubscriber(propertyTypeId, subscriber);
   }
 
-  return { parentBridge, childBridge };
+  return { parentBridge: parentBridgeImpl, childBridge };
 }
 
 /**
@@ -74,8 +74,11 @@ export function disposeBridge(
   domainState: ExtensionDomainState,
   parentBridge: ParentMfeBridge
 ): void {
+  // Cast to concrete type to access internal methods
+  const impl = parentBridge as ParentMfeBridgeImpl;
+
   // Remove property subscribers from domain before disposing bridge
-  const subscribers = parentBridge.getPropertySubscribers();
+  const subscribers = impl.getPropertySubscribers();
   for (const [propertyTypeId, subscriber] of subscribers) {
     const domainSubscribers = domainState.propertySubscribers.get(propertyTypeId);
     if (domainSubscribers) {

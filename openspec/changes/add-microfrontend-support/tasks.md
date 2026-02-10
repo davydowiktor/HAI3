@@ -2,13 +2,13 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 21 in progress. Phases 1-20 fully complete. Phase 21 tasks 21.1.1, 21.1.3, 21.1.5 reopened for getDomainState/ExtensionDomainState encapsulation fix. New prerequisite tasks added: 21.3.9 (mediator callback injection -- MUST complete before 21.1.1) and 21.3.10 (ExtensionManager test accessor cleanup).
+**Current Status**: Phase 21 complete. All phases 1-21 fully complete (including 21.6 encapsulation fix).
 - **Phase 7.4** (tasks 7.4.1-7.4.4): ✓ Layout domain instance JSON files moved to `@hai3/framework`
 - **Phase 7.5.5**: ✓ `loadLayoutDomains()` moved to `@hai3/framework`
 - **Phase 18** (all tasks): ✓ Complete -- `GtsTypeId` and `ParsedGtsId` removed, users should use `gts-ts` directly
 - **Phase 19** (all tasks): ✓ Complete -- Dynamic registration model implemented with full lifecycle triggering. Test coverage: 366/366 tests passing
 - **Phase 20** (all tasks): ✓ Complete -- Framework dynamic registration actions, effects, slice, and React hook implemented with full test coverage
-- **Phase 21** (in progress): Abstract class layers with factory construction. ScreensetsRegistry split into abstract + DefaultScreensetsRegistry + factory. Collaborators split: extension-manager, lifecycle-manager, mount-manager. Zero circular dependencies. Tasks 21.1.1, 21.1.3, 21.1.5 reopened: `getDomainState()` must be removed from abstract class (concrete-only `@internal`), `ExtensionDomainState` must not be re-exported from public barrel. New prerequisite task 21.3.9: refactor `DefaultActionsChainsMediator` to receive `getDomainState` via callback injection (MUST complete before 21.1.1). New task 21.3.10: move `getDomainsMap()`/`getExtensionsMap()` from abstract `ExtensionManager` to concrete `DefaultExtensionManager` only
+- **Phase 21** (all tasks): ✓ Complete -- Abstract class layers with factory construction. ScreensetsRegistry split into abstract + DefaultScreensetsRegistry + factory. Collaborators split: extension-manager, lifecycle-manager, mount-manager. Mediator refactored to callback injection. Internal methods moved from abstract to concrete-only (ExtensionManager 5, LifecycleManager 1, EventEmitter 1, ParentMfeBridge 2). Zero circular dependencies. 367/367 tests passing
 
 ---
 
@@ -1282,3 +1282,62 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 - [x] 21.5.6 Verify `DefaultScreensetsRegistry` is NOT present in `@hai3/screensets` public type declarations (`.d.ts` output)
 
 **Traceability**: Requirement "Abstract Class Layers with Factory Construction" - No regressions
+
+### 21.6 Encapsulation Fix: Move Internal Methods from Abstract to Concrete-Only
+
+**Goal**: Remove internal-only methods from abstract class contracts and public interfaces. Methods that are only called by sibling concrete collaborators or by `DefaultScreensetsRegistry` for disposal/test must live on the concrete class only.
+
+**Prerequisite**: Phase 21.5 complete (abstract class layers established). This phase is a pure encapsulation fix -- no new features, no behavioral changes.
+
+**Architectural Reference**: [Registry Runtime - Concrete-Only Internal Methods on Collaborator Abstract Classes](./design/registry-runtime.md#concrete-only-internal-methods-on-collaborator-abstract-classes)
+
+#### Group A: ExtensionManager (5 methods)
+
+**Ordering constraint**: Tasks 21.6.6 and 21.6.7 (change collaborator field types to `DefaultExtensionManager`) MUST be completed BEFORE tasks 21.6.1-21.6.5 (remove methods from abstract `ExtensionManager`). Otherwise, removing the abstract methods first will cause compile errors in `DefaultMountManager` and `DefaultLifecycleManager` since their `extensionManager` fields still reference the abstract type, which will no longer declare the removed methods.
+
+- [x] 21.6.6 Change `DefaultMountManager` config to accept `DefaultExtensionManager` instead of `ExtensionManager` for its `extensionManager` field. Update the import in `default-mount-manager.ts` from `import { ExtensionManager }` to `import { DefaultExtensionManager }`.
+- [x] 21.6.7 Change `DefaultLifecycleManager` constructor to accept `DefaultExtensionManager` instead of `ExtensionManager` for its `extensionManager` parameter. Update the import in `default-lifecycle-manager.ts`.
+- [x] 21.6.1 Remove `getDomainState(domainId)` from abstract `ExtensionManager` in `packages/screensets/src/mfe/runtime/extension-manager.ts`. Keep it on `DefaultExtensionManager` in `default-extension-manager.ts` as a concrete-only method. **DEPENDS ON 21.6.6 and 21.6.7.**
+- [x] 21.6.2 Remove `getExtensionState(extensionId)` from abstract `ExtensionManager`. Keep on `DefaultExtensionManager`. **DEPENDS ON 21.6.6 and 21.6.7.**
+- [x] 21.6.3 Remove `getExtensionStatesForDomain(domainId)` from abstract `ExtensionManager`. Keep on `DefaultExtensionManager`. **DEPENDS ON 21.6.6 and 21.6.7.**
+- [x] 21.6.4 Remove `resolveEntry(entryId)` from abstract `ExtensionManager`. Make it `private` on `DefaultExtensionManager` (it is only called by the concrete class itself, so it has no reason to be public). **DEPENDS ON 21.6.6 and 21.6.7.**
+- [x] 21.6.5 Remove `clear()` from abstract `ExtensionManager`. Keep on `DefaultExtensionManager`. **DEPENDS ON 21.6.6 and 21.6.7.**
+- [x] 21.6.8 Verify `DefaultScreensetsRegistry.extensionManager` field is typed as `DefaultExtensionManager` (should already be the case after 21.3.10 -- confirm no regression). All calls to `getDomainState()`, `getExtensionState()`, `getExtensionStatesForDomain()`, `clear()` on the field must compile against the concrete type. Note: `resolveEntry()` is `private` on `DefaultExtensionManager` (per 21.6.4), so it is not callable from `DefaultScreensetsRegistry` -- confirm no external callers exist.
+
+**Traceability**: [Design - Group A: ExtensionManager](./design/registry-runtime.md#group-a-extensionmanager----5-methods-to-concrete-only). Traces to Decision 18 encapsulation principle: abstract classes define only the public contract; internal query/disposal methods are concrete-only.
+
+#### Group B: LifecycleManager (1 method)
+
+- [x] 21.6.9 Remove `triggerLifecycleStageInternal(entity, stageId, skipCallback?)` from abstract `LifecycleManager` in `packages/screensets/src/mfe/runtime/lifecycle-manager.ts`. Keep it on `DefaultLifecycleManager` in `default-lifecycle-manager.ts` as a concrete-only method.
+- [x] 21.6.10 Change `DefaultScreensetsRegistry.lifecycleManager` field type from `LifecycleManager` (abstract) to `DefaultLifecycleManager` (concrete). Update the import in `DefaultScreensetsRegistry.ts` to include `DefaultLifecycleManager` from `default-lifecycle-manager.ts`. This ensures `this.lifecycleManager.triggerLifecycleStageInternal()` compiles.
+
+**Traceability**: [Design - Group B: LifecycleManager](./design/registry-runtime.md#group-b-lifecyclemanager----1-method-to-concrete-only). Traces to Decision 18 encapsulation principle.
+
+#### Group C: EventEmitter (1 method)
+
+- [x] 21.6.11 Remove `clear()` from abstract `EventEmitter` in `packages/screensets/src/mfe/runtime/event-emitter.ts`. Keep it on `DefaultEventEmitter` in the same file (event-emitter.ts is not split). The abstract `EventEmitter` retains: `on()`, `off()`, `emit()`.
+- [x] 21.6.12 Change `DefaultScreensetsRegistry.eventEmitter` field type from `EventEmitter` (abstract) to `DefaultEventEmitter` (concrete). Update the import in `DefaultScreensetsRegistry.ts` to import `DefaultEventEmitter` from `event-emitter.ts`. This ensures `this.eventEmitter.clear()` compiles.
+
+**Traceability**: [Design - Group C: EventEmitter](./design/registry-runtime.md#group-c-eventemitter----1-method-to-concrete-only). Traces to Decision 18 encapsulation principle.
+
+#### Group D: ParentMfeBridge interface (2 methods)
+
+- [x] 21.6.13 Remove `getPropertySubscribers()` from the `ParentMfeBridge` interface in `packages/screensets/src/mfe/handler/types.ts`. The method remains on `ParentMfeBridgeImpl` class in `bridge/ParentMfeBridge.ts` (unchanged).
+- [x] 21.6.14 Remove `registerPropertySubscriber(propertyTypeId, subscriber)` from the `ParentMfeBridge` interface in `packages/screensets/src/mfe/handler/types.ts`. The method remains on `ParentMfeBridgeImpl` class (unchanged).
+- [x] 21.6.15 Verify `bridge-factory.ts` `createBridge()` compiles after removing `registerPropertySubscriber()` from the `ParentMfeBridge` interface. The local `parentBridge` variable is already constructed via `new ParentMfeBridgeImpl(childBridge)`, so TypeScript infers the concrete `ParentMfeBridgeImpl` type and the call to `parentBridge.registerPropertySubscriber()` compiles against the concrete class. The function return type remains `{ parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge }` (narrow public interface). The import for `ParentMfeBridgeImpl` from `'../bridge/ParentMfeBridge'` already exists. No code changes expected -- this is a verification-only task.
+- [x] 21.6.16 Update `bridge-factory.ts` `disposeBridge()`: keep the `parentBridge` parameter typed as `ParentMfeBridge` (the public interface). This is required because callers (`DefaultMountManager.unmountExtension()`) pass `extensionState.bridge` which is typed as `ParentMfeBridge | null` (from `ExtensionState.bridge` in `extension-manager.ts`). Changing to `ParentMfeBridgeImpl` would cause a type mismatch. Instead, add an internal cast at the top of the function body: `const impl = parentBridge as ParentMfeBridgeImpl;` and call `impl.getPropertySubscribers()` instead of `parentBridge.getPropertySubscribers()`. This cast is safe because `disposeBridge` is `@internal` and only ever receives `ParentMfeBridgeImpl` instances (created by `createBridge` in the same file). No changes to `ExtensionState.bridge` type or `DefaultMountManager` callers.
+
+**Test file verification**: After removing `getPropertySubscribers()` and `registerPropertySubscriber()` from the `ParentMfeBridge` interface, verify that test files calling these methods still compile:
+- `packages/screensets/__tests__/mfe/bridge/bridge.test.ts` -- creates `ParentMfeBridgeImpl` instances directly (typed as `ParentMfeBridgeImpl`), so calls to these methods compile against the concrete class. No changes expected.
+- `packages/screensets/__tests__/mfe/runtime/bridge-factory.test.ts` -- already uses `(parentBridge as ParentMfeBridgeImpl)` casts to access these methods. No changes expected.
+
+**Traceability**: [Design - Group D: ParentMfeBridge interface](./design/registry-runtime.md#group-d-parentmfebridge-interface----2-methods-removed-from-public-type). Public interface cleanup: internal-only methods must not appear on public types.
+
+#### Validation
+
+- [x] 21.6.17 Run `npm run type-check` -- must pass with no errors.
+- [x] 21.6.18 Run `npm run test` -- all existing tests must pass with no behavioral changes.
+- [x] 21.6.19 Run `npm run build` -- must pass.
+- [x] 21.6.20 Verify `getPropertySubscribers` and `registerPropertySubscriber` are NOT present in `ParentMfeBridge` type in `.d.ts` output. Verify `getDomainState`, `getExtensionState`, `getExtensionStatesForDomain`, `resolveEntry`, `clear` are NOT present on abstract `ExtensionManager` in `.d.ts` output. Verify `triggerLifecycleStageInternal` is NOT present on abstract `LifecycleManager` in `.d.ts` output. Verify `clear` is NOT present on abstract `EventEmitter` in `.d.ts` output.
+
+**Traceability**: Encapsulation fix validation -- no regressions, public API surface is correct.

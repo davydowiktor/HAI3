@@ -125,30 +125,6 @@ export abstract class ExtensionManager {
   abstract unregisterExtension(extensionId: string): Promise<void>;
 
   /**
-   * Get domain state by ID.
-   *
-   * @param domainId - Domain ID
-   * @returns Domain state, or undefined if not found
-   */
-  abstract getDomainState(domainId: string): ExtensionDomainState | undefined;
-
-  /**
-   * Get extension state by ID.
-   *
-   * @param extensionId - Extension ID
-   * @returns Extension state, or undefined if not found
-   */
-  abstract getExtensionState(extensionId: string): ExtensionState | undefined;
-
-  /**
-   * Get all extension states for a domain.
-   *
-   * @param domainId - Domain ID
-   * @returns Array of extension states
-   */
-  abstract getExtensionStatesForDomain(domainId: string): ExtensionState[];
-
-  /**
    * Update a single domain property.
    *
    * @param domainId - ID of the domain
@@ -165,18 +141,4 @@ export abstract class ExtensionManager {
    * @returns Property value, or undefined if not set
    */
   abstract getDomainProperty(domainId: string, propertyTypeId: string): unknown;
-
-  /**
-   * Resolve an MfeEntry from its ID by looking up in extension states.
-   *
-   * @param entryId - Entry ID to resolve
-   * @returns The MfeEntry, or undefined if not found
-   */
-  abstract resolveEntry(entryId: string): MfeEntry | undefined;
-
-  /**
-   * Clear all state.
-   * Called during disposal to cleanup internal state.
-   */
-  abstract clear(): void;
 }

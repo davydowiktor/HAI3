@@ -49,12 +49,6 @@ export abstract class EventEmitter {
     data: Record<string, unknown>,
     errorHandler?: (error: Error, context: Record<string, unknown>) => void
   ): void;
-
-  /**
-   * Clear all event listeners.
-   * Called during disposal to cleanup internal state.
-   */
-  abstract clear(): void;
 }
 
 /**

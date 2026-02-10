@@ -45,28 +45,6 @@ export interface ParentMfeBridge {
    * Dispose the bridge and clean up resources.
    */
   dispose(): void;
-
-  /**
-   * Get all registered property subscribers for cleanup.
-   * INTERNAL: Used by bridge factory during disposal to remove subscribers from domain.
-   *
-   * @returns Map of propertyTypeId to subscriber callbacks
-   * @internal
-   */
-  getPropertySubscribers(): Map<string, (value: SharedProperty) => void>;
-
-  /**
-   * Register a property subscriber that was added to domain.propertySubscribers.
-   * INTERNAL: Called by bridge factory during setup.
-   *
-   * @param propertyTypeId - Property type ID
-   * @param subscriber - Subscriber callback
-   * @internal
-   */
-  registerPropertySubscriber(
-    propertyTypeId: string,
-    subscriber: (value: SharedProperty) => void
-  ): void;
 }
 
 /**

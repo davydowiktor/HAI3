@@ -30,7 +30,7 @@ import { LifecycleManager } from './lifecycle-manager';
 import { DefaultLifecycleManager } from './default-lifecycle-manager';
 import { MountManager } from './mount-manager';
 import { DefaultMountManager } from './default-mount-manager';
-import { EventEmitter, DefaultEventEmitter } from './event-emitter';
+import { DefaultEventEmitter } from './event-emitter';
 import { OperationSerializer } from './operation-serializer';
 
 /**
@@ -69,8 +69,9 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
   /**
    * Lifecycle manager for triggering lifecycle stages.
    * INTERNAL: Delegates lifecycle hook execution.
+   * Note: Typed as DefaultLifecycleManager (concrete) to allow access to concrete-only methods.
    */
-  private readonly lifecycleManager: LifecycleManager;
+  private readonly lifecycleManager: DefaultLifecycleManager;
 
   /**
    * Mount manager for loading and mounting MFEs.
@@ -81,8 +82,9 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
   /**
    * Event emitter for registry events.
    * INTERNAL: Delegates event subscription and emission.
+   * Note: Typed as DefaultEventEmitter (concrete) to allow access to concrete-only methods.
    */
-  private readonly eventEmitter: EventEmitter;
+  private readonly eventEmitter: DefaultEventEmitter;
 
   /**
    * Operation serializer for per-entity concurrency control.

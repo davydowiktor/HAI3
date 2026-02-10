@@ -385,6 +385,95 @@ The abstract `ExtensionManager` class currently declares `getDomainsMap()` and `
 
 The `DefaultScreensetsRegistry` concrete class already accesses these via `this.extensionManager.getDomainsMap()` and `this.extensionManager.getExtensionsMap()` in its own `@internal` `get domains()` and `get extensions()` accessors. Since `DefaultScreensetsRegistry` owns a concrete `DefaultExtensionManager` instance (not the abstract type), these calls remain valid after the move. No callback injection is needed here -- the accessor is called only from concrete-to-concrete wiring code.
 
+#### Concrete-Only Internal Methods on Collaborator Abstract Classes
+
+The abstract classes for internal collaborators (`@internal`, not barrel-exported) must expose only the methods that define the public **contract** of the abstraction. Methods that are only called by sibling concrete collaborators or by `DefaultScreensetsRegistry` for disposal/test purposes must live on the concrete class only. This section documents which methods must be moved from abstract to concrete-only.
+
+**Principle**: Since `ExtensionManager`, `LifecycleManager`, and `EventEmitter` are all `@internal` (never exported from the `@hai3/screensets` barrel), the internal collaborators that call these methods can safely type their fields as the concrete type (`DefaultExtensionManager`, `DefaultLifecycleManager`, `DefaultEventEmitter`) rather than the abstract type. This is an acceptable trade-off for internal wiring code: it preserves a clean abstract contract while allowing concrete-to-concrete access for internal implementation details.
+
+##### Group A: ExtensionManager -- 5 methods to concrete-only
+
+The following methods on abstract `ExtensionManager` are only used internally by sibling concrete collaborators and must be moved to `DefaultExtensionManager`:
+
+| Method | Return Type | Callers | Reason |
+|---|---|---|---|
+| `getDomainState(domainId)` | `ExtensionDomainState \| undefined` | `DefaultMountManager`, `DefaultLifecycleManager`, `DefaultScreensetsRegistry` | Exposes internal `ExtensionDomainState` type; read-only query for internal wiring |
+| `getExtensionState(extensionId)` | `ExtensionState \| undefined` | `DefaultMountManager`, `DefaultLifecycleManager`, `DefaultScreensetsRegistry` | Exposes internal `ExtensionState` type; read-only query for internal wiring |
+| `getExtensionStatesForDomain(domainId)` | `ExtensionState[]` | `DefaultScreensetsRegistry`, `DefaultLifecycleManager` | Exposes internal `ExtensionState[]`; bulk query for internal wiring |
+| `resolveEntry(entryId)` | `MfeEntry \| undefined` | `DefaultExtensionManager` (self) | Only called by the concrete class itself; make `private` on `DefaultExtensionManager` after removing from abstract |
+| `clear()` | `void` | `DefaultScreensetsRegistry.dispose()` | Disposal cleanup only |
+
+**After move**, the abstract `ExtensionManager` keeps only:
+- `registerDomain()`, `unregisterDomain()`
+- `registerExtension()`, `unregisterExtension()`
+- `updateDomainProperty()`, `getDomainProperty()`
+
+**Collaborator field type changes** (concrete-to-concrete wiring):
+- `DefaultMountManager`: its config's `extensionManager` field typed as `DefaultExtensionManager` instead of `ExtensionManager`
+- `DefaultLifecycleManager`: its constructor param typed as `DefaultExtensionManager` instead of `ExtensionManager`
+- `DefaultScreensetsRegistry`: its `extensionManager` field typed as `DefaultExtensionManager` (already partially done for `getDomainsMap`/`getExtensionsMap` -- verify it is fully `DefaultExtensionManager`)
+
+##### Group B: LifecycleManager -- 1 method to concrete-only
+
+| Method | Return Type | Callers | Reason |
+|---|---|---|---|
+| `triggerLifecycleStageInternal(entity, stageId, skipCallback?)` | `Promise<void>` | `DefaultScreensetsRegistry` | Explicitly `@internal`, test compatibility shim |
+
+**After move**, the abstract `LifecycleManager` keeps only:
+- `triggerLifecycleStage(extensionId, stageId)`
+- `triggerDomainLifecycleStage(domainId, stageId)`
+- `triggerDomainOwnLifecycleStage(domainId, stageId)`
+
+**Collaborator field type change**:
+- `DefaultScreensetsRegistry`: its `lifecycleManager` field typed as `DefaultLifecycleManager` instead of `LifecycleManager`, so it can call `triggerLifecycleStageInternal()`.
+
+##### Group C: EventEmitter -- 1 method to concrete-only
+
+| Method | Return Type | Callers | Reason |
+|---|---|---|---|
+| `clear()` | `void` | `DefaultScreensetsRegistry.dispose()` | Disposal cleanup only |
+
+**After move**, the abstract `EventEmitter` keeps only:
+- `on(event, callback)`
+- `off(event, callback)`
+- `emit(event, data, errorHandler?)`
+
+**Collaborator field type change**:
+- `DefaultScreensetsRegistry`: its `eventEmitter` field typed as `DefaultEventEmitter` instead of `EventEmitter`, so it can call `clear()`.
+
+**Note**: `event-emitter.ts` is NOT split into separate files (too small, 130 lines). Both the abstract `EventEmitter` and concrete `DefaultEventEmitter` remain co-located. The `clear()` method is simply removed from the abstract class definition; it remains on the concrete class.
+
+##### Group D: ParentMfeBridge interface -- 2 methods removed from public type
+
+| Method | Return Type | Callers | Reason |
+|---|---|---|---|
+| `getPropertySubscribers()` | `Map<string, (value: SharedProperty) => void>` | `bridge-factory.ts` (`disposeBridge`) | `@internal`, only used by internal factory |
+| `registerPropertySubscriber(propertyTypeId, subscriber)` | `void` | `bridge-factory.ts` (`createBridge`) | `@internal`, only used by internal factory |
+
+**Context**: `ParentMfeBridge` in `handler/types.ts` is a **public interface** exported from `@hai3/screensets`. The concrete implementation is `ParentMfeBridgeImpl` class in `bridge/ParentMfeBridge.ts`. The `bridge-factory.ts` creates `ParentMfeBridgeImpl` instances and is the **only** caller of `getPropertySubscribers()` and `registerPropertySubscriber()`.
+
+**Solution**:
+1. Remove `getPropertySubscribers()` and `registerPropertySubscriber()` from the `ParentMfeBridge` interface in `handler/types.ts`. The public interface retains only: `sendActionsChain()`, `onChildAction()`, `receivePropertyUpdate()`, `dispose()`.
+2. Keep these methods on the `ParentMfeBridgeImpl` class in `bridge/ParentMfeBridge.ts` (unchanged).
+3. In `bridge-factory.ts` `createBridge()`: the function already constructs a `ParentMfeBridgeImpl` instance (via `new ParentMfeBridgeImpl(childBridge)`) and calls `registerPropertySubscriber()` on it before returning. Since the local variable is already the concrete type (TypeScript infers `ParentMfeBridgeImpl` from the constructor), no type annotation change is needed -- the call to `registerPropertySubscriber()` compiles against the concrete class. The function return type remains `{ parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge }` (the narrow public interface), which is satisfied because `ParentMfeBridgeImpl` extends `ParentMfeBridge`.
+4. In `bridge-factory.ts` `disposeBridge()`: the parameter type **stays** `ParentMfeBridge` (the public interface). This is necessary because callers (`DefaultMountManager.unmountExtension()`) pass `extensionState.bridge`, which is typed as `ParentMfeBridge | null` (from `ExtensionState.bridge` in `extension-manager.ts`). Changing the parameter to `ParentMfeBridgeImpl` would cause a type mismatch at all call sites. Instead, `disposeBridge()` casts internally: `const impl = parentBridge as ParentMfeBridgeImpl;` and then calls `impl.getPropertySubscribers()`. This cast is safe because `disposeBridge` is `@internal` and only ever receives `ParentMfeBridgeImpl` instances (created by `createBridge` in the same file). The `ExtensionState.bridge` field type remains `ParentMfeBridge | null` -- no change needed. `DefaultMountManager` callers remain unchanged.
+
+##### Summary: DefaultScreensetsRegistry Collaborator Field Types
+
+After all encapsulation fixes, `DefaultScreensetsRegistry` types its internal collaborator fields as follows:
+
+| Field | Type | Reason |
+|---|---|---|
+| `extensionManager` | `DefaultExtensionManager` (concrete) | Needs `getDomainState()`, `getExtensionState()`, `getExtensionStatesForDomain()`, `clear()`, `getDomainsMap()`, `getExtensionsMap()` |
+| `lifecycleManager` | `DefaultLifecycleManager` (concrete) | Needs `triggerLifecycleStageInternal()` |
+| `eventEmitter` | `DefaultEventEmitter` (concrete) | Needs `clear()` |
+| `mountManager` | `MountManager` (abstract) | No concrete-only methods needed |
+| `mediator` | `ActionsChainsMediator` (abstract) | No concrete-only methods needed (uses callback injection) |
+| `coordinator` | `RuntimeCoordinator` (abstract) | No concrete-only methods needed |
+| `serializer` | `OperationSerializer` (concrete, no abstract) | Small utility, no abstract class |
+
+This is acceptable because `DefaultScreensetsRegistry` is `@internal` wiring code that creates all collaborator instances in its constructor. It is never exposed to external consumers. External consumers only see the abstract `ScreensetsRegistry` returned by the factory.
+
 #### DIP Consumer Reference Updates
 
 All modules that currently reference the concrete `ScreensetsRegistry` class are updated to import the abstract class. Because the abstract class replaces the concrete class at the same file path (`ScreensetsRegistry.ts`), most import statements do not change. The exceptions are noted below.

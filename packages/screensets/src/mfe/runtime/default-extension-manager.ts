@@ -436,8 +436,9 @@ export class DefaultExtensionManager extends ExtensionManager {
    *
    * @param entryId - Entry ID to resolve
    * @returns The MfeEntry, or undefined if not found
+   * @private
    */
-  resolveEntry(entryId: string): MfeEntry | undefined {
+  private resolveEntry(entryId: string): MfeEntry | undefined {
     for (const state of this.extensions.values()) {
       if (state.entry.id === entryId) {
         return state.entry;
