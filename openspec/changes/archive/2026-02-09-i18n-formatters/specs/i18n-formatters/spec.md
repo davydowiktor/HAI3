@@ -202,7 +202,7 @@ Formatters SHALL handle null, undefined, and invalid inputs gracefully and SHALL
 - **GIVEN** the formatter module
 - **WHEN** TypeScript compiles the codebase
 - **THEN** all formatter function signatures SHALL use explicit types (no `any` or `unknown` in public APIs)
-- **AND** date inputs SHALL be typed as `Date | number | string` (DateInput) where applicable
+- **AND** date inputs SHALL be typed as `Date | number | string | null | undefined` (DateInput) where applicable
 
 ### Requirement: Documentation
 

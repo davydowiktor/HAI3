@@ -2,19 +2,19 @@
  * Unit tests for sort utilities
  *
  * Covers compareStrings and createCollator with locale from registry.
+ * Uses Language.English (matches production type).
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { i18nRegistry } from '../../I18nRegistry';
+import { Language } from '../../types';
 import { compareStrings, createCollator } from '../sortUtils';
-
-const LOCALE = 'en';
 
 describe('sortUtils', () => {
   let getLanguageSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    getLanguageSpy = vi.spyOn(i18nRegistry, 'getLanguage').mockReturnValue(LOCALE as ReturnType<typeof i18nRegistry.getLanguage>);
+    getLanguageSpy = vi.spyOn(i18nRegistry, 'getLanguage').mockReturnValue(Language.English);
   });
 
   afterEach(() => {

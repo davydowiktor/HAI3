@@ -2,15 +2,15 @@
  * Unit tests for date formatters
  *
  * Covers invalid inputs (return ''), valid date formatting with concrete output,
- * and formatRelative. Uses fixed locale (de-DE) and UTC for deterministic, concrete results.
+ * and formatRelative. Uses Language.German and UTC for deterministic results (matches production type).
  */
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { i18nRegistry } from '../../I18nRegistry';
+import { Language } from '../../types';
 import { formatDate, formatTime, formatDateTime, formatRelative } from '../dateFormatter';
 
-/** de-DE gives stable formats: 15.06.25, 15.06.2025, 14:30:00, etc. */
-const LOCALE = 'de-DE';
+/** Language.German ('de') gives stable formats: 15.06.25, 15.06.2025, 14:30:00, etc. */
 const validDate = new Date('2025-06-15T14:30:00.000Z');
 
 describe('dateFormatter', () => {
@@ -21,7 +21,7 @@ describe('dateFormatter', () => {
   });
 
   beforeEach(() => {
-    getLanguageSpy = vi.spyOn(i18nRegistry, 'getLanguage').mockReturnValue(LOCALE as ReturnType<typeof i18nRegistry.getLanguage>);
+    getLanguageSpy = vi.spyOn(i18nRegistry, 'getLanguage').mockReturnValue(Language.German);
   });
 
   afterEach(() => {
@@ -30,10 +30,10 @@ describe('dateFormatter', () => {
 
   describe('formatDate', () => {
     it('returns empty string for null', () => {
-      expect(formatDate(null as unknown as Date, 'short')).toBe('');
+      expect(formatDate(null, 'short')).toBe('');
     });
     it('returns empty string for undefined', () => {
-      expect(formatDate(undefined as unknown as Date, 'short')).toBe('');
+      expect(formatDate(undefined, 'short')).toBe('');
     });
     it('returns empty string for invalid date string', () => {
       expect(formatDate('not-a-date', 'short')).toBe('');
@@ -63,7 +63,7 @@ describe('dateFormatter', () => {
 
   describe('formatDateTime', () => {
     it('returns empty string for null', () => {
-      expect(formatDateTime(null as unknown as Date, 'short', 'short')).toBe('');
+      expect(formatDateTime(null, 'short', 'short')).toBe('');
     });
     it('returns formatted date-time for valid date (short/short)', () => {
       expect(formatDateTime(validDate, 'short', 'short')).toBe('15.06.25, 14:30');
@@ -77,17 +77,17 @@ describe('dateFormatter', () => {
     it('returns empty string for invalid date', () => {
       expect(formatRelative('invalid')).toBe('');
     });
-    it('returns "in 2 hours" when date is 2 hours after base (de-DE)', () => {
+    it('returns "in 2 hours" when date is 2 hours after base (German)', () => {
       const d = new Date('2025-01-01T12:00:00Z');
       const base = new Date('2025-01-01T10:00:00Z');
       expect(formatRelative(d, base)).toBe('in 2 Stunden');
     });
-    it('returns "2 hours ago" when date is 2 hours before base (de-DE)', () => {
+    it('returns "2 hours ago" when date is 2 hours before base (German)', () => {
       const d = new Date('2025-01-01T08:00:00Z');
       const base = new Date('2025-01-01T10:00:00Z');
       expect(formatRelative(d, base)).toBe('vor 2 Stunden');
     });
-    it('returns "in 3 days" when date is 3 days after base (de-DE)', () => {
+    it('returns "in 3 days" when date is 3 days after base (German)', () => {
       const d = new Date('2025-01-04T10:00:00Z');
       const base = new Date('2025-01-01T10:00:00Z');
       expect(formatRelative(d, base)).toBe('in 3 Tagen');

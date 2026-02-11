@@ -4,6 +4,10 @@
 
 Define locale-aware formatting utilities for dates, numbers, currency, and string comparison so that data displays according to the user's current language (e.g. 12,345.67 in USA vs 12.345,67 in Germany). Implementation lives in `@hai3/i18n` (L1 SDK); formatters are re-exported by `@hai3/framework` and exposed to React via `useFormatters()` in `@hai3/react`.
 
+## Risk
+
+**Low risk, additive-only.** This spec introduces new formatter APIs and exports only; it does not change or remove existing public APIs. All formatters use standard browser `Intl` APIs and return empty string for invalid inputs, avoiding runtime exceptions.
+
 ## Requirements
 
 ### Requirement: Locale source for formatters
@@ -202,7 +206,7 @@ Formatters SHALL handle null, undefined, and invalid inputs gracefully and SHALL
 - **GIVEN** the formatter module
 - **WHEN** TypeScript compiles the codebase
 - **THEN** all formatter function signatures SHALL use explicit types (no `any` or `unknown` in public APIs)
-- **AND** date inputs SHALL be typed as `Date | number | string` (DateInput) where applicable
+- **AND** date inputs SHALL be typed as `Date | number | string | null | undefined` (DateInput) where applicable
 
 ### Requirement: Documentation
 

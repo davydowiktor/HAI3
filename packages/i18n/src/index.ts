@@ -64,4 +64,5 @@ export {
   type DateFormatStyle,
   type TimeFormatStyle,
   type DateInput,
+  type Formatters,
 } from './formatters';

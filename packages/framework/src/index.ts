@@ -323,6 +323,7 @@ export {
   type TimeFormatStyle,
   type DateInput,
 } from '@hai3/i18n';
+export type { Formatters } from '@hai3/i18n';
 
 // Backward compatibility aliases
 // I18nRegistry type (capital I) - alias for consistency with old @hai3/uicore API

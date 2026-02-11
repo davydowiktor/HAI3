@@ -21,3 +21,5 @@ export {
 export { formatCurrency } from './currencyFormatter';
 
 export { compareStrings, createCollator } from './sortUtils';
+
+export type { Formatters } from './types';

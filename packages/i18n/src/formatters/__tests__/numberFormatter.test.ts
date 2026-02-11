@@ -2,14 +2,13 @@
  * Unit tests for number formatters
  *
  * Covers null/undefined/NaN (return ''), and valid number formatting with concrete output.
- * Uses fixed locale (en-US) for deterministic results.
+ * Uses Language.English for deterministic results (matches production type).
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { i18nRegistry } from '../../I18nRegistry';
+import { Language } from '../../types';
 import { formatNumber, formatPercent, formatCompact } from '../numberFormatter';
-
-const LOCALE = 'en-US';
 
 describe('numberFormatter', () => {
   let getLanguageSpy: ReturnType<typeof vi.spyOn>;
@@ -17,7 +16,7 @@ describe('numberFormatter', () => {
   beforeEach(() => {
     getLanguageSpy = vi
       .spyOn(i18nRegistry, 'getLanguage')
-      .mockReturnValue(LOCALE as ReturnType<typeof i18nRegistry.getLanguage>);
+      .mockReturnValue(Language.English);
   });
 
   afterEach(() => {

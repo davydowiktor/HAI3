@@ -2,7 +2,7 @@
  * Currency formatter - Locale-aware currency formatting
  *
  * Uses i18nRegistry.getLanguage() for locale; fallback to Language.English when null.
- * null, undefined, and NaN return ''.
+ * null, undefined, and NaN return ''; invalid currencyCode also returns '' and does not throw.
  */
 
 import { getLocale, toNumber } from './utils';
@@ -12,7 +12,7 @@ import { getLocale, toNumber } from './utils';
  *
  * @param value - Numeric amount
  * @param currencyCode - ISO 4217 currency code (e.g. 'USD', 'EUR')
- * @returns Formatted currency string, or '' if value is null, undefined, or NaN
+ * @returns Formatted currency string, or '' if value is null, undefined, NaN, or currencyCode is invalid
  */
 export function formatCurrency(
   value: number | null | undefined,
@@ -20,9 +20,14 @@ export function formatCurrency(
 ): string {
   const n = toNumber(value);
   if (n === null) return '';
+  if (!currencyCode || typeof currencyCode !== 'string') return '';
   const locale = getLocale();
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: currencyCode,
-  }).format(n);
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currencyCode,
+    }).format(n);
+  } catch {
+    return '';
+  }
 }

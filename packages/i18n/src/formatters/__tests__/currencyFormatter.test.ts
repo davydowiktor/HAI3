@@ -2,14 +2,13 @@
  * Unit tests for currency formatter
  *
  * Covers null/undefined/NaN (return '') and valid currency formatting.
- * Uses fixed locale (en-US) for deterministic results.
+ * Uses Language.English for deterministic results (matches production type).
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { i18nRegistry } from '../../I18nRegistry';
+import { Language } from '../../types';
 import { formatCurrency } from '../currencyFormatter';
-
-const LOCALE = 'en-US';
 
 describe('currencyFormatter', () => {
   let getLanguageSpy: ReturnType<typeof vi.spyOn>;
@@ -17,7 +16,7 @@ describe('currencyFormatter', () => {
   beforeEach(() => {
     getLanguageSpy = vi
       .spyOn(i18nRegistry, 'getLanguage')
-      .mockReturnValue(LOCALE as ReturnType<typeof i18nRegistry.getLanguage>);
+      .mockReturnValue(Language.English);
   });
 
   afterEach(() => {
@@ -38,5 +37,11 @@ describe('currencyFormatter', () => {
   });
   it('accepts different currency codes', () => {
     expect(formatCurrency(100, 'EUR')).toBe('€100.00');
+  });
+
+  it('returns empty string for invalid currencyCode and does not throw', () => {
+    expect(formatCurrency(100, '')).toBe('');
+    expect(formatCurrency(100, 'INVALID')).toBe('');
+    expect(() => formatCurrency(100, 'NOTACODE')).not.toThrow();
   });
 });

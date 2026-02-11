@@ -22,4 +22,4 @@ All formatters use `getLocale()` from `packages/i18n/src/formatters/utils.ts`, w
 ## Edge behavior
 
 - Null, undefined, NaN, or invalid Date inputs: all formatters return `''` and do not throw.
-- Public APIs are fully typed (no `any`/`unknown`); date inputs use `DateInput` (Date | number | string).
+- Public APIs are fully typed (no `any`/`unknown`); date inputs use `DateInput` (Date | number | string | null | undefined).

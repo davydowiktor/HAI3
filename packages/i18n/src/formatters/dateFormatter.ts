@@ -10,11 +10,11 @@ import { getLocale } from './utils';
 export type DateFormatStyle = 'short' | 'medium' | 'long' | 'full';
 export type TimeFormatStyle = 'short' | 'medium';
 
-export type DateInput = Date | number | string;
+export type DateInput = Date | number | string | null | undefined;
 
 function toDate(value: DateInput): Date | null {
   if (value === null || value === undefined) return null;
-  const d = new Date(value as Date);
+  const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
@@ -68,26 +68,54 @@ export function formatDateTime(
   }).format(d);
 }
 
-const RELATIVE_UNITS: Array<{ unit: Intl.RelativeTimeFormatUnit; max: number; ms: number }> = [
-  { unit: 'second', max: 60, ms: 1000 },
-  { unit: 'minute', max: 60, ms: 60 * 1000 },
-  { unit: 'hour', max: 24, ms: 60 * 60 * 1000 },
-  { unit: 'day', max: 30, ms: 24 * 60 * 60 * 1000 },
-  { unit: 'month', max: 12, ms: 30 * 24 * 60 * 60 * 1000 },
-  { unit: 'year', max: Infinity, ms: 365 * 24 * 60 * 60 * 1000 },
-];
+const MS_PER_SECOND = 1000;
+const MS_PER_MINUTE = 60 * MS_PER_SECOND;
+const MS_PER_HOUR = 60 * MS_PER_MINUTE;
+const MS_PER_DAY = 24 * MS_PER_HOUR;
 
-function getRelativeUnit(diffMs: number): { value: number; unit: Intl.RelativeTimeFormatUnit } {
-  const abs = Math.abs(diffMs);
-  for (const { unit, max, ms } of RELATIVE_UNITS) {
-    const value = Math.floor(abs / ms);
-    if (value < max) return { value: diffMs < 0 ? -value : value, unit };
+/**
+ * Picks relative-time unit and value using calendar-aware boundaries for day/month/year
+ * (no 30d/365d approximations), and exact second/minute/hour for sub-day deltas.
+ */
+function getRelativeUnit(
+  date: Date,
+  base: Date
+): { value: number; unit: Intl.RelativeTimeFormatUnit } {
+  const diffMs = date.getTime() - base.getTime();
+  const absMs = Math.abs(diffMs);
+  const sign = diffMs < 0 ? -1 : 1;
+
+  if (absMs < 60 * MS_PER_SECOND) {
+    const value = Math.round(diffMs / MS_PER_SECOND);
+    return { value: value === 0 ? 0 : value, unit: 'second' };
   }
-  const value = Math.floor(abs / RELATIVE_UNITS[RELATIVE_UNITS.length - 1].ms);
-  return {
-    value: diffMs < 0 ? -value : value,
-    unit: 'year',
-  };
+  if (absMs < 60 * MS_PER_MINUTE) {
+    return { value: sign * Math.round(absMs / MS_PER_MINUTE), unit: 'minute' };
+  }
+  if (absMs < MS_PER_DAY) {
+    return { value: sign * Math.round(absMs / MS_PER_HOUR), unit: 'hour' };
+  }
+
+  const baseY = base.getUTCFullYear();
+  const baseM = base.getUTCMonth();
+  const baseD = base.getUTCDate();
+  const dateY = date.getUTCFullYear();
+  const dateM = date.getUTCMonth();
+  const dateD = date.getUTCDate();
+
+  const totalMonths = (dateY - baseY) * 12 + (dateM - baseM);
+  const baseUTC = Date.UTC(baseY, baseM, baseD);
+  const dateUTC = Date.UTC(dateY, dateM, dateD);
+  const diffDays = Math.round((dateUTC - baseUTC) / MS_PER_DAY);
+
+  if (Math.abs(totalMonths) >= 12) {
+    const value = Math.round(totalMonths / 12);
+    return { value, unit: 'year' };
+  }
+  if (Math.abs(totalMonths) >= 1) {
+    return { value: totalMonths, unit: 'month' };
+  }
+  return { value: diffDays === 0 ? sign * 1 : diffDays, unit: 'day' };
 }
 
 /**
@@ -102,9 +130,8 @@ export function formatRelative(date: DateInput, base?: DateInput): string {
   if (!d) return '';
   const baseDate = base !== undefined ? toDate(base) : new Date();
   if (!baseDate) return '';
-  const diffMs = d.getTime() - baseDate.getTime();
   const locale = getLocale();
   const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
-  const { value, unit } = getRelativeUnit(diffMs);
+  const { value, unit } = getRelativeUnit(d, baseDate);
   return rtf.format(value, unit);
 }
