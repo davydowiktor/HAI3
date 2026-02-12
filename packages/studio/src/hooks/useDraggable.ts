@@ -6,6 +6,17 @@ import { loadStudioState } from '../utils/persistence';
 import { STORAGE_KEYS } from '../types';
 import { StudioEvents } from '../events/studioEvents';
 
+const VIEWPORT_MARGIN = 20;
+
+function clampToViewport(pos: Position, size: Size): Position {
+  const maxX = Math.max(VIEWPORT_MARGIN, window.innerWidth - size.width - VIEWPORT_MARGIN);
+  const maxY = Math.max(VIEWPORT_MARGIN, window.innerHeight - size.height - VIEWPORT_MARGIN);
+  return {
+    x: clamp(pos.x, VIEWPORT_MARGIN, maxX),
+    y: clamp(pos.y, VIEWPORT_MARGIN, maxY),
+  };
+}
+
 interface UseDraggableProps {
   panelSize: Size;
   storageKey?: string;
@@ -14,12 +25,12 @@ interface UseDraggableProps {
 export const useDraggable = ({ panelSize, storageKey = STORAGE_KEYS.POSITION }: UseDraggableProps) => {
   // Calculate default position (bottom-right with margin)
   const getDefaultPosition = (): Position => ({
-    x: window.innerWidth - panelSize.width - 20,
-    y: window.innerHeight - panelSize.height - 20,
+    x: window.innerWidth - panelSize.width - VIEWPORT_MARGIN,
+    y: window.innerHeight - panelSize.height - VIEWPORT_MARGIN,
   });
 
   const [position, setPosition] = useState<Position>(() =>
-    loadStudioState(storageKey, getDefaultPosition())
+    clampToViewport(loadStudioState(storageKey, getDefaultPosition()), panelSize)
   );
   const [isDragging, setIsDragging] = useState(false);
   const dragStartPos = useRef<Position>({ x: 0, y: 0 });
@@ -36,16 +47,10 @@ export const useDraggable = ({ panelSize, storageKey = STORAGE_KEYS.POSITION }: 
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newX = clamp(
-        e.clientX - dragStartPos.current.x,
-        0,
-        window.innerWidth - panelSize.width
-      );
-      const newY = clamp(
-        e.clientY - dragStartPos.current.y,
-        0,
-        window.innerHeight - panelSize.height
-      );
+      const maxX = Math.max(VIEWPORT_MARGIN, window.innerWidth - panelSize.width - VIEWPORT_MARGIN);
+      const maxY = Math.max(VIEWPORT_MARGIN, window.innerHeight - panelSize.height - VIEWPORT_MARGIN);
+      const newX = clamp(e.clientX - dragStartPos.current.x, VIEWPORT_MARGIN, maxX);
+      const newY = clamp(e.clientY - dragStartPos.current.y, VIEWPORT_MARGIN, maxY);
 
       const newPosition = { x: newX, y: newY };
       setPosition(newPosition);
@@ -69,6 +74,23 @@ export const useDraggable = ({ panelSize, storageKey = STORAGE_KEYS.POSITION }: 
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDragging, panelSize.width, panelSize.height, storageKey]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPosition((prev) => {
+        const clamped = clampToViewport(prev, panelSize);
+        if (clamped.x === prev.x && clamped.y === prev.y) return prev;
+        const eventName =
+          storageKey === STORAGE_KEYS.BUTTON_POSITION
+            ? StudioEvents.ButtonPositionChanged
+            : StudioEvents.PositionChanged;
+        eventBus.emit(eventName, { position: clamped });
+        return clamped;
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [panelSize.width, panelSize.height, panelSize, storageKey]);
 
   return {
     position,
