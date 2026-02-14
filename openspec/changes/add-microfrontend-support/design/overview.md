@@ -212,6 +212,8 @@ Custom handlers (e.g., `MfeHandlerAcme`) can choose to allow internal MFE instan
 
 **Extension lifecycle actions** (`load_ext`, `mount_ext`, `unmount_ext`) are the consumer-facing API for triggering load, mount, and unmount operations via `executeActionsChain()`. See [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md) for the complete design.
 
+**Preloading**: `MountManager` exposes a `preloadExtension(extensionId)` method (internal) that fetches the JS bundle without mounting. This is triggered by the `load_ext` action via `ExtensionLifecycleActionHandler`.
+
 See [MFE API](./mfe-api.md) for the mount/unmount interface that MFEs must implement.
 
 ---

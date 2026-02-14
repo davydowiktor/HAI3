@@ -58,10 +58,7 @@ The @hai3/screensets package abstracts the Type System as a **pluggable dependen
 See [Type System - Decision 1](./design/type-system.md#decision-1-type-system-plugin-interface) for the complete `TypeSystemPlugin` interface definition.
 
 **GTS-Native Validation Model:**
-- Schema/type IDs end with `~`: `gts.hai3.mfes.ext.extension.v1~`
-- Instance IDs do NOT end with `~`: `gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1`
-- gts-ts extracts the schema ID from the chained instance ID automatically
-- gts-ts uses Ajv INTERNALLY - no direct Ajv dependency needed in MFE plugin
+See [type-system.md - Instance ID Convention](./design/type-system.md#instance-id-convention) for the `~` suffix convention (schema IDs end with `~`, instance IDs do not). gts-ts extracts the schema ID from the chained instance ID automatically and uses Ajv internally.
 
 **Built-in First-Class Citizen Schemas:**
 
@@ -77,7 +74,7 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
-| `MfeEntry` | `id, requiredProperties: string[], optionalProperties?: string[], actions: string[], domainActions: string[]` | Pure contract type (Abstract Base) |
+| `MfeEntry` | `id, requiredProperties: string[], optionalProperties?: string[], actions: string[], domainActions: string[]` | Pure contract type (abstract GTS base type; TypeScript interface) |
 | `ExtensionDomain` | `id, sharedProperties: string[], actions: string[], extensionsActions: string[], extensionsTypeId?: string, defaultActionTimeout: number, lifecycleStages: string[], extensionsLifecycleStages: string[], lifecycle?: LifecycleHook[]` | Extension point contract |
 | `Extension` | `id, domain, entry, lifecycle?: LifecycleHook[]` | Extension binding (domain-specific fields in derived types) |
 | `SharedProperty` | `id, value` | Shared property instance |
@@ -104,11 +101,6 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
 | `MfeHandler<TEntry, TBridge>` | `bridgeFactory, canHandle(entryTypeId), load(entry), priority?` | Abstract handler class for different entry types |
-
-### Intentionally Omitted Methods
-
-- **`validateAgainstSchema`**: Not needed; extension validation uses native `validateInstance()` with derived Extension types.
-- **`buildTypeId`**: GTS type IDs are consumed but never generated at runtime; all are string constants.
 
 ### Bridge Interface Names
 
@@ -189,7 +181,7 @@ Lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`) call `
 - `packages/screensets/src/mfe/plugins/` - Type System plugin interface and implementations
 - `packages/screensets/src/mfe/plugins/gts/` - GTS plugin implementation (default)
 - `packages/screensets/src/mfe/handler/` - MfeHandler abstract class, MfeBridgeFactory, and handler registry
-- `packages/screensets/src/mfe/handler/mf-handler.ts` - MfeHandlerMF and MfeBridgeFactoryDefault (Module Federation default handler)
+- `packages/screensets/src/mfe/handler/mf-handler.ts` - MfeHandlerMF (Module Federation handler) and MfeBridgeFactoryDefault (bridge factory for MfeHandlerMF)
 
 **Modified packages:**
 - `packages/screensets/src/state/` - Isolated state instances (uses @hai3/state)

@@ -274,104 +274,15 @@ type DomainSemantics = 'swap' | 'toggle';
 
 **Single extension per domain invariant**: Each domain supports **at most one mounted extension at a time**. When a 'swap' domain receives `mount_ext`, the handler unmounts the existing extension before mounting the new one. When a 'toggle' domain receives `mount_ext`, the consumer is responsible for unmounting the previous extension first (if applicable).
 
-```typescript
-/**
- * Callbacks required by ExtensionLifecycleActionHandler.
- *
- * These callbacks are wired by DefaultScreensetsRegistry.registerDomain() to go
- * through OperationSerializer -> MountManager. The handler does NOT hold a
- * reference to ScreensetsRegistry -- it receives only the focused callbacks it
- * needs. This follows the same callback injection pattern used by all other
- * collaborators (ExtensionManager, LifecycleManager, DefaultMountManager).
- */
-interface ExtensionLifecycleCallbacks {
-  /** Load an extension's bundle (OperationSerializer -> MountManager.loadExtension) */
-  loadExtension: (extensionId: string) => Promise<void>;
-  /** Mount an extension into the given container (OperationSerializer -> MountManager.mountExtension) */
-  mountExtension: (extensionId: string, container: Element) => Promise<ParentMfeBridge>;
-  /** Unmount an extension (OperationSerializer -> MountManager.unmountExtension) */
-  unmountExtension: (extensionId: string) => Promise<void>;
-  /** Query the currently mounted extension in a domain (ExtensionManager) */
-  getMountedExtension: (domainId: string) => string | undefined;
-}
+`ExtensionLifecycleActionHandler` is an `@internal` class implementing `ActionHandler`. It receives focused callbacks (`ExtensionLifecycleCallbacks`) wired by `DefaultScreensetsRegistry.registerDomain()` through `OperationSerializer` to `MountManager`. The handler does NOT hold a reference to `ScreensetsRegistry`.
 
-/**
- * Action handler for extension lifecycle actions within a domain.
- * Registered with the ActionsChainsMediator as the domain's action handler.
- *
- * Intercepts the three extension lifecycle actions and delegates to focused callbacks.
- * Non-lifecycle domain actions pass through as no-ops.
- *
- * @internal
- */
-class ExtensionLifecycleActionHandler implements ActionHandler {
-  constructor(
-    private readonly domainId: string,
-    private readonly callbacks: ExtensionLifecycleCallbacks,
-    private readonly domainSemantics: DomainSemantics,
-    private readonly containerProvider: ContainerProvider
-  ) {}
+**Behavior**: The handler switches on action type:
+- **`load_ext`**: Validates payload, delegates to `callbacks.loadExtension(extensionId)`.
+- **`mount_ext`**: Validates payload. For 'swap' semantics: unmounts the current extension (via `callbacks.getMountedExtension` + `callbacks.unmountExtension` + `containerProvider.releaseContainer`), then obtains a container via `containerProvider.getContainer` and mounts the new extension. For 'toggle' semantics: obtains container and mounts directly.
+- **`unmount_ext`**: Validates payload, unmounts via `callbacks.unmountExtension`, then calls `containerProvider.releaseContainer`.
+- **Other actions**: No-op (pass through).
 
-  async handleAction(
-    actionTypeId: string,
-    payload: Record<string, unknown> | undefined
-  ): Promise<void> {
-    switch (actionTypeId) {
-      case HAI3_ACTION_LOAD_EXT: {
-        this.requirePayload(actionTypeId, payload);
-        await this.callbacks.loadExtension((payload as unknown as LoadExtPayload).extensionId);
-        break;
-      }
-
-      case HAI3_ACTION_MOUNT_EXT: {
-        this.requirePayload(actionTypeId, payload);
-        const mountPayload = payload as unknown as MountExtPayload;
-        if (this.domainSemantics === 'swap') {
-          await this.handleScreenSwap(mountPayload);
-        } else {
-          const container = this.containerProvider.getContainer(mountPayload.extensionId);
-          await this.callbacks.mountExtension(mountPayload.extensionId, container);
-        }
-        break;
-      }
-
-      case HAI3_ACTION_UNMOUNT_EXT: {
-        this.requirePayload(actionTypeId, payload);
-        const extensionId = (payload as unknown as UnmountExtPayload).extensionId;
-        await this.callbacks.unmountExtension(extensionId);
-        this.containerProvider.releaseContainer(extensionId);
-        break;
-      }
-
-      default:
-        break;
-    }
-  }
-
-  private requirePayload(
-    actionTypeId: string,
-    payload: Record<string, unknown> | undefined
-  ): asserts payload is Record<string, unknown> {
-    if (!payload) {
-      throw new MfeError(
-        `Extension lifecycle action '${actionTypeId}' requires a payload`,
-        'LIFECYCLE_ACTION_MISSING_PAYLOAD'
-      );
-    }
-  }
-
-  private async handleScreenSwap(payload: MountExtPayload): Promise<void> {
-    const { extensionId: newExtensionId } = payload;
-    const currentExtId = this.callbacks.getMountedExtension(this.domainId);
-    if (currentExtId && currentExtId !== newExtensionId) {
-      await this.callbacks.unmountExtension(currentExtId);
-      this.containerProvider.releaseContainer(currentExtId);
-    }
-    const container = this.containerProvider.getContainer(newExtensionId);
-    await this.callbacks.mountExtension(newExtensionId, container);
-  }
-}
-```
+All lifecycle actions require a payload; missing payload throws `MfeError` with code `LIFECYCLE_ACTION_MISSING_PAYLOAD`.
 
 #### Callback Wiring
 
@@ -578,36 +489,11 @@ The `ContainerProvider` is stored alongside the domain state and passed to the `
 
 `DefaultMountManager.mountExtension(id, container)` continues to accept `container` as a parameter. The `ExtensionLifecycleActionHandler` calls `this.containerProvider.getContainer(extensionId)` to obtain the container, then passes it through the callback chain to `MountManager.mountExtension(id, container)`.
 
-### RefContainerProvider (in @hai3/react)
+### RefContainerProvider and ExtensionDomainSlot (in @hai3/react)
 
-The `RefContainerProvider` and `ExtensionDomainSlot` are React-specific components that belong in `@hai3/react`, not `@hai3/screensets`. `@hai3/screensets` is SDK Layer L1 with zero dependencies -- it must not import React.
+`RefContainerProvider` and `ExtensionDomainSlot` are React-specific components in `@hai3/react` (not `@hai3/screensets`). `RefContainerProvider` wraps a React ref, returning `ref.current` from `getContainer()` and using a no-op `releaseContainer()`. `ExtensionDomainSlot` dispatches `mount_ext`/`unmount_ext` actions but does NOT call `registerDomain()`.
 
-```typescript
-// packages/react/src/mfe/components/RefContainerProvider.ts
-
-/**
- * Concrete ContainerProvider that wraps a React ref.
- * Created by framework-level code when registering React-rendered domains.
- *
- * @internal
- */
-class RefContainerProvider extends ContainerProvider {
-  constructor(private readonly containerRef: React.RefObject<HTMLDivElement>) {}
-
-  getContainer(_extensionId: string): Element {
-    if (!this.containerRef.current) {
-      throw new Error('Container ref is not attached -- component may not be mounted yet');
-    }
-    return this.containerRef.current;
-  }
-
-  releaseContainer(_extensionId: string): void {
-    // No-op for React ref -- the ref lifecycle is managed by React.
-  }
-}
-```
-
-### ExtensionDomainSlot (in @hai3/react)
+### ExtensionDomainSlot Usage (in @hai3/react)
 
 The `ExtensionDomainSlot` React component lives in `@hai3/react`. It dispatches `mount_ext`/`unmount_ext` actions via `executeActionsChain()` but does NOT call `registerDomain()` itself.
 

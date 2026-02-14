@@ -97,70 +97,40 @@ When using GTS plugin, base domains are instances of the `gts.hai3.mfes.ext.doma
 
 Vendors define their own domains following the GTS type ID format:
 
-**Instance ID Convention:**
-- Schema IDs end with `~` (e.g., `gts.hai3.mfes.ext.domain.v1~`)
-- Instance IDs do NOT end with `~` (e.g., `gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1`)
+**Instance ID Convention:** See [type-system.md - Instance ID Convention](./type-system.md#instance-id-convention).
 
 ```typescript
-// Example: Dashboard screenset defines widget slot domain
-// Schema ID: gts.hai3.mfes.ext.domain.v1~ (ends with ~)
-// Instance ID: gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1 (no trailing ~)
-
-// First, define and register a derived Extension schema with domain-specific fields
-// Note: Schema $id ends with ~ because it's a schema definition
-const widgetExtensionSchema: JSONSchema = {
+// 1. Register a derived Extension schema with domain-specific fields
+plugin.registerSchema({
   "$id": "gts://gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "allOf": [
-    { "$ref": "gts://gts.hai3.mfes.ext.extension.v1~" }
-  ],
+  "allOf": [{ "$ref": "gts://gts.hai3.mfes.ext.extension.v1~" }],
   "properties": {
     "title": { "type": "string" },
-    "icon": { "type": "string" },
     "size": { "enum": ["small", "medium", "large"] }
   },
   "required": ["title", "size"]
-};
-plugin.registerSchema(widgetExtensionSchema);
+});
 
-// Then define the domain INSTANCE, referencing the derived Extension type
-// Note: domain.id does NOT end with ~ (it's an instance ID)
+// 2. Define and register the domain instance
 const widgetSlotDomain: ExtensionDomain = {
   id: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
-  sharedProperties: [
-    // Properties provided to MFEs in this domain (instance IDs, no trailing ~)
-    'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.user_context.v1',
-  ],
-  actions: [
-    // Action types that can target extensions in this domain (instance IDs, no trailing ~)
-    'gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.refresh.v1',
-  ],
-  extensionsActions: [
-    // Action types extensions can send when targeting this domain (instance IDs, no trailing ~)
-    'gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.data_update.v1',
-  ],
-  // Reference to a derived Extension SCHEMA type - ends with ~ because it's a schema reference
+  sharedProperties: ['gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.user_context.v1'],
+  actions: ['gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.refresh.v1'],
+  extensionsActions: ['gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.data_update.v1'],
   extensionsTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~',
   defaultActionTimeout: 30000,
   lifecycleStages: [
-    // Lifecycle stages for the domain itself (instance IDs, no trailing ~)
     'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
     'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
   ],
   extensionsLifecycleStages: [
-    // Lifecycle stages supported for extensions in this domain (instance IDs, no trailing ~)
     'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
     'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
     'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
     'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
-    // Custom stage for widget refresh
-    'gts.hai3.mfes.lifecycle.stage.v1~acme.dashboard.lifecycle.refresh.v1',
   ],
 };
-
-// Registration using GTS-native approach:
 plugin.register(widgetSlotDomain);
-const result = plugin.validateInstance(widgetSlotDomain.id);
 ```
 
 ---

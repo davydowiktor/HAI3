@@ -17,7 +17,7 @@ import {
   useHostAction,
   type MfeContextValue,
 } from '../../src/mfe';
-import type { ChildMfeBridge } from '@hai3/screensets';
+import type { ChildMfeBridge } from '@hai3/framework';
 
 // ============================================================================
 // Mock Data

@@ -7,7 +7,7 @@
  * - react, react-dom (React adapter)
  *
  * React package CANNOT import:
- * - @hai3/state, @hai3/layout, @hai3/api, @hai3/i18n (use framework re-exports)
+ * - @hai3/state, @hai3/screensets, @hai3/api, @hai3/i18n (use framework re-exports)
  * - @hai3/uikit-contracts (deprecated)
  * - @hai3/uicore (deprecated)
  */
@@ -23,7 +23,7 @@ module.exports = {
       name: 'react-only-framework-dep',
       severity: 'error',
       from: { path: '^packages/react/src' },
-      to: { path: 'node_modules/@hai3/(state|layout|api|i18n)' },
+      to: { path: 'node_modules/@hai3/(state|screensets|api|i18n)' },
       comment: 'REACT VIOLATION: React package imports SDK via @hai3/framework, not directly. Use framework re-exports.',
     },
     {

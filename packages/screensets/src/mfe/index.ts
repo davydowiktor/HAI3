@@ -48,7 +48,7 @@ export type {
   ChildMfeBridge,
   MfeEntryLifecycle,
 } from './handler/types';
-export { MfeHandler } from './handler/types';
+export { MfeHandler, MfeBridgeFactory } from './handler/types';
 
 // Shadow DOM Utilities
 export {

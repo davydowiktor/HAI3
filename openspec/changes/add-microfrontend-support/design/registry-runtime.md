@@ -85,34 +85,7 @@ export abstract class RuntimeBridgeFactory {
 }
 ```
 
-```typescript
-// packages/screensets/src/mfe/runtime/default-runtime-bridge-factory.ts
-// CONCRETE class, NOT exported from barrel
-
-import { RuntimeBridgeFactory } from './runtime-bridge-factory';
-// ... all concrete imports (ChildMfeBridgeImpl, ParentMfeBridgeImpl, ChildDomainForwardingHandler, etc.)
-
-/**
- * Default runtime bridge factory implementation.
- *
- * Handles all internal bridge wiring: creates bridge pairs, connects
- * property subscriptions, wires action chain callbacks, and sets up
- * child domain forwarding.
- *
- * @internal
- */
-class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
-  createBridge(/* same params */): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge } {
-    // Same implementation as current createBridge() standalone function
-  }
-
-  disposeBridge(/* same params */): void {
-    // Same implementation as current disposeBridge() standalone function
-  }
-}
-```
-
-**Construction**: `DefaultRuntimeBridgeFactory` is constructed directly by `DefaultScreensetsRegistry` and passed to `DefaultMountManager` via constructor injection. `DefaultMountManager` stores the abstract `RuntimeBridgeFactory` type (not the concrete class).
+`DefaultRuntimeBridgeFactory` (concrete, `@internal`, NOT exported from barrel) extends `RuntimeBridgeFactory`. It creates bridge pairs (`ParentMfeBridgeImpl`/`ChildMfeBridgeImpl`), connects property subscriptions, wires action chain callbacks, and sets up child domain forwarding. Constructed directly by `DefaultScreensetsRegistry` and passed to `DefaultMountManager` via constructor injection. `DefaultMountManager` stores the abstract `RuntimeBridgeFactory` type.
 
 ### No Standalone Factory Functions for Stateful Components
 
@@ -123,16 +96,6 @@ Standalone factory functions and static factory methods on abstract classes are 
 3. **Direct construction in internal wiring code** -- multi-instance (e.g., `MfeStateContainer` by `DefaultMountManager`)
 
 See [Decision 18](#decision-18-abstract-class-layers-with-singleton-construction) for code examples, violation patterns, and rationale.
-
-### No Event System -- Lifecycle Stages with Actions Chains Only
-
-The MFE runtime intentionally has **no pub-sub event system** (no `EventEmitter`, no `on`/`off` callbacks). Lifecycle stages with actions chains are the **only** mechanism for reacting to runtime transitions (registration, activation, deactivation, destruction).
-
-**Why**: An event system would duplicate lifecycle stages 1:1. Every "event" (`domainRegistered`, `extensionMounted`, etc.) maps directly to a lifecycle stage transition (`init`, `activated`, etc.) on the corresponding entity. Having two parallel systems for the same moments in time creates confusion about which to use, forces maintenance of two notification paths, and violates the single-responsibility principle.
-
-**How entities react to lifecycle transitions**: Entities declare `lifecycle` hooks that bind lifecycle stages to actions chains. When a stage transition occurs, the `LifecycleManager` triggers the corresponding actions chain through the `ActionsChainsMediator`. This is the same mechanism used for all other inter-entity communication and is already fully specified in [mfe-lifecycle.md](./mfe-lifecycle.md).
-
-**What about `extensionLoaded`?** Loading is an internal implementation detail (fetching a JavaScript bundle), not a lifecycle stage. There is no need to observe it externally. If an extension needs to react to being loaded, it does so in its `MfeEntryLifecycle.mount()` callback (which is called after loading completes).
 
 ### Cross-Runtime Action Chain Routing
 
@@ -279,7 +242,7 @@ MountManager                        -->  DefaultMountManager
 RuntimeCoordinator                  -->  WeakMapRuntimeCoordinator
 ActionsChainsMediator               -->  DefaultActionsChainsMediator
 MfeHandler                          -->  MfeHandlerMF
-MfeBridgeFactory (@internal)         -->  MfeBridgeFactoryDefault
+MfeBridgeFactory                     -->  MfeBridgeFactoryDefault
 RuntimeBridgeFactory (@internal)     -->  DefaultRuntimeBridgeFactory
 TypeSystemPlugin                    -->  GtsPlugin
 MfeStateContainer<TState>           -->  DefaultMfeStateContainer<TState>
@@ -388,30 +351,7 @@ export abstract class ScreensetsRegistryFactory {
 }
 ```
 
-```typescript
-// packages/screensets/src/mfe/runtime/DefaultScreensetsRegistryFactory.ts
-// Concrete factory, NOT exported from barrel
-
-import { ScreensetsRegistryFactory } from './ScreensetsRegistryFactory';
-import { DefaultScreensetsRegistry } from './DefaultScreensetsRegistry';
-
-class DefaultScreensetsRegistryFactory extends ScreensetsRegistryFactory {
-  private instance: ScreensetsRegistry | null = null;
-  private cachedConfig: ScreensetsRegistryConfig | null = null;
-
-  build(config: ScreensetsRegistryConfig): ScreensetsRegistry {
-    if (this.instance) {
-      if (config.typeSystem !== this.cachedConfig!.typeSystem) {
-        throw new Error('ScreensetsRegistry already built with a different configuration');
-      }
-      return this.instance;
-    }
-    this.cachedConfig = config;
-    this.instance = new DefaultScreensetsRegistry(config);
-    return this.instance;
-  }
-}
-```
+`DefaultScreensetsRegistryFactory` (concrete, NOT exported from barrel) extends `ScreensetsRegistryFactory`. It caches the first instance created via `build(config)` and returns the cached instance on subsequent calls, throwing if the config differs.
 
 ```typescript
 // In packages/screensets/src/mfe/runtime/index.ts (barrel/initialization file)
@@ -493,6 +433,9 @@ packages/screensets/src/mfe/runtime/
   runtime-bridge-factory.ts          # ABSTRACT class (pure contract, @internal)
   default-runtime-bridge-factory.ts  # CONCRETE class (@internal, NOT exported from barrel)
   operation-serializer.ts            # CONCRETE only (too small to split)
+
+packages/screensets/src/mfe/state/
+  index.ts                           # MfeStateContainer (abstract) + DefaultMfeStateContainer (concrete)
 ```
 
 #### Export Policy
@@ -505,6 +448,7 @@ The `@hai3/screensets` public barrel exports:
 - `ContainerProvider` (abstract class, pure contract -- consumers extend this for custom domain container management)
 - `TypeSystemPlugin` (interface)
 - `MfeHandler` (abstract class -- consumers extend this for custom entry type handlers)
+- `MfeBridgeFactory` (abstract class -- consumers extend this for custom bridge implementations in custom handlers)
 - `MfeEntryLifecycle` (interface -- MFEs implement this for mount/unmount)
 - `ChildMfeBridge` (interface -- MFEs receive this for parent communication)
 - `ParentMfeBridge` (interface -- parent uses this for child instance management)
@@ -519,61 +463,29 @@ The `@hai3/screensets/plugins/gts` subpath export provides:
 
 These are NOT re-exported from the main `@hai3/screensets` barrel to avoid pulling in `@globaltypesystem/gts-ts` for consumers who do not need it.
 
-All other symbols are internal implementation details and are NOT exported from the public barrel. This includes: concrete classes (`DefaultScreensetsRegistry`, `DefaultExtensionManager`, etc.), internal abstract classes (`RuntimeCoordinator`, `ActionsChainsMediator`, `MfeBridgeFactory`, `RuntimeBridgeFactory`), internal types (`RuntimeConnection`, `ChainResult`, `ChainExecutionOptions`, `MfeStateContainer`, `MfeStateContainerConfig`), error classes (all 13 `MfeError` subclasses), validation helpers (`validateContract`, `validateExtensionType`), Module Federation internals (`MfManifest`, `SharedDependencyConfig`) -- note: `MfeEntryMF` is a public GTS type interface listed above, not an internal, and constant collections (`HAI3_CORE_TYPE_IDS`, `HAI3_LIFECYCLE_STAGE_IDS`, `HAI3_MF_TYPE_IDS`). Test files that need access to these internals import directly from the concrete file paths using relative imports, bypassing the public barrel.
+All other symbols are internal implementation details and are NOT exported from the main `@hai3/screensets` public barrel. This includes: concrete classes (`DefaultScreensetsRegistry`, `DefaultExtensionManager`, `MfeHandlerMF`, `MfeBridgeFactoryDefault`), internal abstract classes (`RuntimeCoordinator`, `ActionsChainsMediator`, `RuntimeBridgeFactory`), internal types (`RuntimeConnection`, `ChainResult`, `ChainExecutionOptions`, `MfeStateContainer`, `MfeStateContainerConfig`), error classes (all 13 `MfeError` subclasses), validation helpers (`validateContract`, `validateExtensionType`), Module Federation internals (`MfManifest`, `SharedDependencyConfig`), and constant collections (`HAI3_CORE_TYPE_IDS`, `HAI3_LIFECYCLE_STAGE_IDS`, `HAI3_MF_TYPE_IDS`). Note: `MfeEntryMF` is a public GTS type interface listed above, not an internal.
+
+**Handler sub-barrel**: The `handler/` directory has its own barrel (`handler/index.ts`) that re-exports `MfeHandler`, `MfeBridgeFactory`, `MfeHandlerMF`, and `MfeBridgeFactoryDefault`. `MfeHandler` and `MfeBridgeFactory` are public abstract classes (re-exported from the main `@hai3/screensets` barrel). `MfeHandlerMF` and `MfeBridgeFactoryDefault` are concrete implementations -- they are NOT re-exported from the main barrel. Test files and internal wiring code import concrete types from the sub-barrel path directly.
+
+#### React Layer Export Policy
+
+`@hai3/react` (L3) re-exports ALL public symbols from `@hai3/framework` (L2), including all MFE symbols: plugin factories (`microfrontends`, `mock`), action functions (`loadExtension`, `mountExtension`, `unmountExtension`), selectors (`selectExtensionState`, `selectRegisteredExtensions`, `selectExtensionError`), domain constants (`HAI3_POPUP_DOMAIN`, `HAI3_SIDEBAR_DOMAIN`, `HAI3_SCREEN_DOMAIN`, `HAI3_OVERLAY_DOMAIN`), action constants (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`), all MFE types, abstract classes, factory instances, and utilities. This ensures L4 application code imports everything from a single package.
+
+#### Layer Enforcement via Dependency Cruiser
+
+Layer boundaries are enforced by dependency-cruiser rules:
+- **`framework-no-react`**: Framework (L2) cannot import React (L3).
+- **`react-no-sdk`**: React (L3) cannot import SDK packages (L1) directly; must use `@hai3/framework` re-exports.
+
+Package-level configs (`internal/depcruise-config/react.cjs`, `sdk.cjs`) use `state|screensets|api|i18n` to reference the L1 SDK packages.
 
 #### MfeStateContainer
 
 `MfeStateContainer` manages isolated per-MFE state. It requires MULTIPLE instances (one per MFE), so it CANNOT be a singleton. Instances are created directly by internal wiring code (`DefaultMountManager`) that already knows about the concrete type. There is no public construction path.
 
-```typescript
-// packages/screensets/src/mfe/state/mfe-state-container.ts
+`MfeStateContainer` (abstract) and `DefaultMfeStateContainer` (concrete) both live in `packages/screensets/src/mfe/state/index.ts`. The abstract class defines `getState()`, `setState(updater)`, `subscribe(listener)`, `dispose()`, and `disposed` getter. The concrete class manages state, listeners, and disposal lifecycle.
 
-interface MfeStateContainerConfig<TState> {
-  initialState: TState;
-}
-
-/**
- * Abstract class defining the MFE state container contract.
- * Internal -- NOT exported from @hai3/screensets public barrel.
- * Instances are created internally by DefaultMountManager.
- */
-abstract class MfeStateContainer<TState> {
-  abstract getState(): TState;
-  abstract setState(updater: (state: TState) => TState): void;
-  abstract subscribe(listener: (state: TState) => void): () => void;
-  abstract dispose(): void;
-  abstract get disposed(): boolean;
-}
-```
-
-```typescript
-// packages/screensets/src/mfe/state/default-mfe-state-container.ts
-// NOT exported from public barrel
-
-class DefaultMfeStateContainer<TState> extends MfeStateContainer<TState> {
-  private currentState: TState;
-  private listeners: Set<(state: TState) => void>;
-  private isDisposed: boolean;
-
-  constructor(config: MfeStateContainerConfig<TState>) {
-    super();
-    this.currentState = config.initialState;
-    this.listeners = new Set();
-    this.isDisposed = false;
-  }
-
-  // ... implements all abstract methods using private fields
-}
-```
-
-```typescript
-// In DefaultMountManager -- internal wiring code that creates MfeStateContainer instances
-// This is the ONLY code that knows about DefaultMfeStateContainer.
-import { DefaultMfeStateContainer } from '../state/default-mfe-state-container';
-
-// Inside mountExtension():
-const stateContainer = new DefaultMfeStateContainer({ initialState });
-```
+`DefaultMountManager` constructs instances directly via `new DefaultMfeStateContainer({ initialState })` (imported from `'../state'`).
 
 There is no standalone `createMfeStateContainer()` function and no `MfeStateContainer.create()` static method. `DefaultMountManager` constructs instances directly.
 

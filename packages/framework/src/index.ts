@@ -39,6 +39,8 @@ export {
   loadExtension,
   mountExtension,
   unmountExtension,
+  registerExtension,
+  unregisterExtension,
   selectExtensionState,
   selectRegisteredExtensions,
   selectExtensionError,
@@ -82,6 +84,7 @@ export type {
 // MFE Abstract Classes (re-exported from @hai3/screensets for convenience)
 export {
   MfeHandler,
+  MfeBridgeFactory,
   ScreensetsRegistry,
   ScreensetsRegistryFactory,
   screensetsRegistryFactory,
@@ -158,6 +161,7 @@ export type {
 // From @hai3/state (unified Flux dataflow pattern)
 export { eventBus, createStore, getStore, registerSlice, hasSlice, createSlice } from '@hai3/state';
 export type {
+  EventBus,
   ReducerPayload,
   EventPayloadMap,
   EventHandler,

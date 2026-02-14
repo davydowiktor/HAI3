@@ -12,6 +12,8 @@ A Microfrontend (MFE) is an independently developed, deployed, and versioned UI 
 ### Domain (ExtensionDomain)
 An extension point where MFE instances can be mounted. Domains can exist at **any level of the hierarchy** - the host application can define domains, and MFEs themselves can define their own domains for nested extensions. This enables hierarchical composition where an MFE acts as both an extension (to its parent's domain) and a domain provider (for its own child extensions). Domains define the contract with extensions by declaring shared properties, supported action types, and UI metadata schemas. See [mfe-domain.md](./mfe-domain.md).
 
+**Note**: The framework defines 7 layout domains total: 4 are **extension domains** (screen, sidebar, popup, overlay) where MFE entries mount; 3 are **configuration domains** (header, footer, menu) that are static layout areas, not MFE mount targets. See [mfe-ext-lifecycle-actions.md - Extension Domains vs Configuration Domains](./mfe-ext-lifecycle-actions.md#extension-domains-vs-configuration-domains) for the complete table.
+
 ### Extension
 A binding that connects an MFE entry to a specific domain, creating a concrete MFE instance. Domain-specific fields are defined in derived Extension types, validated natively by GTS. Extensions are registered dynamically at runtime. See [mfe-domain.md](./mfe-domain.md#extension). For isolation model, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
 

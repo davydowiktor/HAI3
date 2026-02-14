@@ -97,7 +97,7 @@ export type {
 } from './mfe';
 
 // MFE Handler Abstract Classes (concrete implementations are internal)
-export { MfeHandler } from './mfe';
+export { MfeHandler, MfeBridgeFactory } from './mfe';
 
 // HAI3 Action Constants
 export {

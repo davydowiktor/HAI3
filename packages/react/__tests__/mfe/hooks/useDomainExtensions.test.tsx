@@ -15,8 +15,8 @@ import { createHAI3 } from '@hai3/framework';
 import { screensets } from '@hai3/framework';
 import { effects } from '@hai3/framework';
 import { microfrontends } from '@hai3/framework';
-import type { Extension, ExtensionDomain } from '@hai3/screensets';
-import { ContainerProvider } from '@hai3/screensets';
+import type { Extension, ExtensionDomain } from '@hai3/framework';
+import { ContainerProvider } from '@hai3/framework';
 import type { HAI3App } from '@hai3/framework';
 
 // Mock Container Provider for React tests

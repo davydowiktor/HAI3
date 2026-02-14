@@ -40,18 +40,18 @@ TYPE SYSTEM (GTS)                           HANDLER REGISTRY
 MfeEntry (abstract)                         MfeHandler (abstract class)
     |                                           |
     +-- MfeEntryMF                              +-- MfeHandlerMF
-    |   (thin, stable)                          |   handledBaseTypeId: ~hai3.mfes.mfe.entry_mf.*
+    |   (thin, stable)                          |   handledBaseTypeId: gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~
     |                                           |   bridgeFactory: MfeBridgeFactoryDefault
     |                                           |
     +-- MfeEntryAcme                            +-- MfeHandlerAcme
-        (richer contract)                           handledBaseTypeId: ~acme.corp.mfe.entry_acme.*
+        (richer contract)                           handledBaseTypeId: gts.hai3.mfes.mfe.entry.v1~acme.corp.mfe.entry_acme.v1~
                                                     bridgeFactory: MfeBridgeFactoryAcme (with shared services)
 ```
 
 #### MfeHandler Abstract Class
 
 ```typescript
-// packages/screensets/src/mfe/handler/index.ts
+// packages/screensets/src/mfe/handler/types.ts (re-exported from handler/index.ts barrel)
 
 /**
  * Abstract handler for loading MFE bundles.
@@ -93,7 +93,7 @@ abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge extends Ch
 
 #### MfeBridgeFactory Abstract Class
 
-`MfeBridgeFactory<TBridge>` is an `@internal` abstract factory that each `MfeHandler` associates with for creating bridge instances. It defines `create(domainId, entryTypeId, instanceId): TBridge` and `dispose(bridge): void`. `MfeBridgeFactoryDefault` is the concrete implementation used by `MfeHandlerMF`. Companies can implement custom factories with richer bridges (shared services, routing, etc.).
+`MfeBridgeFactory<TBridge>` is a public abstract factory that each `MfeHandler` associates with for creating bridge instances. It defines `create(domainId, entryTypeId, instanceId): TBridge` and `dispose(bridge): void`. `MfeBridgeFactoryDefault` is the concrete implementation used by `MfeHandlerMF`. Companies extend `MfeBridgeFactory` to implement custom factories with richer bridges (shared services, routing, etc.) -- see `MfeBridgeFactoryAcme` example in the handler architecture diagram above.
 
 #### Type ID Matching in Handlers
 
@@ -102,13 +102,13 @@ Each handler's `canHandle()` method (inherited from base class) uses the type sy
 ```typescript
 // HAI3's default MF handler - handles MfeEntryMF
 class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
-  readonly bridgeFactory = new MfeBridgeFactoryDefault();
+  readonly bridgeFactory: MfeBridgeFactoryDefault;
   private readonly manifestCache: ManifestCache;
 
   constructor(typeSystem: TypeSystemPlugin) {
     // Pass the base type ID this handler handles
     super(typeSystem, 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~');
-    // ManifestCache is created internally - not passed in
+    this.bridgeFactory = new MfeBridgeFactoryDefault();
     this.manifestCache = new ManifestCache();
   }
 
@@ -169,7 +169,7 @@ Company handlers use higher priority to ensure their derived types are handled b
 
 #### Handler Registry
 
-The internal `MfeHandlerRegistry` maintains handlers sorted by priority (highest first). When loading an entry, it iterates handlers and calls `canHandle(entryTypeId)` on each until a match is found. The first matching handler loads the entry. If no handler matches, `MfeLoadError` is thrown. Handlers are provided via `ScreensetsRegistryConfig.mfeHandlers` at initialization time.
+The internal `MfeHandlerRegistry` maintains handlers sorted by priority (highest first). When loading an entry, it iterates handlers and calls `canHandle(entryTypeId)` on each until a match is found. The first matching handler loads the entry. If no handler matches, `MfeLoadError` is thrown. Handlers are provided via `ScreensetsRegistryConfig.mfeHandlers` (optional). No handlers are registered by default -- applications must explicitly provide the handlers they need.
 
 ### Decision 11: Module Federation 2.0 for Bundle Loading
 
@@ -231,7 +231,7 @@ MfManifest is NOT a first-class citizen of the MFE system. It is an **internal i
  */
 class ManifestCache {
   private readonly manifests = new Map<string, MfManifest>();
-  private readonly containers = new Map<string, Container>();
+  private readonly containers = new Map<string, ModuleFederationContainer>();
 
   /** Cache a manifest for reuse */
   cacheManifest(manifest: MfManifest): void {
@@ -244,12 +244,12 @@ class ManifestCache {
   }
 
   /** Cache a loaded container */
-  cacheContainer(remoteName: string, container: Container): void {
+  cacheContainer(remoteName: string, container: ModuleFederationContainer): void {
     this.containers.set(remoteName, container);
   }
 
   /** Get a cached container */
-  getContainer(remoteName: string): Container | undefined {
+  getContainer(remoteName: string): ModuleFederationContainer | undefined {
     return this.containers.get(remoteName);
   }
 }

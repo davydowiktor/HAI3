@@ -29,97 +29,12 @@ export default [
     ],
   },
 
-  // SDK packages: Allow unknown/object types (required for generic event bus, store, etc.)
-  // These packages use generics and need flexible typing for consumer code to augment
-  // Also disable layer enforcement - library packages are allowed to import from lower layers
-  {
-    files: [
-      'packages/state/**/*.ts',
-      'packages/api/**/*.ts',
-      'packages/i18n/**/*.ts',
-      'packages/screensets/**/*.ts',
-    ],
-    rules: {
-      'no-restricted-syntax': 'off',
-      '@typescript-eslint/no-empty-object-type': 'off',
-      '@typescript-eslint/no-restricted-imports': 'off', // Library packages can import from lower layers
-    },
-  },
-
-  // Framework package: Allow unknown/object types (wraps SDK with plugin architecture)
-  // Also disable layer enforcement - framework imports from SDK packages
-  // BUT keep Flux rules for effects files
-  {
-    files: ['packages/framework/**/*.ts'],
-    ignores: ['**/effects.ts', '**/*Effects.ts', '**/effects/**/*.ts'],
-    rules: {
-      'no-restricted-syntax': 'off',
-      '@typescript-eslint/no-empty-object-type': 'off',
-      '@typescript-eslint/no-restricted-imports': 'off', // Framework imports from SDK (L1) packages
-    },
-  },
-
-  // Framework effects: Keep Flux rules but disable layer enforcement
-  {
-    files: ['packages/framework/**/effects.ts', 'packages/framework/**/*Effects.ts'],
-    rules: {
-      '@typescript-eslint/no-restricted-imports': 'off', // Framework imports from SDK (L1) packages
-      '@typescript-eslint/no-empty-object-type': 'off',
-      // Keep no-restricted-syntax (enforced by frameworkConfig Flux rules)
-    },
-  },
-
-  // Framework action files in effects directory: Allow event emission but disable layer enforcement
-  {
-    files: ['packages/framework/**/effects/**/*Actions.ts', 'packages/framework/**/effects/**/actions.ts'],
-    rules: {
-      'no-restricted-syntax': 'off', // Actions emit events as their primary purpose
-      '@typescript-eslint/no-restricted-imports': 'off', // Framework imports from SDK (L1) packages
-      '@typescript-eslint/no-empty-object-type': 'off',
-    },
-  },
-
-  // React package: Allow unknown types for hook generics
-  // Also disable layer enforcement - react imports from framework (L2) packages
-  {
-    files: ['packages/react/**/*.ts', 'packages/react/**/*.tsx'],
-    rules: {
-      'no-restricted-syntax': 'off',
-      '@typescript-eslint/no-empty-object-type': 'off', // Allow empty EventPayloadMap for module augmentation
-      '@typescript-eslint/no-restricted-imports': 'off', // React imports from Framework (L2) packages
-    },
-  },
-
-  // CLI package: Allow unknown types for dynamic command handling
-  // Also disable layer enforcement - CLI is a dev tool, not app code
-  {
-    files: ['packages/cli/**/*.ts'],
-    rules: {
-      'no-restricted-syntax': 'off',
-      '@typescript-eslint/no-restricted-imports': 'off', // CLI is a dev tool, not app code
-    },
-  },
-
-  // Layout components: Allow unknown types for API registry type assertions
-  {
-    files: ['src/layout/**/*.tsx', 'src/layout/**/*.ts'],
-    rules: {
-      'no-restricted-syntax': [
-        'error',
-        // Keep flux/lodash rules but remove TSUnknownKeyword restriction
-        {
-          selector: "CallExpression[callee.name='dispatch'] > MemberExpression[object.name='store']",
-          message: 'FLUX VIOLATION: Components must not call store.dispatch directly. Use actions instead.',
-        },
-      ],
-    },
-  },
-
-  // Monorepo-specific: Package internals and @/ aliases
+  // Monorepo-specific: Package internals and @/ aliases (catch-all for packages without layer-specific rules)
+  // This block must appear BEFORE layer-specific blocks so they can override it
   {
     files: ['packages/**/*'],
     rules: {
-      'no-restricted-imports': [
+      '@typescript-eslint/no-restricted-imports': [
         'error',
         {
           patterns: [
@@ -134,6 +49,251 @@ export default [
                 'PACKAGE VIOLATION: Use relative imports within packages. @/ aliases are only for app code (src/).',
             },
           ],
+        },
+      ],
+    },
+  },
+
+  // SDK packages: Allow unknown/object types (required for generic event bus, store, etc.)
+  // These packages use generics and need flexible typing for consumer code to augment
+  // Layer enforcement: SDK packages cannot import other @hai3 packages or React
+  {
+    files: [
+      'packages/state/**/*.ts',
+      'packages/api/**/*.ts',
+      'packages/i18n/**/*.ts',
+      'packages/screensets/**/*.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@hai3/*'],
+              message:
+                'SDK VIOLATION: SDK packages cannot import other @hai3 packages.',
+            },
+            {
+              group: ['react', 'react-dom', 'react/*'],
+              message:
+                'SDK VIOLATION: SDK packages cannot import React.',
+            },
+            {
+              group: ['@hai3/*/src/**'],
+              message:
+                'MONOREPO VIOLATION: Import from package root, not internal paths.',
+            },
+            {
+              group: ['@/*'],
+              message:
+                'PACKAGE VIOLATION: Use relative imports within packages.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Framework package: Allow unknown/object types (wraps SDK with plugin architecture)
+  // Layer enforcement: Framework cannot import @hai3/react or React
+  // BUT keep Flux rules for effects files
+  {
+    files: ['packages/framework/**/*.ts'],
+    ignores: ['**/effects.ts', '**/*Effects.ts', '**/effects/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@hai3/react', '@hai3/react/*'],
+              message:
+                'FRAMEWORK VIOLATION: Framework cannot import @hai3/react (circular dependency).',
+            },
+            {
+              group: ['@hai3/uikit', '@hai3/uikit/*'],
+              message:
+                'FRAMEWORK VIOLATION: Framework cannot import @hai3/uikit.',
+            },
+            {
+              group: ['react', 'react-dom', 'react/*'],
+              message:
+                'FRAMEWORK VIOLATION: Framework cannot import React.',
+            },
+            {
+              group: ['@hai3/*/src/**'],
+              message:
+                'MONOREPO VIOLATION: Import from package root, not internal paths.',
+            },
+            {
+              group: ['@/*'],
+              message:
+                'PACKAGE VIOLATION: Use relative imports within packages.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Framework effects: Keep Flux rules with layer enforcement
+  {
+    files: ['packages/framework/**/effects.ts', 'packages/framework/**/*Effects.ts'],
+    rules: {
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@hai3/react', '@hai3/react/*'],
+              message:
+                'FRAMEWORK VIOLATION: Framework cannot import @hai3/react (circular dependency).',
+            },
+            {
+              group: ['@hai3/uikit', '@hai3/uikit/*'],
+              message:
+                'FRAMEWORK VIOLATION: Framework cannot import @hai3/uikit.',
+            },
+            {
+              group: ['react', 'react-dom', 'react/*'],
+              message:
+                'FRAMEWORK VIOLATION: Framework cannot import React.',
+            },
+            {
+              group: ['@hai3/*/src/**'],
+              message:
+                'MONOREPO VIOLATION: Import from package root, not internal paths.',
+            },
+            {
+              group: ['@/*'],
+              message:
+                'PACKAGE VIOLATION: Use relative imports within packages.',
+            },
+          ],
+        },
+      ],
+      // Keep no-restricted-syntax (enforced by frameworkConfig Flux rules)
+    },
+  },
+
+  // Framework action files in effects directory: Allow event emission with layer enforcement
+  {
+    files: [
+      'packages/framework/**/effects/**/*Actions.ts',
+      'packages/framework/**/effects/*Actions.ts',
+      'packages/framework/**/effects/**/actions.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': 'off', // Actions emit events as their primary purpose
+      'no-restricted-imports': 'off', // Action files may import from slices for direct coordination
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@hai3/react', '@hai3/react/*'],
+              message:
+                'FRAMEWORK VIOLATION: Framework cannot import @hai3/react (circular dependency).',
+            },
+            {
+              group: ['@hai3/uikit', '@hai3/uikit/*'],
+              message:
+                'FRAMEWORK VIOLATION: Framework cannot import @hai3/uikit.',
+            },
+            {
+              group: ['react', 'react-dom', 'react/*'],
+              message:
+                'FRAMEWORK VIOLATION: Framework cannot import React.',
+            },
+            {
+              group: ['@hai3/*/src/**'],
+              message:
+                'MONOREPO VIOLATION: Import from package root, not internal paths.',
+            },
+            {
+              group: ['@/*'],
+              message:
+                'PACKAGE VIOLATION: Use relative imports within packages.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // React package: Allow unknown types for hook generics
+  // Layer enforcement: React must import from @hai3/framework, not SDK packages directly
+  {
+    files: ['packages/react/**/*.ts', 'packages/react/**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off', // Allow empty EventPayloadMap for module augmentation
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@hai3/state', '@hai3/state/*'],
+              message:
+                'REACT VIOLATION: Import from @hai3/framework instead.',
+            },
+            {
+              group: ['@hai3/screensets', '@hai3/screensets/*'],
+              message:
+                'REACT VIOLATION: Import from @hai3/framework instead.',
+            },
+            {
+              group: ['@hai3/api', '@hai3/api/*'],
+              message:
+                'REACT VIOLATION: Import from @hai3/framework instead.',
+            },
+            {
+              group: ['@hai3/i18n', '@hai3/i18n/*'],
+              message:
+                'REACT VIOLATION: Import from @hai3/framework instead.',
+            },
+            {
+              group: ['@hai3/*/src/**'],
+              message:
+                'MONOREPO VIOLATION: Import from package root, not internal paths.',
+            },
+            {
+              group: ['@/*'],
+              message:
+                'PACKAGE VIOLATION: Use relative imports within packages.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // CLI package: Allow unknown types for dynamic command handling
+  // Inherits monorepo boundary enforcement from catch-all block
+  {
+    files: ['packages/cli/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
+    },
+  },
+
+  // Layout components: Allow unknown types for API registry type assertions
+  {
+    files: ['src/layout/**/*.tsx', 'src/layout/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        // Keep flux/lodash rules but remove TSUnknownKeyword restriction
+        {
+          selector: "CallExpression[callee.name='dispatch'] > MemberExpression[object.name='store']",
+          message: 'FLUX VIOLATION: Components must not call store.dispatch directly. Use actions instead.',
         },
       ],
     },

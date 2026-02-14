@@ -16,6 +16,8 @@ export {
   loadExtension,
   mountExtension,
   unmountExtension,
+  registerExtension,
+  unregisterExtension,
   // MFE slice and selectors
   selectExtensionState,
   selectRegisteredExtensions,

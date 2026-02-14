@@ -415,6 +415,10 @@ The `microfrontends()` plugin creates the `ScreensetsRegistry` via `screensetsRe
 
 `@hai3/framework` re-exports ALL public symbols from `@hai3/screensets` so that downstream packages (`@hai3/react`) import from L2, never from L1. See [registry-runtime.md - Export Policy](./registry-runtime.md#export-policy) for the complete list of public exports.
 
+#### React Re-Export Policy
+
+`@hai3/react` re-exports ALL public symbols from `@hai3/framework` (including MFE symbols, plugin factories, selectors, action functions, constants, types, abstract classes, and utilities). Each layer fully covers the layer below so that L4 application code can import everything from `@hai3/react` without reaching through to `@hai3/framework` or `@hai3/screensets`.
+
 ### Decision 8: Contract Matching Rules
 
 For an MFE entry to be mountable into an extension domain, the following conditions must ALL be true:
@@ -444,60 +448,7 @@ The visual representation of contract matching:
 +-------------------+                      +-------------------+
 ```
 
-**Validation Implementation:**
-```typescript
-interface ContractValidationResult {
-  valid: boolean;
-  errors: ContractError[];
-}
-
-interface ContractError {
-  type: 'missing_property' | 'unsupported_action' | 'unhandled_domain_action';
-  details: string;
-}
-
-function validateContract(
-  entry: MfeEntry,
-  domain: ExtensionDomain
-): ContractValidationResult {
-  const errors: ContractError[] = [];
-
-  // Rule 1: Required properties
-  for (const prop of entry.requiredProperties) {
-    if (!domain.sharedProperties.includes(prop)) {
-      errors.push({
-        type: 'missing_property',
-        details: `Entry requires property '${prop}' not provided by domain`
-      });
-    }
-  }
-
-  // Rule 2: Entry actions (MFE can send these to domain)
-  for (const action of entry.actions) {
-    if (!domain.extensionsActions.includes(action)) {
-      errors.push({
-        type: 'unsupported_action',
-        details: `MFE may send action '${action}' not accepted by domain`
-      });
-    }
-  }
-
-  // Rule 3: Domain actions (can target MFE)
-  for (const action of domain.actions) {
-    if (!entry.domainActions.includes(action)) {
-      errors.push({
-        type: 'unhandled_domain_action',
-        details: `Action '${action}' may target MFE but MFE doesn't handle it`
-      });
-    }
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors
-  };
-}
-```
+**Validation behavior**: `validateContract(entry, domain)` checks each of the three subset rules above. For each violation it produces a `ContractError` with a discriminated `type` (`'missing_property'`, `'unsupported_action'`, or `'unhandled_domain_action'`) and a human-readable `details` string. Returns `{ valid: boolean, errors: ContractError[] }`.
 
 ### Decision 9: Domain-Specific Extension Validation via Derived Types
 
@@ -507,40 +458,7 @@ function validateContract(
 
 **Design:** `ExtensionDomain.extensionsTypeId` optionally references a derived Extension type. Domain-specific fields are defined directly in derived Extension schemas. Benefits: simpler (one entity vs two), native GTS validation, no parallel hierarchies, no Ajv dependency.
 
-**Validation Implementation:**
-
-```typescript
-/**
- * Validate Extension against its domain's extensionsTypeId.
- * This ensures the extension uses a type that derives from the domain's required type.
- */
-function validateExtensionType(
-  plugin: TypeSystemPlugin,
-  extension: Extension,
-  domain: ExtensionDomain
-): ValidationResult {
-  // If domain doesn't require a specific extension type, skip this check
-  if (!domain.extensionsTypeId) {
-    return { valid: true, errors: [] };
-  }
-
-  // Check that extension's type derives from domain's extensionsTypeId
-  if (!plugin.isTypeOf(extension.id, domain.extensionsTypeId)) {
-    return {
-      valid: false,
-      errors: [{
-        path: 'id',
-        message: `Extension type '${extension.id}' must derive from '${domain.extensionsTypeId}'`,
-        keyword: 'x-gts-ref',
-      }],
-    };
-  }
-
-  // Native GTS validation handles all fields (including domain-specific ones)
-  // This is already done when validating the extension instance
-  return { valid: true, errors: [] };
-}
-```
+**Validation behavior**: `validateExtensionType(plugin, extension, domain)` skips the check if `domain.extensionsTypeId` is unset. Otherwise, it calls `plugin.isTypeOf(extension.id, domain.extensionsTypeId)` to verify the extension's type derives from the domain's required type. Returns a `ValidationResult` with an error on the `id` path if the check fails. GTS-native instance validation (via `validateInstance`) handles domain-specific field validation separately.
 
 **Domain Definition Example:**
 
@@ -586,34 +504,8 @@ const analyticsExtension: Extension = {
 
 **Integration Point:**
 
-The ScreensetsRegistry validates extension type compatibility during registration using the GTS-native approach:
-
-```typescript
-// In ScreensetsRegistry.registerExtension()
-
-// 1. Register the extension as a GTS entity (required before validation)
-this.typeSystem.register(extension);
-
-// 2. Validate the registered extension instance by its ID
-// gts-ts extracts the schema ID from the instance ID automatically:
-// - Instance ID: gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1
-// - Schema ID:   gts.hai3.mfes.ext.extension.v1~ (extracted automatically)
-const instanceResult = this.typeSystem.validateInstance(extension.id);
-if (!instanceResult.valid) {
-  throw new ExtensionValidationError(instanceResult.errors, extension.id);
-}
-
-// 3. Validate contract matching (entry vs domain)
-const contractResult = validateContract(entry, domain);
-if (!contractResult.valid) {
-  throw new ContractValidationError(contractResult.errors, entry.id, domain.id);
-}
-
-// 4. Validate extension type derives from domain's extensionsTypeId
-const typeResult = validateExtensionType(this.typeSystem, extension, domain);
-if (!typeResult.valid) {
-  throw new ExtensionTypeError(extension.id, domain.extensionsTypeId!);
-}
-
-// All validations pass, extension is now registered and validated
-```
+`ScreensetsRegistry.registerExtension()` validates extension type compatibility in four steps:
+1. Register the extension as a GTS entity via `typeSystem.register(extension)`.
+2. Validate the instance via `typeSystem.validateInstance(extension.id)` -- throws `ExtensionValidationError` on failure.
+3. Validate contract matching (entry vs domain) via `validateContract(entry, domain)` -- throws `ContractValidationError` on failure.
+4. Validate extension type hierarchy via `validateExtensionType(plugin, extension, domain)` -- throws `ExtensionTypeError` if the extension does not derive from `domain.extensionsTypeId`.

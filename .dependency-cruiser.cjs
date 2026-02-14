@@ -37,6 +37,20 @@ module.exports = {
       comment: 'SDK VIOLATION: SDK packages (L1) cannot import from Framework (L2) or React (L3) layers.'
     },
     {
+      name: 'framework-no-react',
+      severity: 'error',
+      from: { path: '^packages/framework/' },
+      to: { path: '^packages/react/' },
+      comment: 'LAYER VIOLATION: Framework (L2) cannot import React (L3).'
+    },
+    {
+      name: 'react-no-sdk',
+      severity: 'error',
+      from: { path: '^packages/react/' },
+      to: { path: '^packages/(state|screensets|api|i18n)/' },
+      comment: 'LAYER VIOLATION: React (L3) cannot import SDK (L1) directly. Use @hai3/framework re-exports.'
+    },
+    {
       name: 'packages-no-src-import',
       severity: 'error',
       from: { path: '^packages/' },

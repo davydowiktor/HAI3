@@ -164,37 +164,13 @@ The **ActionsChainsMediator** delivers action chains to targets and handles succ
 9. If failure AND chain.fallback: mediator executes chain.fallback
 10. Recurse until no next/fallback
 
-### ActionsChainsMediator Interface
+### ActionsChainsMediator
 
-> **Abstract Class vs Interface**: The `ActionsChainsMediator` abstract class below defines the **public contract** -- the API surface that `ScreensetsRegistry` delegates to. The concrete class extending this abstract class is **internal** to the screensets package and is not exported. This follows the same abstract/concrete pattern used by other MFE components (`MfeHandler`/`MfeHandlerMF`, `RuntimeCoordinator`/`WeakMapRuntimeCoordinator`, `MfeBridgeFactory`/`MfeBridgeFactoryDefault`): an exported abstraction defines the contract, while the concrete implementation encapsulates internal state and is injected via Dependency Inversion.
-
-The `ActionsChainsMediator` is an `@internal` abstract class. Its primary public-facing method is `executeActionsChain(chain: ActionsChain): Promise<void>`, which `ScreensetsRegistry` delegates to. Handler registration/unregistration methods are internal. The `ActionHandler` interface (`handleAction(actionTypeId, payload): Promise<void>`) is also internal -- used by domain and extension handlers.
+`ActionsChainsMediator` is an `@internal` abstract class. Its primary method is `executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>`, which returns a `ChainResult` containing `completed`, `path`, optional `error`, `timedOut`, and `executionTime` fields. `ScreensetsRegistry`'s public `executeActionsChain(chain): Promise<void>` wraps this -- it delegates to the mediator and discards the `ChainResult`, exposing a simpler fire-and-forget contract to consumers. Handler registration/unregistration methods are internal. The `ActionHandler` interface (`handleAction(actionTypeId, payload): Promise<void>`) is also internal -- used by domain and extension handlers. See [registry-runtime.md - Decision 18](./registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) for the abstract/concrete class pattern.
 
 ### Action Support Validation
 
-The ActionsChainsMediator validates that the target domain supports the action before delivery, throwing [`UnsupportedDomainActionError`](./mfe-errors.md) if not:
-
-```typescript
-/**
- * Validate that the target domain supports the action.
- */
-function validateDomainActionSupport(
-  domain: ExtensionDomain,
-  actionTypeId: string
-): boolean {
-  return domain.actions.includes(actionTypeId);
-}
-
-// In ActionsChainsMediator.executeActionsChain():
-const targetDomain = this.domains.get(action.target);
-if (targetDomain && !validateDomainActionSupport(targetDomain, action.type)) {
-  throw new UnsupportedDomainActionError(
-    `Domain '${action.target}' does not support action '${action.type}'`,
-    action.type,
-    targetDomain.id
-  );
-}
-```
+The ActionsChainsMediator validates that the target domain supports the action before delivery. The action's `type` must be present in the domain's `actions` array. If not, [`UnsupportedDomainActionError`](./mfe-errors.md) is thrown with the action type ID and domain type ID.
 
 ---
 
@@ -257,10 +233,12 @@ const exportAction: Action = {
 
 // Execute chain - timeouts come from type definitions
 // On timeout or any failure: fallback chain is executed if defined
-await mediator.executeActionsChain(chain);
+const result = await mediator.executeActionsChain(chain);
+// result: ChainResult { completed, path, error?, timedOut?, executionTime? }
 
-// Chain-level timeout overrides (chainTimeout) are handled internally by the
-// concrete DefaultActionsChainsMediator via ActionsChainsConfig, not via a
-// second parameter on executeActionsChain(). The abstract contract is:
-//   executeActionsChain(chain: ActionsChain): Promise<void>
+// Chain-level timeout can be overridden per-request via ChainExecutionOptions:
+const result2 = await mediator.executeActionsChain(chain, { chainTimeout: 60000 });
+
+// Note: ScreensetsRegistry.executeActionsChain(chain) wraps this as Promise<void>,
+// discarding ChainResult. The mediator's richer return type is internal.
 ```

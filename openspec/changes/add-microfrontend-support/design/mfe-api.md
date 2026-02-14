@@ -83,13 +83,7 @@ interface ChildMfeBridge {
 }
 ```
 
-**Concrete-only internal methods on `ChildMfeBridgeImpl`:**
-
-| Method | Purpose | Callers |
-|---|---|---|
-| `handleParentActionsChain(chain)` | Internal: called by `ParentMfeBridgeImpl` to forward chains to the child's registered handler (hierarchical composition transport) | `ParentMfeBridgeImpl` |
-| `onActionsChain(handler)` | Internal: registers a handler for parent-to-child action chain delivery. Used by child MFEs that define their own domains (hierarchical composition). Concrete-only -- not on the public interface. | Child MFE internal wiring |
-| `sendActionsChain(chain)` | Internal: forwards child-to-parent action chains via the parent bridge. Concrete-only -- not on the public interface. | Internal bridge transport |
+`ChildMfeBridgeImpl` has additional concrete-only methods for hierarchical composition transport (`handleParentActionsChain`, `onActionsChain`, `sendActionsChain`). These are internal wiring methods, not part of the public interface.
 
 ### ParentMfeBridge Interface
 
@@ -114,16 +108,7 @@ interface ParentMfeBridge {
 }
 ```
 
-**Concrete-only internal methods on `ParentMfeBridgeImpl`:**
-
-| Method | Purpose | Callers |
-|---|---|---|
-| `sendActionsChain(chain)` | Internal: forwards actions chains from parent to child via `childBridge.handleParentActionsChain()`. Used for hierarchical composition transport. Concrete-only -- not on the public interface. | Internal bridge transport |
-| `onChildAction(callback)` | Wiring method: connects child-to-parent action chain flow via the mediator | `DefaultRuntimeBridgeFactory.createBridge()` |
-| `receivePropertyUpdate(propertyTypeId, value)` | Wiring method: pushes domain property updates to the child bridge | `DefaultRuntimeBridgeFactory.createBridge()` subscribers |
-| `handleChildAction(chain)` | Internal: called by `ChildMfeBridgeImpl.sendActionsChain()` to forward chains to parent | `ChildMfeBridgeImpl` |
-| `registerPropertySubscriber(propertyTypeId, subscriber)` | Internal: tracks property subscribers for cleanup | `DefaultRuntimeBridgeFactory.createBridge()` |
-| `getPropertySubscribers()` | Internal: returns subscribers map for disposal cleanup | `DefaultRuntimeBridgeFactory.disposeBridge()` |
+`ParentMfeBridgeImpl` has additional concrete-only methods for internal wiring: `sendActionsChain`, `onChildAction`, `receivePropertyUpdate`, `handleChildAction`, `registerPropertySubscriber`, `getPropertySubscribers`. These handle hierarchical composition transport, property subscription wiring, and bridge disposal cleanup. None are part of the public interface.
 
 ### Bridge Creation Flow
 
@@ -372,84 +357,4 @@ runtime.updateDomainProperty(
   'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
   'dark'
 );
-```
-
----
-
-## Framework-Specific MFE Implementation Examples
-
-**React MFE:**
-```typescript
-import { createRoot, Root } from 'react-dom/client';
-import { ChildMfeBridge } from '@hai3/screensets';
-import { App } from './App';
-
-let root: Root | null = null;
-
-export function mount(container: Element, bridge: ChildMfeBridge): void {
-  root = createRoot(container as HTMLElement);
-  root.render(<App bridge={bridge} />);
-}
-
-export function unmount(container: Element): void {
-  root?.unmount();
-  root = null;
-}
-```
-
-**Vue 3 MFE:**
-```typescript
-import { createApp, App as VueApp } from 'vue';
-import { ChildMfeBridge } from '@hai3/screensets';
-import App from './App.vue';
-
-let app: VueApp | null = null;
-
-export function mount(container: Element, bridge: ChildMfeBridge): void {
-  app = createApp(App, { bridge });
-  app.mount(container);
-}
-
-export function unmount(container: Element): void {
-  app?.unmount();
-  app = null;
-}
-```
-
-**Svelte MFE:**
-```typescript
-import { ChildMfeBridge } from '@hai3/screensets';
-import App from './App.svelte';
-
-let component: App | null = null;
-
-export function mount(container: Element, bridge: ChildMfeBridge): void {
-  component = new App({ target: container, props: { bridge } });
-}
-
-export function unmount(container: Element): void {
-  component?.$destroy();
-  component = null;
-}
-```
-
-**Vanilla JS MFE:**
-```typescript
-import { ChildMfeBridge } from '@hai3/screensets';
-
-export function mount(container: Element, bridge: ChildMfeBridge): void {
-  const el = container as HTMLElement;
-  el.innerHTML = '<div class="my-widget">Loading...</div>';
-  bridge.subscribeToProperty(
-    'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
-    (property) => {
-      const theme = property.value;
-      el.style.background = theme === 'dark' ? '#333' : '#fff';
-    }
-  );
-}
-
-export function unmount(container: Element): void {
-  (container as HTMLElement).innerHTML = '';
-}
 ```

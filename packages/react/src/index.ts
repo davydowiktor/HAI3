@@ -43,6 +43,7 @@ export {
   useMfeBridge,
   useSharedProperty,
   useHostAction,
+  useDomainExtensions,
   RefContainerProvider,
   ExtensionDomainSlot,
 } from './mfe';
@@ -80,17 +81,9 @@ export type {
   UseTranslationReturn,
   UseScreenTranslationsReturn,
   UseFormattersReturn,
-  UseLanguageReturn,
   UseThemeReturn,
-  UseMenuReturn,
-  UseScreenReturn,
   UseNavigationReturn,
-  UseScreensetReturn,
-  UsePopupReturn,
-  UseOverlayReturn,
   AppRouterProps,
-  HAI3ProviderComponent,
-  AppRouterComponent,
 } from './types';
 
 // ============================================================================
@@ -370,6 +363,95 @@ export type {
 } from '@hai3/framework';
 
 // ============================================================================
+// MFE Re-exports from @hai3/framework (Layering Compliance)
+// ============================================================================
+
+// MFE Plugin factories
+export {
+  microfrontends,
+  mock,
+} from '@hai3/framework';
+
+// MFE Action functions
+export {
+  loadExtension,
+  mountExtension,
+  unmountExtension,
+  registerExtension,
+  unregisterExtension,
+} from '@hai3/framework';
+
+// MFE Selectors
+export {
+  selectExtensionState,
+  selectRegisteredExtensions,
+  selectExtensionError,
+} from '@hai3/framework';
+
+// MFE Domain constants
+export {
+  HAI3_POPUP_DOMAIN,
+  HAI3_SIDEBAR_DOMAIN,
+  HAI3_SCREEN_DOMAIN,
+  HAI3_OVERLAY_DOMAIN,
+} from '@hai3/framework';
+
+// MFE Action constants
+export {
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+} from '@hai3/framework';
+
+// MFE Types
+export type {
+  ChildMfeBridge,
+  ParentMfeBridge,
+  Extension,
+  ExtensionDomain,
+  ActionsChain,
+  Action,
+  SharedProperty,
+  LifecycleStage,
+  LifecycleHook,
+  MfeEntryLifecycle,
+  MfeEntry,
+  MfeEntryMF,
+  JSONSchema,
+  ValidationError,
+  ValidationResult,
+  LoadExtPayload,
+  MountExtPayload,
+  UnmountExtPayload,
+  ScreensetsRegistryConfig,
+  TypeSystemPlugin,
+} from '@hai3/framework';
+
+// MFE Abstract classes
+export {
+  MfeHandler,
+  MfeBridgeFactory,
+  ScreensetsRegistry,
+  ScreensetsRegistryFactory,
+  screensetsRegistryFactory,
+  ContainerProvider,
+} from '@hai3/framework';
+
+// MFE Utilities
+export {
+  createShadowRoot,
+  injectCssVariables,
+} from '@hai3/framework';
+
+// MFE Plugin types
+export type {
+  MfeState,
+  ExtensionRegistrationState,
+  RegisterExtensionPayload,
+  UnregisterExtensionPayload,
+} from '@hai3/framework';
+
+// ============================================================================
 // Module Augmentation Support - EventPayloadMap Re-declaration
 // ============================================================================
 
@@ -399,8 +481,7 @@ export type {
  * }
  * ```
  */
-import type { EventPayloadMap as FrameworkEventPayloadMap } from '@hai3/framework';
-import type { EventBus } from '@hai3/state';
+import type { EventPayloadMap as FrameworkEventPayloadMap, EventBus } from '@hai3/framework';
 import { eventBus as frameworkEventBus } from '@hai3/framework';
 
 export interface EventPayloadMap extends FrameworkEventPayloadMap { }

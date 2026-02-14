@@ -202,54 +202,11 @@ When registering extensions or domains, the ScreensetsRegistry validates that al
 - Each hook in `extension.lifecycle` must reference a stage listed in the domain's `extensionsLifecycleStages`
 - Hooks referencing unsupported stages are rejected with `UnsupportedLifecycleStageError`
 
-### Validation Implementation
+### Validation Behavior
 
-```typescript
-/**
- * Validate that a domain's lifecycle hooks reference only supported stages.
- */
-function validateDomainLifecycleHooks(domain: ExtensionDomain): ContractValidationResult {
-  if (!domain.lifecycle) return { valid: true, errors: [] };
+**Domain lifecycle hooks**: Each hook in `domain.lifecycle` must reference a stage listed in `domain.lifecycleStages`. If a hook references an unsupported stage, validation fails.
 
-  const errors: ContractError[] = [];
-  for (const hook of domain.lifecycle) {
-    if (!domain.lifecycleStages.includes(hook.stage)) {
-      errors.push({
-        type: 'unsupported_action',
-        details: `Domain '${domain.id}' has lifecycle hook for unsupported stage '${hook.stage}'. ` +
-          `Supported stages: ${domain.lifecycleStages.join(', ')}`,
-      });
-    }
-  }
-
-  return { valid: errors.length === 0, errors };
-}
-
-/**
- * Validate that an extension's lifecycle hooks reference only stages
- * supported by its domain.
- */
-function validateExtensionLifecycleHooks(
-  extension: Extension,
-  domain: ExtensionDomain
-): ContractValidationResult {
-  if (!extension.lifecycle) return { valid: true, errors: [] };
-
-  const errors: ContractError[] = [];
-  for (const hook of extension.lifecycle) {
-    if (!domain.extensionsLifecycleStages.includes(hook.stage)) {
-      errors.push({
-        type: 'unsupported_action',
-        details: `Extension '${extension.id}' has lifecycle hook for stage '${hook.stage}' ` +
-          `which is not supported by domain '${domain.id}'. ` +
-          `Supported stages: ${domain.extensionsLifecycleStages.join(', ')}`,
-      });
-    }
-  }
-
-  return { valid: errors.length === 0, errors };
-}
-```
+**Extension lifecycle hooks**: Each hook in `extension.lifecycle` must reference a stage listed in the domain's `extensionsLifecycleStages`. If a hook references an unsupported stage, validation fails.
 
 ### Error Handling
 

@@ -10,6 +10,7 @@ export {
   useMfeBridge,
   useSharedProperty,
   useHostAction,
+  useDomainExtensions,
 } from './hooks';
 export { RefContainerProvider } from './components/RefContainerProvider';
 export { ExtensionDomainSlot, type ExtensionDomainSlotProps } from './components/ExtensionDomainSlot';
