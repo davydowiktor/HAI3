@@ -48,3 +48,21 @@ export {
   getRTLLanguages,
   isValidLanguage,
 } from './languages';
+
+// Export formatters (locale from i18nRegistry.getLanguage())
+export {
+  formatDate,
+  formatTime,
+  formatDateTime,
+  formatRelative,
+  formatNumber,
+  formatPercent,
+  formatCompact,
+  formatCurrency,
+  compareStrings,
+  createCollator,
+  type DateFormatStyle,
+  type TimeFormatStyle,
+  type DateInput,
+  type Formatters,
+} from './formatters';

@@ -307,6 +307,24 @@ export type {
 export { i18nRegistry, I18nRegistryImpl, createI18nRegistry, Language, SUPPORTED_LANGUAGES, getLanguageMetadata, TextDirection, LanguageDisplayMode } from '@hai3/i18n';
 export type { I18nConfig, TranslationLoader, TranslationMap, TranslationDictionary, LanguageMetadata, I18nRegistry as I18nRegistryType } from '@hai3/i18n';
 
+// Formatters (locale from i18nRegistry.getLanguage())
+export {
+  formatDate,
+  formatTime,
+  formatDateTime,
+  formatRelative,
+  formatNumber,
+  formatPercent,
+  formatCompact,
+  formatCurrency,
+  compareStrings,
+  createCollator,
+  type DateFormatStyle,
+  type TimeFormatStyle,
+  type DateInput,
+} from '@hai3/i18n';
+export type { Formatters } from '@hai3/i18n';
+
 // Backward compatibility aliases
 // I18nRegistry type (capital I) - alias for consistency with old @hai3/uicore API
 export { I18nRegistryImpl as I18nRegistry } from '@hai3/i18n';

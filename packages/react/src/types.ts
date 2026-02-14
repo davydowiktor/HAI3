@@ -17,6 +17,7 @@ import type {
   MenuItemConfig,
   ScreensetDefinition,
   ScreensetCategory,
+  Formatters,
 } from '@hai3/framework';
 
 // Re-export imported types for convenience
@@ -155,6 +156,13 @@ export interface UseThemeReturn {
   /** Change theme */
   setTheme: (themeId: string) => void;
 }
+
+/**
+ * useFormatters Hook Return Type
+ * Locale-aware formatters (locale from i18nRegistry.getLanguage()).
+ * References @hai3/i18n Formatters so signatures stay in sync.
+ */
+export type UseFormattersReturn = Formatters;
 
 /**
  * useMenu Hook Return Type
