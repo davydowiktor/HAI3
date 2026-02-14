@@ -80,7 +80,7 @@ Conventional variable name for a `ScreensetsRegistry` instance. Example: `const 
 ## Type System
 
 ### TypeSystemPlugin
-An interface that abstracts type system operations for MFE contracts. Provides methods for type ID validation, schema registration, instance validation, and type hierarchy checking. The screensets package treats type IDs as opaque strings. See [type-system.md](./type-system.md).
+An interface that abstracts type system operations for MFE contracts. Provides methods for schema registration, instance validation, and type hierarchy checking. The screensets package treats type IDs as opaque strings. See [type-system.md](./type-system.md).
 
 ### GTS (Global Type System)
 HAI3's default implementation of TypeSystemPlugin. Uses the `@globaltypesystem/gts-ts` package. GTS type IDs follow the format: `gts.<vendor>.<package>.<namespace>.<type>.v<MAJOR>[.<MINOR>]~`. See [type-system.md](./type-system.md).

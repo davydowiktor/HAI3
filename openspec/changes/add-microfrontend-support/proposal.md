@@ -53,7 +53,7 @@ The @hai3/screensets package abstracts the Type System as a **pluggable dependen
 3. **Default Implementation**: GTS (`@globaltypesystem/gts-ts`) ships as the default plugin
 4. **Extensibility**: Other Type System implementations can be plugged in
 
-**Key Principle**: When metadata about a type ID is needed, call plugin methods (`parseTypeId`, `getAttribute`, etc.) directly.
+**Key Principle**: The screensets package treats type IDs as opaque strings. All type understanding is delegated to the plugin.
 
 See [Type System - Decision 1](./design/type-system.md#decision-1-type-system-plugin-interface) for the complete `TypeSystemPlugin` interface definition.
 
@@ -104,7 +104,7 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
 | `MfeBridgeFactory<TBridge>` | `create(domainId, entryTypeId, instanceId)` | Abstract factory for creating bridge instances |
-| `MfeHandler<TEntry, TBridge>` | `bridgeFactory, canHandle(entryTypeId), load(entry), preload?(entry), priority?` | Abstract handler class for different entry types |
+| `MfeHandler<TEntry, TBridge>` | `bridgeFactory, canHandle(entryTypeId), load(entry), priority?` | Abstract handler class for different entry types |
 | `LoadedMfeInternal` | `lifecycle, entry, manifest, unload()` | Result of loading an MFE bundle (`@internal`, conceptual -- not a runtime class) |
 
 ### Intentionally Omitted Methods

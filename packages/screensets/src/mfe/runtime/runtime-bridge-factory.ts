@@ -16,7 +16,7 @@
 import type { ParentMfeBridge, ChildMfeBridge } from '../handler/types';
 import type { ExtensionDomainState } from './extension-manager';
 import type { ActionsChain } from '../types';
-import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../mediator/types';
+import type { ActionHandler } from '../mediator/types';
 
 /**
  * Abstract runtime bridge factory -- contract for internal bridge wiring.
@@ -46,7 +46,7 @@ export abstract class RuntimeBridgeFactory {
     domainState: ExtensionDomainState,
     extensionId: string,
     entryTypeId: string,
-    executeActionsChain: (chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>,
+    executeActionsChain: (chain: ActionsChain) => Promise<void>,
     registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void,
     unregisterDomainActionHandler: (domainId: string) => void
   ): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge };

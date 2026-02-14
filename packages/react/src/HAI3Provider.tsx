@@ -37,7 +37,7 @@ import type { HAI3ProviderProps } from './types';
  * </HAI3Provider>
  *
  * // With MFE bridge (for MFE components)
- * <HAI3Provider mfeBridge={{ bridge, extensionId, domainId, entryTypeId }}>
+ * <HAI3Provider mfeBridge={{ bridge, extensionId, domainId }}>
  *   <MyMfeApp />
  * </HAI3Provider>
  * ```

@@ -52,7 +52,6 @@ describe('Runtime Bridge Factory', () => {
       expect(parentBridge).toBeDefined();
       expect(childBridge).toBeDefined();
       expect(childBridge.domainId).toBe('gts.hai3.mfes.ext.domain.v1~test.domain');
-      expect(childBridge.entryTypeId).toBe('gts.hai3.mfes.mfe.entry.v1~test.entry');
       expect(childBridge.instanceId).toContain('test-extension');
     });
 

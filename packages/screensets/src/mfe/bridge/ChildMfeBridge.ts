@@ -9,7 +9,6 @@
 
 import type { ChildMfeBridge } from '../handler/types';
 import type { SharedProperty, ActionsChain } from '../types';
-import type { ChainResult, ChainExecutionOptions } from '../mediator/types';
 import { NoActionsChainHandlerError } from '../errors';
 
 /**
@@ -18,7 +17,6 @@ import { NoActionsChainHandlerError } from '../errors';
  */
 export class ChildMfeBridgeImpl implements ChildMfeBridge {
   readonly domainId: string;
-  readonly entryTypeId: string;
   readonly instanceId: string;
 
   /**
@@ -26,11 +24,6 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
    * Maps propertyTypeId to callbacks.
    */
   private readonly propertySubscribers = new Map<string, Set<(value: SharedProperty) => void>>();
-
-  /**
-   * Internal: all-properties subscribers.
-   */
-  private readonly allPropertySubscribers = new Set<(propertyTypeId: string, value: SharedProperty) => void>();
 
   /**
    * Internal: current property values (populated from domain state).
@@ -45,13 +38,13 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
   /**
    * Internal: handler for actions chains sent from parent to child.
    */
-  private actionsChainHandler: ((chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>) | null = null;
+  private actionsChainHandler: ((chain: ActionsChain) => Promise<void>) | null = null;
 
   /**
    * Internal: callback for executing actions chains via the registry.
    * Injected by bridge factory during wiring.
    */
-  private executeActionsChainCallback: ((chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>) | null = null;
+  private executeActionsChainCallback: ((chain: ActionsChain) => Promise<void>) | null = null;
 
   /**
    * Internal: callback for registering child domains in the parent mediator.
@@ -71,11 +64,9 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
 
   constructor(
     domainId: string,
-    entryTypeId: string,
     instanceId: string
   ) {
     this.domainId = domainId;
-    this.entryTypeId = entryTypeId;
     this.instanceId = instanceId;
   }
 
@@ -86,17 +77,13 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
    * actions chain execution from child MFEs.
    *
    * @param chain - Actions chain to execute
-   * @param options - Optional execution options
-   * @returns Promise resolving to chain result
+   * @returns Promise resolving when execution is complete
    */
-  async executeActionsChain(
-    chain: ActionsChain,
-    options?: ChainExecutionOptions
-  ): Promise<ChainResult> {
+  async executeActionsChain(chain: ActionsChain): Promise<void> {
     if (!this.executeActionsChainCallback) {
       throw new Error(`Bridge not connected for instance '${this.instanceId}'`);
     }
-    return this.executeActionsChainCallback(chain, options);
+    return this.executeActionsChainCallback(chain);
   }
 
   /**
@@ -105,17 +92,13 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
    * This is a concrete-only method for internal child-to-parent transport.
    *
    * @param chain - Actions chain to send
-   * @param options - Optional execution options
-   * @returns Promise resolving to chain result
+   * @returns Promise resolving when execution is complete
    */
-  async sendActionsChain(
-    chain: ActionsChain,
-    options?: ChainExecutionOptions
-  ): Promise<ChainResult> {
+  async sendActionsChain(chain: ActionsChain): Promise<void> {
     if (!this.parentBridge) {
       throw new Error(`Bridge not connected for instance '${this.instanceId}'`);
     }
-    return this.parentBridge.handleChildAction(chain, options);
+    return this.parentBridge.handleChildAction(chain);
   }
 
   /**
@@ -126,7 +109,7 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
    * @param handler - Handler for parent actions chains
    * @returns Unsubscribe function
    */
-  onActionsChain(handler: (chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>): () => void {
+  onActionsChain(handler: (chain: ActionsChain) => Promise<void>): () => void {
     if (this.actionsChainHandler !== null) {
       console.warn(`onActionsChain: replacing existing handler for instance '${this.instanceId}'`);
     }
@@ -174,21 +157,6 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
   }
 
   /**
-   * Subscribe to all property updates.
-   *
-   * @param callback - Callback to invoke for any property update
-   * @returns Unsubscribe function
-   */
-  subscribeToAllProperties(
-    callback: (propertyTypeId: string, value: SharedProperty) => void
-  ): () => void {
-    this.allPropertySubscribers.add(callback);
-    return () => {
-      this.allPropertySubscribers.delete(callback);
-    };
-  }
-
-  /**
    * INTERNAL: Called by ParentMfeBridge when domain property changes.
    *
    * @param propertyTypeId - Type ID of the property that changed
@@ -209,15 +177,6 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
         }
       }
     }
-
-    // Notify all-property subscribers
-    for (const callback of this.allPropertySubscribers) {
-      try {
-        callback(propertyTypeId, value);
-      } catch (error) {
-        console.error(`Error in all-property subscriber for '${propertyTypeId}':`, error);
-      }
-    }
   }
 
   /**
@@ -236,7 +195,7 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
    * @param callback - Registry's executeActionsChain method
    */
   setExecuteActionsChainCallback(
-    callback: (chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>
+    callback: (chain: ActionsChain) => Promise<void>
   ): void {
     this.executeActionsChainCallback = callback;
   }
@@ -293,15 +252,14 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
    * Called by ParentMfeBridgeImpl.sendActionsChain().
    *
    * @param chain - Actions chain from parent
-   * @param options - Optional execution options
-   * @returns Promise resolving to chain result
+   * @returns Promise resolving when execution is complete
    * @throws {NoActionsChainHandlerError} If no handler is registered
    */
-  handleParentActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult> {
+  handleParentActionsChain(chain: ActionsChain): Promise<void> {
     if (this.actionsChainHandler === null) {
       throw new NoActionsChainHandlerError(this.instanceId);
     }
-    return this.actionsChainHandler(chain, options);
+    return this.actionsChainHandler(chain);
   }
 
   /**
@@ -325,7 +283,6 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
 
     // Clean up the rest
     this.propertySubscribers.clear();
-    this.allPropertySubscribers.clear();
     this.properties.clear();
     this.parentBridge = null;
     this.actionsChainHandler = null;

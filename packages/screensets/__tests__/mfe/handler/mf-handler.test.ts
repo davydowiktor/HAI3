@@ -78,7 +78,7 @@ describe('MfeHandlerMF - Phase 17 Caching', () => {
       // We verify its behavior through handler methods
       expect(handler).toBeDefined();
       expect(typeof handler.load).toBe('function');
-      expect(typeof handler.preload).toBe('function');
+      // Note: preload() was removed in Phase 29 public API cleanup
     });
 
     it('17.1.2 - Implements in-memory manifest caching for reuse across entries', async () => {
@@ -652,53 +652,6 @@ describe('MfeHandlerMF - Phase 17 Caching', () => {
     });
   });
 
-  describe('17.3 - Preload with Caching', () => {
-    it('preload() batches container loading for multiple entries', async () => {
-      const manifest: MfManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.manifest.v1',
-        remoteEntry: 'https://cdn.example.com/remoteEntry.js',
-        remoteName: 'analyticsRemote',
-      };
-
-      const entries: MfeEntryMF[] = [
-        {
-          id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart1.v1',
-          manifest,
-          exposedModule: './Widget1',
-        },
-        {
-          id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart2.v1',
-          manifest,
-          exposedModule: './Widget2',
-        },
-      ];
-
-      const mockContainer = {
-        get: vi.fn().mockResolvedValue(() => ({
-          mount: vi.fn(),
-          unmount: vi.fn(),
-        })),
-        init: vi.fn().mockResolvedValue(undefined),
-      };
-
-      mockScript.addEventListener.mockImplementation((event, handler) => {
-        if (event === 'load') {
-          (globalThis as Record<string, unknown>)[manifest.remoteName] = mockContainer;
-          containerNames.push(manifest.remoteName);
-          setTimeout(() => handler(), 0);
-        }
-      });
-
-      // Preload should load container once for both entries
-      await handler.preload(entries);
-
-      // Now load entries - should not reload container
-      await handler.load(entries[0]);
-      await handler.load(entries[1]);
-
-      // Container should be loaded and initialized only once during preload
-      expect(mockDocument.head.appendChild).toHaveBeenCalledTimes(1);
-      expect(mockContainer.init).toHaveBeenCalledTimes(1);
-    });
-  });
+  // Note: 17.3 - Preload with Caching tests were removed in Phase 29
+  // The preload() method was removed from the public API
 });

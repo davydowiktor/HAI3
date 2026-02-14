@@ -513,7 +513,7 @@ try {
 
 ### Problem
 
-The `executeActionsChain()` API returns `Promise<ChainResult>`, which does not include the bridge. Internal consumers need the bridge reference after mounting.
+The `executeActionsChain()` API returns `Promise<void>`, which does not include the bridge. Internal consumers need the bridge reference after mounting.
 
 ### Solution
 
@@ -532,9 +532,9 @@ getParentBridge(extensionId: string): ParentMfeBridge | null {
 }
 ```
 
-### Why a query method and not a ChainResult field
+### Why a query method
 
-Adding bridge to `ChainResult` would couple the generic actions chain infrastructure to MFE-specific types. A dedicated query method keeps the concerns separate: actions chains execute lifecycle operations, query methods read resulting state.
+A dedicated query method keeps concerns separate: actions chains execute lifecycle operations, query methods read resulting state. The bridge is stored as a side effect of mount and can be read after the `executeActionsChain()` promise resolves.
 
 ---
 

@@ -9,7 +9,6 @@
 
 import type { ParentMfeBridge } from '../handler/types';
 import type { ActionsChain, SharedProperty } from '../types';
-import type { ChainResult, ChainExecutionOptions } from '../mediator/types';
 import type { ChildMfeBridgeImpl } from './ChildMfeBridge';
 import { BridgeDisposedError } from '../errors';
 
@@ -26,7 +25,7 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
   /**
    * Handler for actions sent from child to parent.
    */
-  private childActionHandler: ((chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>) | null = null;
+  private childActionHandler: ((chain: ActionsChain) => Promise<void>) | null = null;
 
   /**
    * Disposal state.
@@ -55,18 +54,14 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
    * Used by the host to send actions to the MFE.
    *
    * @param chain - Actions chain to send
-   * @param options - Optional execution options
-   * @returns Promise resolving to chain result
+   * @returns Promise resolving when execution is complete
    * @throws {BridgeDisposedError} If bridge has been disposed
    */
-  async sendActionsChain(
-    chain: ActionsChain,
-    options?: ChainExecutionOptions
-  ): Promise<ChainResult> {
+  async sendActionsChain(chain: ActionsChain): Promise<void> {
     if (this.disposed) {
       throw new BridgeDisposedError(this.instanceId);
     }
-    return this.childBridge.handleParentActionsChain(chain, options);
+    return this.childBridge.handleParentActionsChain(chain);
   }
 
   /**
@@ -75,9 +70,7 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
    *
    * @param callback - Handler for child actions
    */
-  onChildAction(
-    callback: (chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>
-  ): void {
+  onChildAction(callback: (chain: ActionsChain) => Promise<void>): void {
     if (this.disposed) {
       throw new Error('Bridge has been disposed');
     }
@@ -144,19 +137,15 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
    * Routes child actions to the registered handler (typically the mediator).
    *
    * @param chain - Actions chain from child
-   * @param options - Optional execution options
-   * @returns Promise resolving to chain result
+   * @returns Promise resolving when execution is complete
    */
-  handleChildAction(
-    chain: ActionsChain,
-    options?: ChainExecutionOptions
-  ): Promise<ChainResult> {
+  handleChildAction(chain: ActionsChain): Promise<void> {
     if (this.disposed) {
       return Promise.reject(new Error('Bridge has been disposed'));
     }
     if (!this.childActionHandler) {
       return Promise.reject(new Error('No child action handler registered'));
     }
-    return this.childActionHandler(chain, options);
+    return this.childActionHandler(chain);
   }
 }

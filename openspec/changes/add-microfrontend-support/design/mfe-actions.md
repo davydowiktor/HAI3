@@ -106,14 +106,8 @@ The **ActionsChainsMediator** delivers action chains to targets and handles succ
             |
             v
 +-----------+---------------------+
-|   Validate target               |
-|   (typeSystem.isValidTypeId)    |
-+-----------+---------------------+
-            |
-            v
-+-----------+---------------+
-|   Resolve target          |
-|   (domain or extension)   |
+|   Resolve target                |
+|   (domain or extension)         |
 +-----------+---------------+
             |
             v
@@ -161,11 +155,10 @@ The **ActionsChainsMediator** delivers action chains to targets and handles succ
 
 **Execution Steps:**
 1. ActionsChainsMediator receives chain
-2. Validate chain.action.target via typeSystem.isValidTypeId()
-3. Resolve target (domain or entry instance)
-4. Validate action against target's contract
-5. Validate payload via typeSystem.validateInstance()
-6. Deliver payload to target
+2. Resolve target (domain or entry instance) from registered handlers
+3. Validate action against target's contract
+4. Validate payload via typeSystem.validateInstance()
+5. Deliver payload to target
 7. Wait for result (Promise<success|failure>)
 8. If success AND chain.next: mediator executes chain.next
 9. If failure AND chain.fallback: mediator executes chain.fallback
@@ -186,9 +179,8 @@ abstract class ActionsChainsMediator {
   /**
    * Execute an action chain, routing to targets and handling success/failure branching.
    * @param chain - The actions chain to execute
-   * @param options - Optional per-request execution options (override defaults)
    */
-  abstract executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+  abstract executeActionsChain(chain: ActionsChain): Promise<void>;
 
   /** Register an extension's action handler for receiving actions */
   abstract registerExtensionHandler(
@@ -215,7 +207,9 @@ interface ActionHandler {
   handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>;
 }
 
-// ChainResult -- see full 5-field definition in "Chain-Level Configuration" section below
+// ChainResult and ChainExecutionOptions are internal to the concrete
+// DefaultActionsChainsMediator -- they do NOT appear in the abstract contract above.
+// See "Chain-Level Configuration" section below for their definitions.
 ```
 
 ### Action Support Validation
@@ -359,8 +353,8 @@ const exportAction: Action = {
 // On timeout or any failure: fallback chain is executed if defined
 await mediator.executeActionsChain(chain);
 
-// Override total chain timeout only (not individual action timeouts)
-await mediator.executeActionsChain(chain, {
-  chainTimeout: 300000,  // 5 minutes total for entire chain
-});
+// Chain-level timeout overrides (chainTimeout) are handled internally by the
+// concrete DefaultActionsChainsMediator via ActionsChainsConfig, not via a
+// second parameter on executeActionsChain(). The abstract contract is:
+//   executeActionsChain(chain: ActionsChain): Promise<void>
 ```

@@ -9,7 +9,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ChildMfeBridgeImpl } from '../../../src/mfe/bridge/ChildMfeBridge';
 import { ParentMfeBridgeImpl } from '../../../src/mfe/bridge/ParentMfeBridge';
 import { ChildDomainForwardingHandler } from '../../../src/mfe/bridge/ChildDomainForwardingHandler';
-import type { ChainResult } from '../../../src/mfe/mediator/types';
 import type { ActionHandler } from '../../../src/mfe/mediator/types';
 
 describe('Cross-Runtime Action Chain Routing', () => {
@@ -19,7 +18,6 @@ describe('Cross-Runtime Action Chain Routing', () => {
   beforeEach(() => {
     childBridge = new ChildMfeBridgeImpl(
       'gts.hai3.mfes.ext.domain.v1~parent.domain.v1',
-      'gts.hai3.mfes.mfe.entry.v1~test.entry.v1',
       'test-instance'
     );
     parentBridge = new ParentMfeBridgeImpl(childBridge);
@@ -29,8 +27,7 @@ describe('Cross-Runtime Action Chain Routing', () => {
   describe('ChildDomainForwardingHandler', () => {
     it('should forward action to child domain via bridge transport', async () => {
       // Setup: Mock the parent bridge sendActionsChain
-      const mockResult: ChainResult = { completed: true, path: ['action-1'] };
-      vi.spyOn(parentBridge, 'sendActionsChain').mockResolvedValue(mockResult);
+      vi.spyOn(parentBridge, 'sendActionsChain').mockResolvedValue(undefined);
 
       // Create handler
       const handler = new ChildDomainForwardingHandler(
@@ -54,14 +51,10 @@ describe('Cross-Runtime Action Chain Routing', () => {
       });
     });
 
-    it('should throw if chain execution fails in child domain', async () => {
+    it('should propagate errors from child domain', async () => {
       // Setup: Mock failed chain result
-      const mockResult: ChainResult = {
-        completed: false,
-        path: [],
-        error: 'Test error',
-      };
-      vi.spyOn(parentBridge, 'sendActionsChain').mockResolvedValue(mockResult);
+      const testError = new Error('Test error');
+      vi.spyOn(parentBridge, 'sendActionsChain').mockRejectedValue(testError);
 
       // Create handler
       const handler = new ChildDomainForwardingHandler(
@@ -69,36 +62,13 @@ describe('Cross-Runtime Action Chain Routing', () => {
         'gts.hai3.mfes.ext.domain.v1~child.domain.v1'
       );
 
-      // Act & Assert: Should throw error
+      // Act & Assert: Should propagate error
       await expect(
         handler.handleAction(
           'gts.hai3.mfes.ext.action.v1~test.action.v1',
           undefined
         )
       ).rejects.toThrow('Test error');
-    });
-
-    it('should throw generic error if no error message provided', async () => {
-      // Setup: Mock failed chain result without error message
-      const mockResult: ChainResult = {
-        completed: false,
-        path: [],
-      };
-      vi.spyOn(parentBridge, 'sendActionsChain').mockResolvedValue(mockResult);
-
-      // Create handler
-      const handler = new ChildDomainForwardingHandler(
-        parentBridge,
-        'gts.hai3.mfes.ext.domain.v1~child.domain.v1'
-      );
-
-      // Act & Assert: Should throw generic error
-      await expect(
-        handler.handleAction(
-          'gts.hai3.mfes.ext.action.v1~test.action.v1',
-          undefined
-        )
-      ).rejects.toThrow('Chain execution failed in child domain');
     });
   });
 
@@ -216,10 +186,7 @@ describe('Cross-Runtime Action Chain Routing', () => {
   describe('End-to-End Integration', () => {
     it('should route action from parent mediator through child bridge to child registry', async () => {
       // Setup: Mock child registry executeActionsChain
-      const childRegistryExecute = vi.fn().mockResolvedValue({
-        completed: true,
-        path: ['action-1'],
-      } as ChainResult);
+      const childRegistryExecute = vi.fn().mockResolvedValue(undefined);
 
       // Wire parent -> child transport
       childBridge.onActionsChain(childRegistryExecute);
@@ -251,16 +218,13 @@ describe('Cross-Runtime Action Chain Routing', () => {
       );
 
       // Assert: Child registry received the action chain
-      expect(childRegistryExecute).toHaveBeenCalledWith(
-        {
-          action: {
-            type: 'gts.hai3.mfes.ext.action.v1~test.action.v1',
-            target: childDomainId,
-            payload: { data: 'test' },
-          },
+      expect(childRegistryExecute).toHaveBeenCalledWith({
+        action: {
+          type: 'gts.hai3.mfes.ext.action.v1~test.action.v1',
+          target: childDomainId,
+          payload: { data: 'test' },
         },
-        undefined
-      );
+      });
     });
 
     it('should remove forwarding handler from parent mediator on cleanup', () => {

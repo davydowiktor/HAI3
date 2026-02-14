@@ -90,11 +90,6 @@ abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge extends Ch
    * Load an MFE bundle and return its lifecycle interface.
    */
   abstract load(entry: TEntry): Promise<MfeEntryLifecycle<ChildMfeBridge>>;
-
-  /**
-   * Preload MFE bundles for faster mounting.
-   */
-  abstract preload(entries: TEntry[]): Promise<void>;
 }
 ```
 
@@ -186,9 +181,6 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     );
   }
 
-  async preload(entries: MfeEntryMF[]): Promise<void> {
-    // Preload containers for registered manifests
-  }
 }
 
 // Company's custom handler - handles MfeEntryAcme with rich bridges
@@ -316,12 +308,9 @@ load(entry: MfeEntryMF):
      - If missing: throw MfeLoadError ("must implement MfeEntryLifecycle")
   5. Return { lifecycle, entry, manifest, unload }
 
-preload(entries: MfeEntryMF[]):
-  - Group entries by manifest, resolve and cache containers in parallel
-    (uses Promise.allSettled -- individual failures do not block others)
 ```
 
-Configuration: `timeout` (default 30000ms), `retries` (default 2), `preload` (boolean).
+Configuration: `timeout` (default 30000ms), `retries` (default 2).
 
 Internal caches: `Map<string, MfManifest>` for resolved manifests, `Map<string, Container>` for loaded containers. Both keyed by `remoteName`.
 
@@ -331,7 +320,6 @@ Internal caches: `Map<string, MfManifest>` for resolved manifests, `Map<string, 
 The `MfeLoader` class shown above is a **conceptual reference** that documents the loading concerns (manifest resolution, container caching, retry/timeout, lifecycle validation). In the actual implementation, these responsibilities are **absorbed into `MfeHandlerMF`** rather than existing as a separate delegated class:
 
 - `MfeHandlerMF.load(entry)` performs manifest resolution, container loading, and module factory extraction directly (shown in the `MfeHandlerMF` code above)
-- `MfeHandlerMF.preload(entries)` batches container preloading directly
 - `ManifestCache` is an internal helper class **inside** `mf-handler.ts` (see Decision 12 below), not a standalone module
 - Retry and timeout configuration are handled within `MfeHandlerMF`'s private methods
 

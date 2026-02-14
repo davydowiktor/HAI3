@@ -25,19 +25,16 @@ import type { ChildMfeBridge } from '@hai3/screensets';
 
 const mockBridge: ChildMfeBridge = {
   domainId: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
-  entryTypeId: 'gts.hai3.mfes.mfe.entry.v1~test.sidebar_entry.v1',
   instanceId: 'test-instance-123',
-  executeActionsChain: vi.fn().mockResolvedValue({ completed: true, path: [] }),
+  executeActionsChain: vi.fn().mockResolvedValue(undefined),
   subscribeToProperty: vi.fn().mockReturnValue(() => {}),
   getProperty: vi.fn().mockReturnValue(undefined),
-  subscribeToAllProperties: vi.fn().mockReturnValue(() => {}),
 };
 
 const mockMfeContextValue: MfeContextValue = {
   bridge: mockBridge,
   extensionId: 'test-extension-1',
   domainId: mockBridge.domainId,
-  entryTypeId: mockBridge.entryTypeId,
 };
 
 // ============================================================================
@@ -184,7 +181,7 @@ describe('MfeContext', () => {
       //
       // The implementation in HAI3Provider is straightforward (9 lines):
       // - If mfeBridge prop is provided, wrap children with MfeProvider
-      // - Pass bridge, extensionId, domainId, entryTypeId from mfeBridge to MfeProvider
+      // - Pass bridge, extensionId, domainId from mfeBridge to MfeProvider
       //
       // This will be properly tested when:
       // - Bridge communication layer is complete

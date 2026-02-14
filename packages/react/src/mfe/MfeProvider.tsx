@@ -36,7 +36,7 @@ export interface MfeProviderProps {
  *
  * @example
  * ```tsx
- * <MfeProvider value={{ bridge, extensionId, domainId, entryTypeId }}>
+ * <MfeProvider value={{ bridge, extensionId, domainId }}>
  *   <MyMfeComponent />
  * </MfeProvider>
  * ```

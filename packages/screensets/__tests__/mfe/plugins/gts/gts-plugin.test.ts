@@ -2,7 +2,7 @@
  * GTS Plugin Tests
  *
  * Tests for the GTS Type System Plugin implementation.
- * These tests verify Phase 2.3 requirements from tasks.md.
+ * These tests verify the TypeSystemPlugin interface implementation.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -10,85 +10,7 @@ import { gtsPlugin, GtsPlugin } from '../../../../src/mfe/plugins/gts/index';
 import { HAI3_CORE_TYPE_IDS } from '../../../../src/mfe/init';
 
 describe('GTS Plugin', () => {
-  describe('2.3.1 - isValidTypeId accepts valid GTS type IDs', () => {
-    const plugin = new GtsPlugin();
-
-    it('accepts base type ID', () => {
-      const result = plugin.isValidTypeId('gts.hai3.mfes.mfe.entry.v1~');
-      expect(result).toBe(true);
-    });
-
-    it('accepts derived type ID', () => {
-      const result = plugin.isValidTypeId(
-        'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~'
-      );
-      expect(result).toBe(true);
-    });
-
-    it('accepts type ID with minor version', () => {
-      const result = plugin.isValidTypeId('gts.acme.analytics.ext.action.v2.1~');
-      expect(result).toBe(true);
-    });
-  });
-
-  describe('2.3.2 - isValidTypeId rejects invalid formats', () => {
-    const plugin = new GtsPlugin();
-
-    it('rejects missing gts prefix', () => {
-      const result = plugin.isValidTypeId('hai3.mfes.mfe.entry.v1~');
-      expect(result).toBe(false);
-    });
-
-    it('rejects missing tilde', () => {
-      const result = plugin.isValidTypeId('gts.hai3.mfe.entry.v1');
-      expect(result).toBe(false);
-    });
-
-    it('rejects missing version', () => {
-      const result = plugin.isValidTypeId('gts.hai3.mfe.entry~');
-      expect(result).toBe(false);
-    });
-
-    it('rejects insufficient segments', () => {
-      const result = plugin.isValidTypeId('gts.hai3.v1~');
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('2.3.3 - parseTypeId returns correct components', () => {
-    const plugin = new GtsPlugin();
-
-    it('parses base type ID', () => {
-      const result = plugin.parseTypeId('gts.hai3.mfes.mfe.entry.v1~');
-      expect(result.vendor).toBe('hai3');
-      expect(result.package).toBe('mfes');
-      expect(result.namespace).toBe('mfe');
-      expect(result.type).toBe('entry');
-      expect(result.verMajor).toBe(1);
-    });
-
-    it('parses derived type ID with multiple segments', () => {
-      const result = plugin.parseTypeId(
-        'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~'
-      );
-      expect(result.vendor).toBe('hai3');
-      expect(result.package).toBe('mfes');
-      expect(result.namespace).toBe('mfe');
-      expect(result.type).toBe('entry');
-      expect(result.verMajor).toBe(1);
-      // Derived types have multiple segments
-      expect(Array.isArray(result.segments)).toBe(true);
-      expect((result.segments as unknown[]).length).toBeGreaterThan(1);
-    });
-
-    it('throws error for invalid type ID', () => {
-      expect(() => {
-        plugin.parseTypeId('invalid-id');
-      }).toThrow();
-    });
-  });
-
-  describe('2.3.4 - schema registration and validation', () => {
+  describe('schema registration and validation', () => {
     const plugin = new GtsPlugin();
 
     it('has all core schemas registered', () => {
@@ -149,81 +71,6 @@ describe('GTS Plugin', () => {
       const retrieved = plugin.getSchema('gts.acme.analytics.ext.action.v1~');
       expect(retrieved).toBeDefined();
       expect(retrieved?.$id).toBe('gts://gts.acme.analytics.ext.action.v1~');
-    });
-  });
-
-  describe('2.3.5 - query operations', () => {
-    const plugin = new GtsPlugin();
-
-    it('queries extension types', () => {
-      const results = plugin.query('gts.hai3.mfes.*');
-      expect(results.length).toBeGreaterThan(0);
-      expect(results).toContain('gts.hai3.mfes.ext.domain.v1~');
-      expect(results).toContain('gts.hai3.mfes.ext.extension.v1~');
-    });
-
-    it('queries with limit', () => {
-      const results = plugin.query('gts.hai3.*', 3);
-      expect(results.length).toBeLessThanOrEqual(3);
-    });
-
-    it('returns empty array for no matches', () => {
-      const results = plugin.query('gts.nonexistent.*');
-      expect(results).toEqual([]);
-    });
-  });
-
-  describe('2.3.6 - checkCompatibility returns proper CompatibilityResult', () => {
-    const plugin = new GtsPlugin();
-
-    it('same version is compatible', () => {
-      const result = plugin.checkCompatibility(
-        'gts.hai3.mfes.mfe.entry.v1~',
-        'gts.hai3.mfes.mfe.entry.v1~'
-      );
-      expect(result.compatible).toBe(true);
-      expect(result.breaking).toBe(false);
-      expect(result.changes).toEqual([]);
-    });
-
-    it('major version change is breaking', () => {
-      const result = plugin.checkCompatibility(
-        'gts.hai3.mfes.mfe.entry.v1~',
-        'gts.hai3.mfes.mfe.entry.v2~'
-      );
-      expect(result.compatible).toBe(false);
-      expect(result.breaking).toBe(true);
-      expect(result.changes.length).toBeGreaterThan(0);
-    });
-
-    it('different types are incompatible', () => {
-      const result = plugin.checkCompatibility(
-        'gts.hai3.mfes.mfe.entry.v1~',
-        'gts.hai3.mfes.ext.domain.v1~'
-      );
-      expect(result.compatible).toBe(false);
-      expect(result.breaking).toBe(true);
-    });
-  });
-
-  describe('2.3.7 - getAttribute resolves attributes correctly', () => {
-    const plugin = new GtsPlugin();
-
-    it('resolves properties from domain schema', () => {
-      const result = plugin.getAttribute(HAI3_CORE_TYPE_IDS.extensionDomain, 'properties.extensionsTypeId');
-      expect(result.typeId).toBe(HAI3_CORE_TYPE_IDS.extensionDomain);
-      expect(result.path).toBe('properties.extensionsTypeId');
-      // getAttribute may return the schema definition or undefined
-      // The important part is testing the API contract
-    });
-
-    it('returns AttributeResult structure for any query', () => {
-      const result = plugin.getAttribute(HAI3_CORE_TYPE_IDS.extensionDomain, 'nonExistentField');
-      expect(result.typeId).toBe(HAI3_CORE_TYPE_IDS.extensionDomain);
-      expect(result.path).toBe('nonExistentField');
-      expect(typeof result.resolved).toBe('boolean');
-      // result.value may be undefined
-      // result.error may be defined if not resolved
     });
   });
 

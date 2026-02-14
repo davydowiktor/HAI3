@@ -8,14 +8,11 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 
 - **WHEN** @hai3/screensets is imported
 - **THEN** the package SHALL export a `TypeSystemPlugin` interface
-- **AND** the interface SHALL define type ID operations (`isValidTypeId`, `parseTypeId`)
+- **AND** the interface SHALL define `name` (readonly string) and `version` (readonly string) properties
 - **AND** the interface SHALL define schema registry operations (`registerSchema`, `getSchema`)
 - **AND** the interface SHALL define instance registry operations (`register`)
 - **AND** the interface SHALL define validation operations (`validateInstance` taking instanceId only)
-- **AND** the interface SHALL define query operations (`query`)
 - **AND** the interface SHALL define type hierarchy operations (`isTypeOf`)
-- **AND** the interface SHALL define required compatibility checking (`checkCompatibility`)
-- **AND** the interface SHALL define attribute access (`getAttribute`) for dynamic schema resolution
 - **AND** the interface SHALL NOT define `buildTypeId` (GTS type IDs are consumed but never programmatically generated; all type IDs are defined as string constants)
 - **AND** the interface SHALL NOT define `validateAgainstSchema` (Extension validation uses native `validateInstance()` with derived Extension types)
 
@@ -34,14 +31,6 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 - **THEN** the package SHALL export a `gtsPlugin` implementing `TypeSystemPlugin`
 - **AND** the plugin SHALL use `@globaltypesystem/gts-ts` internally
 - **AND** the plugin SHALL handle GTS type ID format: `gts.<vendor>.<package>.<namespace>.<type>.v<MAJOR>[.<MINOR>]~`
-
-#### Scenario: GTS type ID validation
-
-- **WHEN** validating a GTS type ID
-- **THEN** the plugin SHALL accept valid type IDs like `gts.hai3.mfes.mfe.entry.v1~`
-- **AND** the plugin SHALL reject invalid formats like `gts.hai3.mfe.v1~` (missing segments)
-- **AND** the plugin SHALL reject formats without trailing tilde
-- **AND** the plugin SHALL reject formats without version prefix "v"
 
 #### Scenario: x-gts-ref validation for type references
 
@@ -96,21 +85,6 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 - **THEN** the implementation SHALL work with the ScreensetsRegistry
 - **AND** type ID format SHALL be determined by the custom plugin
 - **AND** validation behavior SHALL be determined by the custom plugin
-
-#### Scenario: Type ID parsing via plugin
-
-- **WHEN** metadata about a type ID is needed
-- **THEN** the system SHALL call `plugin.parseTypeId(id)` directly
-- **AND** the returned object structure SHALL be plugin-specific
-- **AND** for GTS plugin, the object SHALL contain vendor, package, namespace, type, version fields
-
-#### Scenario: Attribute access via plugin
-
-- **WHEN** calling `plugin.getAttribute(typeId, path)`
-- **THEN** the plugin SHALL resolve the property path from the type's registered schema
-- **AND** the result SHALL indicate whether the attribute was resolved
-- **AND** the result SHALL contain the value if resolved
-- **AND** the result SHALL contain an error message if not resolved
 
 #### Scenario: Type hierarchy checking via plugin
 
@@ -178,7 +152,7 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **WHEN** defining any MFE type
 - **THEN** the type SHALL have an `id: string` field
 - **AND** the `id` field SHALL contain the type ID (opaque to screensets)
-- **AND** when metadata is needed, the system SHALL call `plugin.parseTypeId(id)` directly
+- **AND** type IDs are opaque strings; the system validates them via `plugin.validateInstance()`, not by parsing
 
 #### Scenario: MFE entry type definition (abstract base)
 
@@ -366,8 +340,8 @@ The system SHALL provide an ActionsChainsMediator to deliver action chains betwe
 #### Scenario: Action chain type ID validation
 
 - **WHEN** ActionsChainsMediator receives an actions chain
-- **THEN** mediator SHALL validate target type ID via `plugin.isValidTypeId()`
-- **AND** mediator SHALL validate action type ID via `plugin.isValidTypeId()`
+- **THEN** mediator SHALL validate target type ID format
+- **AND** mediator SHALL validate action type ID format
 - **AND** invalid type IDs SHALL cause chain failure
 
 #### Scenario: Action chain execution success path
@@ -526,11 +500,11 @@ The system SHALL provide bridge interfaces for communication between parent and 
 
 - **WHEN** an MFE component (child) needs to communicate with the parent
 - **THEN** the MFE SHALL receive a `ChildMfeBridge` instance via props
-- **AND** `ChildMfeBridge` SHALL provide `executeActionsChain(chain, options?)` method as a capability pass-through to the registry's `executeActionsChain()`
+- **AND** `ChildMfeBridge` SHALL provide `executeActionsChain(chain): Promise<void>` method as a capability pass-through to the registry's `executeActionsChain()`
 - **AND** `ChildMfeBridge` SHALL NOT provide `sendActionsChain()` on the public interface (internal transport, concrete-only)
 - **AND** `ChildMfeBridge` SHALL NOT provide `onActionsChain()` on the public interface (internal transport wiring, concrete-only)
 - **AND** `ChildMfeBridge` SHALL provide `subscribeToProperty(propertyTypeId, callback)` method
-- **AND** `ChildMfeBridge` SHALL expose `entryTypeId` for self-identification
+- **AND** `ChildMfeBridge` SHALL provide `getProperty(propertyTypeId)` method
 
 #### Scenario: ParentMfeBridge interface
 
@@ -698,12 +672,12 @@ The system SHALL allow domains to declare which HAI3 extension lifecycle actions
 
 ### Requirement: HAI3 Type Constants
 
-The system SHALL export constants for HAI3 MFE base types.
+The system SHALL define constants for HAI3 MFE base types. Type ID constants (`HAI3_MFE_ENTRY`, `HAI3_MFE_ENTRY_MF`, `HAI3_MF_MANIFEST`, `HAI3_EXT_DOMAIN`, `HAI3_EXT_EXTENSION`, `HAI3_EXT_ACTION`) are internal to the screensets package and are NOT exported from the public barrel. They are used internally by the registry, handlers, and validation code.
 
 #### Scenario: Base type ID constants
 
-- **WHEN** importing `@hai3/screensets`
-- **THEN** the package SHALL export base type ID constants:
+- **WHEN** the MFE system performs type validation internally
+- **THEN** the system SHALL use base type ID constants:
   - `HAI3_MFE_ENTRY`: `gts.hai3.mfes.mfe.entry.v1~`
   - `HAI3_MFE_ENTRY_MF`: `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~`
   - `HAI3_MF_MANIFEST`: `gts.hai3.mfes.mfe.mf_manifest.v1~`
@@ -731,7 +705,7 @@ The system SHALL provide Shadow DOM utilities for style isolation in `@hai3/scre
 
 ### Requirement: MFE Error Classes
 
-The system SHALL provide typed error classes for MFE operations.
+The system SHALL provide typed error classes for MFE operations. All error classes are internal to the `@hai3/screensets` package and are NOT exported from the public barrel. Consumers catch errors as standard `Error` instances; the typed classes exist for internal error handling and test assertions via direct path imports.
 
 #### Scenario: MfeLoadError class
 
@@ -811,7 +785,7 @@ The system SHALL provide PRIVATE coordination mechanisms between parent and MFE 
 - **AND** the WeakMap SHALL store RuntimeConnection objects with parentRuntime and bridges
 - **AND** RuntimeCoordinator SHALL NOT use window globals (no `window.__hai3_*` properties)
 - **AND** the concrete `WeakMapRuntimeCoordinator` SHALL NOT be exported from `@hai3/screensets` (internal implementation detail)
-- **AND** the abstract `RuntimeCoordinator` class SHALL be exported from `@hai3/screensets` (it is the abstraction/contract)
+- **AND** the `RuntimeCoordinator` abstract class SHALL be internal (NOT exported from `@hai3/screensets` public barrel)
 - **AND** RuntimeCoordinator SHALL NOT be exposed to MFE component code
 - **AND** MFE code SHALL only see the ChildMfeBridge interface
 
@@ -847,7 +821,7 @@ The system SHALL provide PRIVATE coordination mechanisms between parent and MFE 
 
 - **WHEN** an MFE component is rendered
 - **THEN** the only communication interface visible to MFE code SHALL be ChildMfeBridge
-- **AND** ChildMfeBridge SHALL provide: `executeActionsChain`, `subscribeToProperty`, `getProperty`, `subscribeToAllProperties`
+- **AND** ChildMfeBridge SHALL provide: `executeActionsChain`, `subscribeToProperty`, `getProperty`
 - **AND** ChildMfeBridge SHALL NOT expose: RuntimeCoordinator, TypeSystemPlugin, schema registry, internal state
 
 #### Scenario: Internal coordination for property updates
@@ -908,11 +882,11 @@ The system SHALL configure Module Federation to support framework-agnostic MFEs 
 
 #### Scenario: Isolation requirement enforcement (default handler)
 
-- **WHEN** an MFE instance attempts to discover types via its TypeSystemPlugin using the default handler
-- **THEN** `plugin.query('gts.*')` SHALL only return types in that MFE instance's registry
-- **AND** the MFE instance SHALL NOT be able to discover parent's registered types
-- **AND** the MFE instance SHALL NOT be able to discover other MFE instances' registered types (including other instances of the same MFE entry)
-- **AND** this isolation SHALL be guaranteed by `singleton: false` on @hai3/screensets and GTS
+- **WHEN** an MFE instance is loaded using the default handler (MfeHandlerMF) with `singleton: false` on @hai3/screensets and GTS
+- **THEN** each MFE instance SHALL have its own separate `TypeSystemPlugin` instance and schema registry
+- **AND** the MFE instance SHALL NOT be able to access the parent's registered types or schemas
+- **AND** the MFE instance SHALL NOT be able to access other MFE instances' registered types (including other instances of the same MFE entry)
+- **AND** this isolation SHALL be guaranteed by `singleton: false` on @hai3/screensets and GTS (separate plugin instances per runtime)
 - **AND** custom handlers for internal MFEs MAY configure different isolation levels when appropriate
 
 ### Requirement: Explicit Timeout Configuration
@@ -948,31 +922,23 @@ Action timeouts SHALL be configured explicitly in type definitions, not as impli
 
 #### Scenario: Chain-level timeout configuration
 
-- **WHEN** executing an actions chain
-- **THEN** the system SHALL accept optional `ChainExecutionOptions` parameter
-- **AND** `ChainExecutionOptions` SHALL include ONLY `chainTimeout` (optional number, ms)
-- **AND** `ChainExecutionOptions` SHALL NOT include `actionTimeout` (action timeouts come from types)
-- **AND** `chainTimeout` SHALL limit the total time for the entire chain execution
+- **WHEN** executing an actions chain internally via the `ActionsChainsMediator`
+- **THEN** the mediator SHALL support `chainTimeout` (optional number, ms) to limit total chain execution time
+- **AND** action timeouts SHALL be resolved from action and domain type definitions (not from the public API)
 
 #### Scenario: ActionsChainsConfig mediator configuration
 
-- **WHEN** configuring the ActionsChainsMediator
+- **WHEN** configuring the ActionsChainsMediator (internal)
 - **THEN** `ActionsChainsConfig` SHALL include ONLY `chainTimeout` (optional, default: 120000ms)
 - **AND** `ActionsChainsConfig` SHALL NOT include `actionTimeout` (action timeouts come from types)
 
-#### Scenario: ActionsChainsMediator method signatures
+#### Scenario: Public executeActionsChain method signatures
 
-- **WHEN** using ActionsChainsMediator
-- **THEN** `executeActionsChain(chain, options?)` SHALL accept optional `ChainExecutionOptions`
-- **AND** action timeouts SHALL be resolved from action and domain type definitions
+- **WHEN** using `registry.executeActionsChain(chain)` or `childBridge.executeActionsChain(chain)`
+- **THEN** the method SHALL accept a single `ActionsChain` parameter
+- **AND** the method SHALL return `Promise<void>`
+- **AND** action timeouts SHALL be resolved internally from action and domain type definitions
 - **AND** on timeout or any failure: execute fallback chain if defined
-
-#### Scenario: ChildMfeBridge executeActionsChain method signature
-
-- **WHEN** using ChildMfeBridge
-- **THEN** `executeActionsChain(chain, options?)` SHALL accept optional `ChainExecutionOptions`
-- **AND** the method SHALL delegate directly to the registry's `executeActionsChain()` via an injected callback
-- **AND** action timeouts SHALL be resolved from action and domain type definitions
 
 ### Requirement: Dynamic Registration Model
 

@@ -54,12 +54,8 @@ export class ChildDomainForwardingHandler implements ActionHandler {
       },
     };
 
-    // sendActionsChain() returns Promise<ChainResult>.
-    // ActionHandler.handleAction() returns Promise<void>.
-    // Map ChainResult to the void contract: reject if the chain did not complete.
-    const result = await this.parentBridgeImpl.sendActionsChain(chain);
-    if (!result.completed) {
-      throw new Error(result.error ?? 'Chain execution failed in child domain');
-    }
+    // sendActionsChain() now returns Promise<void>.
+    // Errors are propagated via rejection.
+    await this.parentBridgeImpl.sendActionsChain(chain);
   }
 }

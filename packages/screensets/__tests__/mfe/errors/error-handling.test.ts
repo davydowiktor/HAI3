@@ -10,9 +10,10 @@ import {
   MfeLoadError,
   ContractValidationError,
   ChainExecutionError,
-  MfeErrorHandler,
+} from '../../../src/mfe/errors';
+import {
   RetryHandler,
-} from '../../../src/mfe';
+} from '../../../src/mfe/errors/error-handler';
 import { MfeHandlerMF } from '../../../src/mfe/handler/mf-handler';
 import type { TypeSystemPlugin } from '../../../src/mfe/plugins/types';
 import type { MfeEntryMF, Action, ActionsChain } from '../../../src/mfe/types';
@@ -24,20 +25,11 @@ describe('Error Handling', () => {
     mockTypeSystem = {
       name: 'MockPlugin',
       version: '1.0.0',
-      isValidTypeId: vi.fn().mockReturnValue(true),
-      parseTypeId: vi.fn().mockReturnValue({}),
       registerSchema: vi.fn(),
       getSchema: vi.fn().mockReturnValue(undefined),
       register: vi.fn(),
       validateInstance: vi.fn().mockReturnValue({ valid: true, errors: [] }),
-      query: vi.fn().mockReturnValue([]),
       isTypeOf: vi.fn().mockReturnValue(true),
-      checkCompatibility: vi.fn().mockReturnValue({
-        compatible: true,
-        breaking: false,
-        changes: [],
-      }),
-      getAttribute: vi.fn().mockReturnValue({ typeId: '', path: '', resolved: false }),
     } as TypeSystemPlugin;
   });
 
@@ -95,25 +87,6 @@ describe('Error Handling', () => {
       expect(error.message).toContain('missing_property');
       expect(error.message).toContain('unsupported_action');
     });
-
-    it('should render contract validation error with type ID context', () => {
-      const errorHandler = new MfeErrorHandler({ showDetails: true });
-      const container = document.createElement('div');
-
-      const errors = [
-        { type: 'missing_property' as const, details: 'Required property "theme" not provided' },
-      ];
-      const error = new ContractValidationError(
-        errors,
-        'entry-type-id',
-        'domain-type-id'
-      );
-
-      errorHandler.renderLoadFailure(error, container);
-
-      expect(container.innerHTML).toContain('Contract validation failed');
-      expect(container.innerHTML).toContain('missing_property');
-    });
   });
 
   describe('11.3.3 Action handler error scenario', () => {
@@ -141,42 +114,6 @@ describe('Error Handling', () => {
       expect(error.executedPath).toEqual(['action1', 'action2']);
       expect(error.cause).toBeDefined();
       expect(error.message).toContain('Action handler threw exception');
-    });
-
-    it('should log action handler error with plugin details', () => {
-      const errorHandler = new MfeErrorHandler();
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      const failedAction: Action = {
-        type: 'gts.hai3.mfes.mfe.action.v1~test.action.v1',
-        target: 'test-domain',
-        payload: {},
-      };
-
-      const chain: ActionsChain = {
-        action: failedAction,
-      };
-
-      const error = new ChainExecutionError(
-        'Action failed',
-        chain,
-        failedAction,
-        ['action1'],
-        new Error('Handler error')
-      );
-
-      errorHandler.logActionHandlerError(error);
-
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[MFE Action Handler Error]',
-        expect.objectContaining({
-          code: 'CHAIN_EXECUTION_ERROR',
-          failedAction: failedAction.type,
-          executedPath: ['action1'],
-        })
-      );
-
-      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -251,51 +188,6 @@ describe('Error Handling', () => {
 
       // Should fail after retries
       await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
-    });
-  });
-
-  describe('Error Handler UI', () => {
-    it('should render fallback UI for load failures', () => {
-      const errorHandler = new MfeErrorHandler({ showDetails: false });
-      const container = document.createElement('div');
-
-      const error = new MfeLoadError(
-        'Network error',
-        'entry-type-id'
-      );
-
-      errorHandler.renderLoadFailure(error, container);
-
-      expect(container.innerHTML).toContain('Failed to load extension');
-      expect(container.innerHTML).not.toContain('entry-type-id'); // Details hidden
-    });
-
-    it('should show details when configured', () => {
-      const errorHandler = new MfeErrorHandler({ showDetails: true });
-      const container = document.createElement('div');
-
-      const error = new MfeLoadError(
-        'Network error',
-        'entry-type-id',
-        new Error('Connection timeout')
-      );
-
-      errorHandler.renderLoadFailure(error, container);
-
-      expect(container.innerHTML).toContain('entry-type-id');
-      expect(container.innerHTML).toContain('Connection timeout');
-    });
-
-    it('should support custom error renderer', () => {
-      const customRenderer = vi.fn();
-      const errorHandler = new MfeErrorHandler({ customRenderer });
-      const container = document.createElement('div');
-
-      const error = new MfeLoadError('Network error', 'entry-type-id');
-
-      errorHandler.renderLoadFailure(error, container);
-
-      expect(customRenderer).toHaveBeenCalledWith(error, container);
     });
   });
 });

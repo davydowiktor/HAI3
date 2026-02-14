@@ -16,7 +16,7 @@ import {
   HAI3_ACTION_UNMOUNT_EXT,
 } from '../../../src/mfe/constants';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
-import type { ParentMfeBridge } from '../../../src/mfe/handler/types';
+import type { ParentMfeBridge, MfeHandler } from '../../../src/mfe/handler/types';
 import { MockContainerProvider } from '../test-utils';
 
 
@@ -380,7 +380,11 @@ describe('Extension Lifecycle Actions', () => {
         }),
       };
 
-      registry.registerHandler(mockHandler);
+      // Create new registry with handler in config
+      registry = new DefaultScreensetsRegistry({
+        typeSystem: gtsPlugin,
+        mfeHandlers: [mockHandler as unknown as MfeHandler],
+      });
       registry.registerDomain(toggleDomain, mockContainerProvider);
       await registry.registerExtension(testExtension1);
 
@@ -423,7 +427,11 @@ describe('Extension Lifecycle Actions', () => {
         }),
       };
 
-      registry.registerHandler(mockHandler);
+      // Create new registry with handler in config
+      registry = new DefaultScreensetsRegistry({
+        typeSystem: gtsPlugin,
+        mfeHandlers: [mockHandler as unknown as MfeHandler],
+      });
       registry.registerDomain(toggleDomain, mockContainerProvider);
       await registry.registerExtension(testExtension1);
 

@@ -539,16 +539,12 @@ console.log(domain?.sharedProperties);  // List of shared property type IDs
 const extensions = runtime.getExtensionsForDomain(SCREEN_DOMAIN);
 console.log(extensions.length);  // Number of extensions registered for this domain
 
-// Parse vendor info from GTS type via plugin
-const parsed = runtime.typeSystem.parseTypeId(ANALYTICS_EXTENSION);
-console.log(parsed.vendor); // 'acme' (extension vendor)
 ```
 
 - **WHEN** querying the ScreensetsRegistry
 - **THEN** `getExtension(extensionId)` SHALL return the registered extension or undefined
 - **AND** `getDomain(domainId)` SHALL return the registered domain or undefined
 - **AND** `getExtensionsForDomain(domainId)` SHALL return all extensions for that domain
-- **AND** `plugin.parseTypeId()` SHALL extract vendor and other metadata (no standalone `parseGtsId()` utility)
 
 **Note**: MfManifest is internal to MfeHandlerMF. See [Manifest as Internal Implementation Detail](../../design/mfe-loading.md#decision-12-manifest-as-internal-implementation-detail-of-mfehandlermf).
 
@@ -571,24 +567,20 @@ The system SHALL validate shared dependency versions between host and MFE.
 #### Scenario: Major version mismatch error
 
 ```typescript
-import { MfeVersionMismatchError } from '@hai3/screensets';
-
 // If host uses React 18.x and MFE built with React 17.x:
 // The handler validates shared dependency versions when loading the MFE bundle
 try {
-  // Load extension via actions chain - MfeHandlerMF resolves manifest internally from MfeEntryMF
   await runtime.executeActionsChain({
     action: { type: HAI3_ACTION_LOAD_EXT, target: domainId, payload: { extensionId } },
   });
 } catch (error) {
-  if (error instanceof MfeVersionMismatchError) {
-    console.log(`MFE entry ${error.manifestTypeId} has incompatible deps`);
-  }
+  // MfeVersionMismatchError is thrown internally by MfeHandlerMF
+  console.log(`MFE entry has incompatible deps: ${error.message}`);
 }
 ```
 
 - **WHEN** an MFE has incompatible major version of shared deps
-- **THEN** `MfeVersionMismatchError` SHALL be thrown with `manifestTypeId`
+- **THEN** `MfeVersionMismatchError` SHALL be thrown internally by the handler
 - **AND** the MFE SHALL NOT be mounted
 - **AND** error boundary SHALL display version conflict message
 
@@ -598,39 +590,14 @@ The system SHALL validate that MFE type IDs conform to HAI3 base types.
 
 #### Scenario: Validate MfManifest type on load
 
-```typescript
-import { HAI3_MF_MANIFEST } from '@hai3/screensets';
-
-// When loading an MFE manifest
-const manifestTypeId = 'gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.mfe.manifest.v1';
-
-// HAI3_MF_MANIFEST is: gts.hai3.mfes.mfe.mf_manifest.v1~
-if (!runtime.typeSystem.isTypeOf(manifestTypeId, HAI3_MF_MANIFEST)) {
-  throw new MfeTypeConformanceError(manifestTypeId, HAI3_MF_MANIFEST);
-}
-```
-
 - **WHEN** loading an MFE manifest
-- **THEN** the loader SHALL validate that `manifestTypeId` conforms to `gts.hai3.mfes.mfe.mf_manifest.v1~` via `plugin.isTypeOf()`
-- **AND** if validation fails, `MfeTypeConformanceError` SHALL be thrown
+- **THEN** the loader SHALL internally validate that the manifest type ID conforms to `gts.hai3.mfes.mfe.mf_manifest.v1~` via `plugin.isTypeOf()`
+- **AND** if validation fails, `MfeTypeConformanceError` SHALL be thrown internally
 
 #### Scenario: Validate MfeEntry type on mount
 
-```typescript
-import { HAI3_MFE_ENTRY, HAI3_MFE_ENTRY_MF } from '@hai3/screensets';
-
-// MfeEntryMF (Module Federation derived) type ID
-const entryTypeId = 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1';
-
-// HAI3_MFE_ENTRY is: gts.hai3.mfes.mfe.entry.v1~ (base)
-// HAI3_MFE_ENTRY_MF is: gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~ (derived)
-if (!runtime.typeSystem.isTypeOf(entryTypeId, HAI3_MFE_ENTRY)) {
-  throw new MfeTypeConformanceError(entryTypeId, HAI3_MFE_ENTRY);
-}
-```
-
 - **WHEN** mounting an entry
-- **THEN** the entry type SHALL be validated against the expected base type via `plugin.isTypeOf()`
+- **THEN** the entry type SHALL be validated internally against the expected base type via `plugin.isTypeOf()`
 - **AND** all MFE entries SHALL conform to `gts.hai3.mfes.mfe.entry.v1~` (base)
 - **AND** Module Federation entries SHALL also conform to `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~` (derived)
 

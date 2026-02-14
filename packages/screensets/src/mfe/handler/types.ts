@@ -9,7 +9,6 @@
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeEntry, ActionsChain, SharedProperty } from '../types';
-import type { ChainResult, ChainExecutionOptions } from '../mediator/types';
 
 /**
  * Parent MFE Bridge interface.
@@ -33,7 +32,6 @@ export interface ParentMfeBridge {
  */
 export interface ChildMfeBridge {
   readonly domainId: string;
-  readonly entryTypeId: string;
   readonly instanceId: string;
 
   /**
@@ -46,10 +44,9 @@ export interface ChildMfeBridge {
    * domain or target other domains.
    *
    * @param chain - Actions chain to execute
-   * @param options - Optional execution options
-   * @returns Promise resolving to chain result
+   * @returns Promise resolving when execution is complete
    */
-  executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+  executeActionsChain(chain: ActionsChain): Promise<void>;
 
   /**
    * Subscribe to a specific property's updates.
@@ -67,14 +64,6 @@ export interface ChildMfeBridge {
    * @returns Current property value, or undefined if not set
    */
   getProperty(propertyTypeId: string): SharedProperty | undefined;
-
-  /**
-   * Subscribe to all property updates.
-   *
-   * @param callback - Callback invoked for any property update
-   * @returns Unsubscribe function
-   */
-  subscribeToAllProperties(callback: (propertyTypeId: string, value: SharedProperty) => void): () => void;
 }
 
 /**
@@ -132,7 +121,6 @@ export abstract class MfeBridgeFactory<TBridge extends ChildMfeBridge = ChildMfe
  * - Determining if they can handle a specific entry type
  * - Loading MFE bundles
  * - Creating bridge instances
- * - Optionally preloading bundles
  */
 export abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge extends ChildMfeBridge = ChildMfeBridge> {
   /**
@@ -186,13 +174,4 @@ export abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge ext
    * @returns Promise resolving to MFE lifecycle interface with ChildMfeBridge
    */
   abstract load(entry: TEntry): Promise<MfeEntryLifecycle<ChildMfeBridge>>;
-
-  /**
-   * Preload MFE bundles for faster mounting.
-   * Batches container preloading for multiple entries.
-   *
-   * @param entries - The entries to preload
-   * @returns Promise resolving when preload is complete
-   */
-  abstract preload(entries: TEntry[]): Promise<void>;
 }

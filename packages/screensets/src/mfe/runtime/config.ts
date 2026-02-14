@@ -26,7 +26,6 @@ export interface ScreensetsRegistryConfig {
    * - Schema registration and retrieval
    * - Instance validation
    * - Type hierarchy checks
-   * - Compatibility checks
    *
    * @example
    * ```typescript
@@ -42,11 +41,11 @@ export interface ScreensetsRegistryConfig {
   typeSystem: TypeSystemPlugin;
 
   /**
-   * Optional custom MFE handler.
-   * If provided, this handler will be registered with the registry.
+   * Optional MFE handler instances.
+   * If provided, these handlers will be registered with the registry.
    *
    * Note: The default MfeHandlerMF is NOT automatically registered.
    * Applications must explicitly provide handlers they want to use.
    */
-  mfeHandler?: MfeHandler;
+  mfeHandlers?: MfeHandler[];
 }

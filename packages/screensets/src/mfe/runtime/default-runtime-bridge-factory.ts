@@ -11,7 +11,7 @@
 
 import type { ParentMfeBridge, ChildMfeBridge } from '../handler/types';
 import type { SharedProperty, ActionsChain } from '../types';
-import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../mediator/types';
+import type { ActionHandler } from '../mediator/types';
 import type { ExtensionDomainState } from './extension-manager';
 import { RuntimeBridgeFactory } from './runtime-bridge-factory';
 import { ChildMfeBridgeImpl } from '../bridge/ChildMfeBridge';
@@ -43,8 +43,8 @@ export class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
   createBridge(
     domainState: ExtensionDomainState,
     extensionId: string,
-    entryTypeId: string,
-    executeActionsChain: (chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>,
+    _entryTypeId: string,
+    executeActionsChain: (chain: ActionsChain) => Promise<void>,
     registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void,
     unregisterDomainActionHandler: (domainId: string) => void
   ): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge } {
@@ -53,7 +53,7 @@ export class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
     const instanceId = `${extensionId}:${Date.now()}`;
 
     // Create child bridge
-    const childBridge = new ChildMfeBridgeImpl(domainState.domain.id, entryTypeId, instanceId);
+    const childBridge = new ChildMfeBridgeImpl(domainState.domain.id, instanceId);
 
     // Create parent bridge (concrete type for access to internal methods)
     const parentBridgeImpl = new ParentMfeBridgeImpl(childBridge);

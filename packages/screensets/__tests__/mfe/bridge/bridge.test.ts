@@ -8,7 +8,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ChildMfeBridgeImpl } from '../../../src/mfe/bridge/ChildMfeBridge';
 import { ParentMfeBridgeImpl } from '../../../src/mfe/bridge/ParentMfeBridge';
 import type { ActionsChain, SharedProperty } from '../../../src/mfe/types';
-import type { ChainResult } from '../../../src/mfe/mediator/types';
 import { NoActionsChainHandlerError, BridgeDisposedError } from '../../../src/mfe/errors';
 
 describe('Bridge Implementation', () => {
@@ -19,7 +18,6 @@ describe('Bridge Implementation', () => {
     beforeEach(() => {
       childBridge = new ChildMfeBridgeImpl(
         'test-domain',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry',
         'test-instance-1'
       );
       parentBridge = new ParentMfeBridgeImpl(childBridge);
@@ -28,7 +26,6 @@ describe('Bridge Implementation', () => {
 
     it('should have correct identity properties', () => {
       expect(childBridge.domainId).toBe('test-domain');
-      expect(childBridge.entryTypeId).toBe('gts.hai3.mfes.mfe.entry.v1~test.entry');
       expect(childBridge.instanceId).toBe('test-instance-1');
     });
 
@@ -59,24 +56,6 @@ describe('Bridge Implementation', () => {
       expect(missing).toBeUndefined();
     });
 
-    it('should subscribe to all properties', () => {
-      const callback = vi.fn();
-      const unsubscribe = childBridge.subscribeToAllProperties(callback);
-
-      const prop1: SharedProperty = { id: 'prop1', value: 'value1' };
-      const prop2: SharedProperty = { id: 'prop2', value: 'value2' };
-
-      childBridge.receivePropertyUpdate('prop1', prop1);
-      childBridge.receivePropertyUpdate('prop2', prop2);
-
-      expect(callback).toHaveBeenCalledWith('prop1', prop1);
-      expect(callback).toHaveBeenCalledWith('prop2', prop2);
-      expect(callback).toHaveBeenCalledTimes(2);
-
-      unsubscribe();
-      childBridge.receivePropertyUpdate('prop1', prop1);
-      expect(callback).toHaveBeenCalledTimes(2);
-    });
 
     it('should handle multiple subscribers to same property', () => {
       const callback1 = vi.fn();
@@ -93,8 +72,7 @@ describe('Bridge Implementation', () => {
     });
 
     it('should send actions chain to parent', async () => {
-      const mockResult: ChainResult = { completed: true, path: ['test-action'] };
-      const handler = vi.fn().mockResolvedValue(mockResult);
+      const handler = vi.fn().mockResolvedValue(undefined);
       parentBridge.onChildAction(handler);
 
       const chain: ActionsChain = {
@@ -104,14 +82,13 @@ describe('Bridge Implementation', () => {
         },
       };
 
-      const result = await childBridge.sendActionsChain(chain);
+      await childBridge.sendActionsChain(chain);
 
-      expect(handler).toHaveBeenCalledWith(chain, undefined);
-      expect(result).toEqual(mockResult);
+      expect(handler).toHaveBeenCalledWith(chain);
     });
 
     it('should throw error when sending actions without parent connection', async () => {
-      const disconnectedBridge = new ChildMfeBridgeImpl('domain', 'entry', 'instance');
+      const disconnectedBridge = new ChildMfeBridgeImpl('domain', 'instance');
       const chain: ActionsChain = {
         action: { type: 'test', target: 'domain' },
       };
@@ -141,7 +118,7 @@ describe('Bridge Implementation', () => {
     let parentBridge: ParentMfeBridgeImpl;
 
     beforeEach(() => {
-      childBridge = new ChildMfeBridgeImpl('domain', 'entry', 'instance');
+      childBridge = new ChildMfeBridgeImpl('domain', 'instance');
       parentBridge = new ParentMfeBridgeImpl(childBridge);
       childBridge.setParentBridge(parentBridge);
     });
@@ -159,18 +136,16 @@ describe('Bridge Implementation', () => {
     });
 
     it('should register and handle child actions', async () => {
-      const mockResult: ChainResult = { completed: true, path: [] };
-      const handler = vi.fn().mockResolvedValue(mockResult);
+      const handler = vi.fn().mockResolvedValue(undefined);
       parentBridge.onChildAction(handler);
 
       const chain: ActionsChain = {
         action: { type: 'test-action', target: 'test-target' },
       };
 
-      const result = await parentBridge.handleChildAction(chain);
+      await parentBridge.handleChildAction(chain);
 
-      expect(handler).toHaveBeenCalledWith(chain, undefined);
-      expect(result).toEqual(mockResult);
+      expect(handler).toHaveBeenCalledWith(chain);
     });
 
     it('should throw error when handling action without registered handler', async () => {
@@ -219,7 +194,7 @@ describe('Bridge Implementation', () => {
       );
 
       expect(() => {
-        parentBridge.onChildAction(() => Promise.resolve({ completed: true, path: [] }));
+        parentBridge.onChildAction(() => Promise.resolve());
       }).toThrow('Bridge has been disposed');
     });
 
@@ -230,15 +205,12 @@ describe('Bridge Implementation', () => {
 
   describe('Bridge Integration', () => {
     it('should maintain bidirectional communication', async () => {
-      const childBridge = new ChildMfeBridgeImpl('domain', 'entry', 'instance');
+      const childBridge = new ChildMfeBridgeImpl('domain', 'instance');
       const parentBridge = new ParentMfeBridgeImpl(childBridge);
       childBridge.setParentBridge(parentBridge);
 
       // Setup parent handler
-      const parentHandler = vi.fn().mockResolvedValue({
-        completed: true,
-        path: ['parent-action'],
-      });
+      const parentHandler = vi.fn().mockResolvedValue(undefined);
       parentBridge.onChildAction(parentHandler);
 
       // Child subscribes to property
@@ -256,14 +228,13 @@ describe('Bridge Implementation', () => {
       const chain: ActionsChain = {
         action: { type: 'child-action', target: 'domain' },
       };
-      const result = await childBridge.sendActionsChain(chain);
+      await childBridge.sendActionsChain(chain);
 
-      expect(parentHandler).toHaveBeenCalledWith(chain, undefined);
-      expect(result.completed).toBe(true);
+      expect(parentHandler).toHaveBeenCalledWith(chain);
     });
 
     it('should handle cleanup during active subscriptions', () => {
-      const childBridge = new ChildMfeBridgeImpl('domain', 'entry', 'instance');
+      const childBridge = new ChildMfeBridgeImpl('domain', 'instance');
       const parentBridge = new ParentMfeBridgeImpl(childBridge);
       childBridge.setParentBridge(parentBridge);
 
@@ -283,7 +254,7 @@ describe('Bridge Implementation', () => {
     });
 
     it('should track property subscribers for cleanup', () => {
-      const childBridge = new ChildMfeBridgeImpl('domain', 'entry', 'instance');
+      const childBridge = new ChildMfeBridgeImpl('domain', 'instance');
       const parentBridge = new ParentMfeBridgeImpl(childBridge);
       childBridge.setParentBridge(parentBridge);
 
@@ -312,26 +283,23 @@ describe('Bridge Implementation', () => {
     let parentBridge: ParentMfeBridgeImpl;
 
     beforeEach(() => {
-      childBridge = new ChildMfeBridgeImpl('domain', 'entry', 'test-instance');
+      childBridge = new ChildMfeBridgeImpl('domain', 'test-instance');
       parentBridge = new ParentMfeBridgeImpl(childBridge);
       childBridge.setParentBridge(parentBridge);
     });
 
     describe('ChildMfeBridge.executeActionsChain', () => {
       it('should delegate to injected registry callback', async () => {
-        const mockResult: ChainResult = { completed: true, path: ['registry-action'] };
-        const registryCallback = vi.fn().mockResolvedValue(mockResult);
+        const registryCallback = vi.fn().mockResolvedValue(undefined);
         childBridge.setExecuteActionsChainCallback(registryCallback);
 
         const chain: ActionsChain = {
           action: { type: 'test-action', target: 'domain' },
         };
-        const options = { timeout: 5000 };
 
-        const result = await childBridge.executeActionsChain(chain, options);
+        await childBridge.executeActionsChain(chain);
 
-        expect(registryCallback).toHaveBeenCalledWith(chain, options);
-        expect(result).toEqual(mockResult);
+        expect(registryCallback).toHaveBeenCalledWith(chain);
       });
 
       it('should throw when callback is not wired', async () => {
@@ -355,7 +323,7 @@ describe('Bridge Implementation', () => {
       });
 
       it('should clear callback on cleanup', async () => {
-        const registryCallback = vi.fn().mockResolvedValue({ completed: true, path: [] });
+        const registryCallback = vi.fn().mockResolvedValue(undefined);
         childBridge.setExecuteActionsChainCallback(registryCallback);
 
         childBridge.cleanup();
@@ -374,14 +342,14 @@ describe('Bridge Implementation', () => {
     let parentBridge: ParentMfeBridgeImpl;
 
     beforeEach(() => {
-      childBridge = new ChildMfeBridgeImpl('domain', 'entry', 'test-instance');
+      childBridge = new ChildMfeBridgeImpl('domain', 'test-instance');
       parentBridge = new ParentMfeBridgeImpl(childBridge);
       childBridge.setParentBridge(parentBridge);
     });
 
     describe('ChildMfeBridge.onActionsChain', () => {
       it('should register a handler and return unsubscribe function', () => {
-        const handler = vi.fn().mockResolvedValue({ completed: true, path: [] });
+        const handler = vi.fn().mockResolvedValue(undefined);
         const unsubscribe = childBridge.onActionsChain(handler);
 
         expect(typeof unsubscribe).toBe('function');
@@ -393,8 +361,8 @@ describe('Bridge Implementation', () => {
       it('should warn when replacing an existing handler', () => {
         const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-        const handler1 = vi.fn().mockResolvedValue({ completed: true, path: [] });
-        const handler2 = vi.fn().mockResolvedValue({ completed: true, path: [] });
+        const handler1 = vi.fn().mockResolvedValue(undefined);
+        const handler2 = vi.fn().mockResolvedValue(undefined);
 
         childBridge.onActionsChain(handler1);
         childBridge.onActionsChain(handler2); // Should warn
@@ -407,7 +375,7 @@ describe('Bridge Implementation', () => {
       });
 
       it('should clear handler when unsubscribe is called', async () => {
-        const handler = vi.fn().mockResolvedValue({ completed: true, path: [] });
+        const handler = vi.fn().mockResolvedValue(undefined);
         const unsubscribe = childBridge.onActionsChain(handler);
 
         // Verify handler works
@@ -428,7 +396,7 @@ describe('Bridge Implementation', () => {
       });
 
       it('should clear handler on cleanup', async () => {
-        const handler = vi.fn().mockResolvedValue({ completed: true, path: [] });
+        const handler = vi.fn().mockResolvedValue(undefined);
         childBridge.onActionsChain(handler);
 
         childBridge.cleanup();
@@ -445,19 +413,16 @@ describe('Bridge Implementation', () => {
 
     describe('ChildMfeBridge.handleParentActionsChain', () => {
       it('should call registered handler with chain and options', async () => {
-        const mockResult: ChainResult = { completed: true, path: ['action1'] };
-        const handler = vi.fn().mockResolvedValue(mockResult);
+        const handler = vi.fn().mockResolvedValue(undefined);
         childBridge.onActionsChain(handler);
 
         const chain: ActionsChain = {
           action: { type: 'test-action', target: 'domain' },
         };
-        const options = { timeout: 5000 };
 
-        const result = await childBridge.handleParentActionsChain(chain, options);
+        await childBridge.handleParentActionsChain(chain);
 
-        expect(handler).toHaveBeenCalledWith(chain, options);
-        expect(result).toEqual(mockResult);
+        expect(handler).toHaveBeenCalledWith(chain);
       });
 
       it('should throw NoActionsChainHandlerError when no handler registered', async () => {
@@ -479,19 +444,16 @@ describe('Bridge Implementation', () => {
 
     describe('ParentMfeBridge.sendActionsChain', () => {
       it('should forward actions chain to child handler', async () => {
-        const mockResult: ChainResult = { completed: true, path: ['forwarded'] };
-        const handler = vi.fn().mockResolvedValue(mockResult);
+        const handler = vi.fn().mockResolvedValue(undefined);
         childBridge.onActionsChain(handler);
 
         const chain: ActionsChain = {
           action: { type: 'parent-action', target: 'child-domain' },
         };
-        const options = { timeout: 3000 };
 
-        const result = await parentBridge.sendActionsChain(chain, options);
+        await parentBridge.sendActionsChain(chain);
 
-        expect(handler).toHaveBeenCalledWith(chain, options);
-        expect(result).toEqual(mockResult);
+        expect(handler).toHaveBeenCalledWith(chain);
       });
 
       it('should throw BridgeDisposedError when bridge is disposed', async () => {
@@ -530,34 +492,26 @@ describe('Bridge Implementation', () => {
     describe('Integration: Bidirectional action chain delivery', () => {
       it('should support both child-to-parent and parent-to-child delivery', async () => {
         // Setup parent handler for child-to-parent
-        const parentHandler = vi.fn().mockResolvedValue({
-          completed: true,
-          path: ['parent-handled'],
-        });
+        const parentHandler = vi.fn().mockResolvedValue(undefined);
         parentBridge.onChildAction(parentHandler);
 
         // Setup child handler for parent-to-child
-        const childHandler = vi.fn().mockResolvedValue({
-          completed: true,
-          path: ['child-handled'],
-        });
+        const childHandler = vi.fn().mockResolvedValue(undefined);
         childBridge.onActionsChain(childHandler);
 
         // Child sends to parent
         const childToParentChain: ActionsChain = {
           action: { type: 'child-action', target: 'parent-domain' },
         };
-        const resultFromParent = await childBridge.sendActionsChain(childToParentChain);
-        expect(parentHandler).toHaveBeenCalledWith(childToParentChain, undefined);
-        expect(resultFromParent.path).toEqual(['parent-handled']);
+        await childBridge.sendActionsChain(childToParentChain);
+        expect(parentHandler).toHaveBeenCalledWith(childToParentChain);
 
         // Parent sends to child
         const parentToChildChain: ActionsChain = {
           action: { type: 'parent-action', target: 'child-domain' },
         };
-        const resultFromChild = await parentBridge.sendActionsChain(parentToChildChain);
-        expect(childHandler).toHaveBeenCalledWith(parentToChildChain, undefined);
-        expect(resultFromChild.path).toEqual(['child-handled']);
+        await parentBridge.sendActionsChain(parentToChildChain);
+        expect(childHandler).toHaveBeenCalledWith(parentToChildChain);
       });
     });
   });

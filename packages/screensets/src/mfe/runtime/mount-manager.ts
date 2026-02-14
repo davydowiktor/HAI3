@@ -16,7 +16,7 @@ import type { ParentMfeBridge } from '../handler/types';
 export type ActionChainExecutor = (
   chain: import('../types').ActionsChain,
   options?: import('../mediator').ChainExecutionOptions
-) => Promise<import('../mediator').ChainResult>;
+) => Promise<void>;
 
 /**
  * Lifecycle trigger function type.
@@ -54,7 +54,7 @@ export abstract class MountManager {
 
   /**
    * Preload an extension bundle without mounting.
-   * Semantically same as loadExtension, but may use handler.preload() for batch optimization.
+   * Delegates to loadExtension to fetch the bundle ahead of time.
    *
    * @param extensionId - ID of the extension to preload
    * @returns Promise resolving when bundle is preloaded

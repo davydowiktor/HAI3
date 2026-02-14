@@ -343,37 +343,9 @@ describe('ActionsChainsMediator - Phase 9', () => {
     });
   });
 
-  describe('9.3.4 Type ID validation', () => {
-    it('should reject invalid action type IDs', async () => {
-      const chain: ActionsChain = {
-        action: {
-          type: 'invalid-type-id',
-          target: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
-        },
-      };
-
-      const result = await mediator.executeActionsChain(chain);
-
-      expect(result.completed).toBe(false);
-      expect(result.error).toBeDefined();
-      expect(result.error).toContain('Invalid type ID');
-    });
-
-    it('should reject invalid target type IDs', async () => {
-      const chain: ActionsChain = {
-        action: {
-          type: 'gts.hai3.mfes.comm.action.v1~test.action.v1~',
-          target: 'invalid-target',
-        },
-      };
-
-      const result = await mediator.executeActionsChain(chain);
-
-      expect(result.completed).toBe(false);
-      expect(result.error).toBeDefined();
-      expect(result.error).toContain('Invalid type ID');
-    });
-  });
+  // Note: Type ID validation tests removed in Phase 29
+  // Type ID validation is now performed at the registry level via TypeSystemPlugin
+  // The mediator no longer performs type ID validation directly
 
   describe('9.3.5 Payload validation', () => {
     it('should validate payload via type system', async () => {

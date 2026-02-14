@@ -11,6 +11,7 @@ import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScree
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { TypeSystemPlugin } from '../../../src/mfe/plugins/types';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
+import type { MfeHandler } from '../../../src/mfe/handler/types';
 import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
@@ -312,7 +313,11 @@ describe('Lifecycle Stage Triggering', () => {
         }),
       };
 
-      registry.registerHandler(mockHandler);
+      // Create new registry with handler in config
+      registry = new DefaultScreensetsRegistry({
+        typeSystem: plugin,
+        mfeHandlers: [mockHandler as unknown as MfeHandler],
+      });
       registry.registerDomain(testDomain, mockContainerProvider);
       await registry.registerExtension(testExtension);
 
@@ -352,7 +357,11 @@ describe('Lifecycle Stage Triggering', () => {
         }),
       };
 
-      registry.registerHandler(mockHandler);
+      // Create new registry with handler in config
+      registry = new DefaultScreensetsRegistry({
+        typeSystem: plugin,
+        mfeHandlers: [mockHandler as unknown as MfeHandler],
+      });
       registry.registerDomain(testDomain, mockContainerProvider);
       await registry.registerExtension(testExtension);
 

@@ -11,6 +11,7 @@
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type { RuntimeCoordinator } from '../coordination/types';
 import type { ActionHandler } from '../mediator/types';
+import type { ActionsChain } from '../types';
 import { DefaultExtensionManager } from './default-extension-manager';
 import type { ScreensetsRegistry } from './ScreensetsRegistry';
 import { MountManager } from './mount-manager';
@@ -128,7 +129,7 @@ export class DefaultMountManager extends MountManager {
       if (!handler) {
         throw new Error(
           `No MFE handler registered that can handle entry type '${entry.id}'. ` +
-          `Register a handler using registerHandler().`
+          `Provide handlers via 'mfeHandlers' in ScreensetsRegistryConfig.`
         );
       }
 
@@ -204,7 +205,7 @@ export class DefaultMountManager extends MountManager {
         domainState,
         extensionId,
         extensionState.entry.id,
-        (chain, options) => this.executeActionsChain(chain, options),
+        (chain: ActionsChain) => this.executeActionsChain(chain),
         (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
         (domainId) => this.unregisterDomainActionHandler(domainId)
       );

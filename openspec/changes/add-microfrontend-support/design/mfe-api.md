@@ -62,7 +62,6 @@ The `ChildMfeBridge` is the interface exposed to MFE/child code. It allows the c
 
 interface ChildMfeBridge {
   readonly domainId: string;
-  readonly entryTypeId: string;
   readonly instanceId: string;
 
   /**
@@ -71,7 +70,7 @@ interface ChildMfeBridge {
    * the registry's executeActionsChain(). This is the ONLY public API for
    * child MFEs to trigger actions chains.
    */
-  executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+  executeActionsChain(chain: ActionsChain): Promise<void>;
 
   /** Subscribe to a shared property from the domain */
   subscribeToProperty(
@@ -81,11 +80,6 @@ interface ChildMfeBridge {
 
   /** Get current value of a shared property */
   getProperty(propertyTypeId: string): SharedProperty | undefined;
-
-  /** Subscribe to all shared properties at once */
-  subscribeToAllProperties(
-    callback: (propertyTypeId: string, value: SharedProperty) => void
-  ): () => void;
 }
 ```
 
@@ -93,9 +87,9 @@ interface ChildMfeBridge {
 
 | Method | Purpose | Callers |
 |---|---|---|
-| `handleParentActionsChain(chain, options)` | Internal: called by `ParentMfeBridgeImpl` to forward chains to the child's registered handler (hierarchical composition transport) | `ParentMfeBridgeImpl` |
+| `handleParentActionsChain(chain)` | Internal: called by `ParentMfeBridgeImpl` to forward chains to the child's registered handler (hierarchical composition transport) | `ParentMfeBridgeImpl` |
 | `onActionsChain(handler)` | Internal: registers a handler for parent-to-child action chain delivery. Used by child MFEs that define their own domains (hierarchical composition). Concrete-only -- not on the public interface. | Child MFE internal wiring |
-| `sendActionsChain(chain, options)` | Internal: forwards child-to-parent action chains via the parent bridge. Concrete-only -- not on the public interface. | Internal bridge transport |
+| `sendActionsChain(chain)` | Internal: forwards child-to-parent action chains via the parent bridge. Concrete-only -- not on the public interface. | Internal bridge transport |
 
 ### ParentMfeBridge Interface
 
@@ -124,10 +118,10 @@ interface ParentMfeBridge {
 
 | Method | Purpose | Callers |
 |---|---|---|
-| `sendActionsChain(chain, options)` | Internal: forwards actions chains from parent to child via `childBridge.handleParentActionsChain()`. Used for hierarchical composition transport. Concrete-only -- not on the public interface. | Internal bridge transport |
+| `sendActionsChain(chain)` | Internal: forwards actions chains from parent to child via `childBridge.handleParentActionsChain()`. Used for hierarchical composition transport. Concrete-only -- not on the public interface. | Internal bridge transport |
 | `onChildAction(callback)` | Wiring method: connects child-to-parent action chain flow via the mediator | `DefaultRuntimeBridgeFactory.createBridge()` |
 | `receivePropertyUpdate(propertyTypeId, value)` | Wiring method: pushes domain property updates to the child bridge | `DefaultRuntimeBridgeFactory.createBridge()` subscribers |
-| `handleChildAction(chain, options)` | Internal: called by `ChildMfeBridgeImpl.sendActionsChain()` to forward chains to parent | `ChildMfeBridgeImpl` |
+| `handleChildAction(chain)` | Internal: called by `ChildMfeBridgeImpl.sendActionsChain()` to forward chains to parent | `ChildMfeBridgeImpl` |
 | `registerPropertySubscriber(propertyTypeId, subscriber)` | Internal: tracks property subscribers for cleanup | `DefaultRuntimeBridgeFactory.createBridge()` |
 | `getPropertySubscribers()` | Internal: returns subscribers map for disposal cleanup | `DefaultRuntimeBridgeFactory.disposeBridge()` |
 
@@ -157,7 +151,7 @@ await runtime.executeActionsChain({
 
 ### Action Chain Execution Model
 
-The **public API** for executing actions chains is `registry.executeActionsChain(chain, options)` -- this is the ONLY entry point available to any runtime (host or child). Child MFEs access this capability via `childBridge.executeActionsChain()`, which is a convenience pass-through that delegates directly to the registry.
+The **public API** for executing actions chains is `registry.executeActionsChain(chain)` -- this is the ONLY entry point available to any runtime (host or child). Child MFEs access this capability via `childBridge.executeActionsChain()`, which is a convenience pass-through that delegates directly to the registry.
 
 **Child MFE executes a chain:** The child calls `childBridge.executeActionsChain(chain)`, which delegates to the registry's `executeActionsChain()` via an injected callback. The bridge does NOT route or "send" -- it provides access to the registry's execution capability.
 
@@ -168,13 +162,13 @@ Public API -- How child MFEs execute chains:
 
   Child MFE code
        |
-       | childBridge.executeActionsChain(chain, options)
+       | childBridge.executeActionsChain(chain)
        v
   ChildMfeBridgeImpl
        |
-       | this.executeActionsChainCallback(chain, options)
+       | this.executeActionsChainCallback(chain)
        v
-  registry.executeActionsChain(chain, options)
+  registry.executeActionsChain(chain)
   (injected callback from DefaultRuntimeBridgeFactory.createBridge)
 ```
 
@@ -183,15 +177,15 @@ Private Transport -- Hierarchical composition (concrete-only):
 
   Parent Registry / Mediator
        |
-       | parentBridgeImpl.sendActionsChain(chain, options)  [concrete-only]
+       | parentBridgeImpl.sendActionsChain(chain)  [concrete-only]
        v
   ParentMfeBridgeImpl
        |
-       | this.childBridge.handleParentActionsChain(chain, options)  [concrete-only]
+       | this.childBridge.handleParentActionsChain(chain)  [concrete-only]
        v
   ChildMfeBridgeImpl
        |
-       | this.actionsChainHandler(chain, options)
+       | this.actionsChainHandler(chain)
        v
   Child MFE's registered handler
   (e.g., childRegistry.executeActionsChain)
@@ -302,13 +296,8 @@ class ChildDomainForwardingHandler implements ActionHandler {
       },
     };
 
-    // sendActionsChain() returns Promise<ChainResult>.
-    // ActionHandler.handleAction() returns Promise<void>.
-    // Map ChainResult to the void contract: reject if the chain did not complete.
-    const result = await this.parentBridgeImpl.sendActionsChain(chain);
-    if (!result.completed) {
-      throw new Error(result.error ?? 'Chain execution failed in child domain');
-    }
+    // Forward the chain to the child runtime via the bridge transport.
+    await this.parentBridgeImpl.sendActionsChain(chain);
   }
 }
 ```
@@ -327,7 +316,7 @@ mount(container, bridge) {
   //    to the child registry's executeActionsChain().
   //    (Internal wiring -- concrete-only method, not on public interface)
   (bridge as ChildMfeBridgeImpl).onActionsChain(
-    (chain, options) => childRegistry.executeActionsChain(chain, options)
+    (chain) => childRegistry.executeActionsChain(chain)
   );
 
   // 2. Register child domains in the child registry

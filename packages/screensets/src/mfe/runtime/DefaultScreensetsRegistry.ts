@@ -22,7 +22,7 @@ import type {
 import { ScreensetsRegistry } from './ScreensetsRegistry';
 import { WeakMapRuntimeCoordinator } from '../coordination/weak-map-runtime-coordinator';
 import { RuntimeCoordinator } from '../coordination/types';
-import { type ChainResult, type ChainExecutionOptions, ActionsChainsMediator } from '../mediator';
+import { ActionsChainsMediator } from '../mediator';
 import { DefaultActionsChainsMediator } from '../mediator/actions-chains-mediator';
 import { type ExtensionDomainState } from './extension-manager';
 import { DefaultExtensionManager } from './default-extension-manager';
@@ -171,7 +171,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       handlers: this.handlers,
       coordinator: this.coordinator,
       triggerLifecycle: (extensionId, stageId) => this.triggerLifecycleStage(extensionId, stageId),
-      executeActionsChain: (chain, options) => this.executeActionsChain(chain, options),
+      executeActionsChain: (chain) => this.executeActionsChain(chain),
       hostRuntime: this,
       registerDomainActionHandler: (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
       unregisterDomainActionHandler: (domainId) => this.unregisterDomainActionHandler(domainId),
@@ -181,9 +181,12 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     // Verify first-class schemas are available
     this.verifyFirstClassSchemas();
 
-    // Register custom handler if provided
-    if (config.mfeHandler) {
-      this.registerHandler(config.mfeHandler);
+    // Register custom handlers if provided
+    if (config.mfeHandlers) {
+      for (const handler of config.mfeHandlers) {
+        this.handlers.push(handler);
+      }
+      this.handlers.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
     }
   }
 
@@ -219,16 +222,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
         `Ensure the plugin has all built-in schemas registered during construction.`
       );
     }
-  }
-
-  /**
-   * Register an MFE handler.
-   *
-   * @param handler - Handler instance to register
-   */
-  registerHandler(handler: MfeHandler): void {
-    this.handlers.push(handler);
-    this.handlers.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
   }
 
   /**
@@ -283,49 +276,19 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * Delegates to the ActionsChainsMediator for chain execution.
    *
    * @param chain - Actions chain to execute
-   * @param options - Optional execution options
-   * @returns Promise resolving to chain result
+   * @returns Promise resolving when execution is complete
    */
-  async executeActionsChain(
-    chain: ActionsChain,
-    options?: ChainExecutionOptions
-  ): Promise<ChainResult> {
-    return this.mediator.executeActionsChain(chain, options);
+  async executeActionsChain(chain: ActionsChain): Promise<void> {
+    await this.mediator.executeActionsChain(chain);
   }
 
   /**
-   * Register an extension's action handler.
-   *
-   * @param extensionId - ID of the extension
-   * @param domainId - ID of the domain
-   * @param entryId - ID of the MFE entry
-   * @param handler - The action handler
-   */
-  registerExtensionActionHandler(
-    extensionId: string,
-    domainId: string,
-    entryId: string,
-    handler: import('../mediator').ActionHandler
-  ): void {
-    this.mediator.registerExtensionHandler(extensionId, domainId, entryId, handler);
-  }
-
-  /**
-   * Unregister an extension's action handler.
-   *
-   * @param extensionId - ID of the extension
-   */
-  unregisterExtensionActionHandler(extensionId: string): void {
-    this.mediator.unregisterExtensionHandler(extensionId);
-  }
-
-  /**
-   * Register a domain's action handler.
+   * INTERNAL: Register a domain's action handler.
    *
    * @param domainId - ID of the domain
    * @param handler - The action handler
    */
-  registerDomainActionHandler(
+  private registerDomainActionHandler(
     domainId: string,
     handler: import('../mediator').ActionHandler
   ): void {
@@ -333,11 +296,11 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
   }
 
   /**
-   * Unregister a domain's action handler.
+   * INTERNAL: Unregister a domain's action handler.
    *
    * @param domainId - ID of the domain
    */
-  unregisterDomainActionHandler(domainId: string): void {
+  private unregisterDomainActionHandler(domainId: string): void {
     this.mediator.unregisterDomainHandler(domainId);
   }
 

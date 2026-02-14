@@ -219,7 +219,3 @@ export class BridgeDisposedError extends MfeError {
     this.name = 'BridgeDisposedError';
   }
 }
-
-// NOTE: MfeErrorHandler, RetryHandler, and ErrorHandlerConfig are NOT re-exported here
-// to avoid circular dependency (error-handler.ts imports from this file).
-// Import them directly from '@hai3/screensets' or from './error-handler'.

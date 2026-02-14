@@ -87,37 +87,6 @@ interface ValidationError {
 }
 
 /**
- * Result of compatibility check
- */
-interface CompatibilityResult {
-  compatible: boolean;
-  breaking: boolean;
-  changes: CompatibilityChange[];
-}
-
-interface CompatibilityChange {
-  type: 'added' | 'removed' | 'modified';
-  path: string;
-  description: string;
-}
-
-/**
- * Result of attribute access
- */
-interface AttributeResult {
-  /** The type ID that was queried */
-  typeId: string;
-  /** The property path that was accessed */
-  path: string;
-  /** Whether the attribute was found */
-  resolved: boolean;
-  /** The value if resolved */
-  value?: unknown;
-  /** Error message if not resolved */
-  error?: string;
-}
-
-/**
  * Type System Plugin interface
  * Abstracts type system operations for MFE contracts.
  *
@@ -132,7 +101,7 @@ interface AttributeResult {
  * - gts-ts extracts the schema ID from the chained instance ID automatically
  *
  * Note: buildTypeId() is intentionally omitted. GTS type IDs are consumed
- * (validated, parsed) but never programmatically generated at runtime.
+ * but never programmatically generated at runtime.
  * All type IDs are defined as string constants.
  */
 interface TypeSystemPlugin {
@@ -141,21 +110,6 @@ interface TypeSystemPlugin {
 
   /** Plugin version */
   readonly version: string;
-
-  // === Type ID Operations ===
-
-  /**
-   * Check if a string is a valid type ID format.
-   * Used before any operation that requires a valid type ID.
-   */
-  isValidTypeId(id: string): boolean;
-
-  /**
-   * Parse a type ID into plugin-specific components.
-   * Returns a generic object - the structure is plugin-defined.
-   * Use this when you need metadata about a type ID.
-   */
-  parseTypeId(id: string): Record<string, unknown>;
 
   // === Schema Registry ===
 
@@ -202,13 +156,6 @@ interface TypeSystemPlugin {
    */
   validateInstance(instanceId: string): ValidationResult;
 
-  // === Query ===
-
-  /**
-   * Query registered type IDs matching a pattern
-   */
-  query(pattern: string, limit?: number): string[];
-
   // === Type Hierarchy ===
 
   /**
@@ -220,21 +167,6 @@ interface TypeSystemPlugin {
    * @returns true if typeId is the same as or derived from baseTypeId
    */
   isTypeOf(typeId: string, baseTypeId: string): boolean;
-
-  // === Compatibility (REQUIRED) ===
-
-  /**
-   * Check compatibility between two type versions
-   */
-  checkCompatibility(oldTypeId: string, newTypeId: string): CompatibilityResult;
-
-  // === Attribute Access (REQUIRED for dynamic schema resolution) ===
-
-  /**
-   * Get an attribute value from a type using property path.
-   * Used for dynamic schema resolution (e.g., getting domain's extensionsTypeId to resolve derived Extension types).
-   */
-  getAttribute(typeId: string, path: string): AttributeResult;
 }
 ```
 
@@ -252,17 +184,11 @@ The GTS plugin implements `TypeSystemPlugin` using `@globaltypesystem/gts-ts`. F
 ```typescript
 // packages/screensets/src/mfe/plugins/gts/index.ts
 import {
-  isValidGtsID,
-  parseGtsID,
   GtsStore,
-  GtsQuery,
   createJsonEntity,
-  type GtsIDSegment,
-  type ParseResult,
   type ValidationResult as GtsValidationResult,
-  type CompatibilityResult as GtsCompatibilityResult,
 } from '@globaltypesystem/gts-ts';
-import type { TypeSystemPlugin, ValidationResult, CompatibilityResult } from '../types';
+import type { TypeSystemPlugin, ValidationResult } from '../types';
 import { loadSchemas } from '../../gts/loader';
 
 /**
@@ -335,7 +261,7 @@ MfeEntry is the single abstract base for entry contracts. MfeEntryMF is a derive
 
 ### Decision 3: Internal TypeScript Type Definitions
 
-The MFE system uses internal TypeScript interfaces with a simple `id: string` field as the identifier. When metadata is needed about a type ID, call `plugin.parseTypeId(id)` directly.
+The MFE system uses internal TypeScript interfaces with a simple `id: string` field as the identifier.
 
 TypeScript interface definitions are distributed across their respective design documents:
 
@@ -397,7 +323,7 @@ A vendor package is a self-contained bundle that includes:
 
 All vendor package identifiers follow the pattern `~<vendor>.<package>.*.*v*` as a GTS qualifier suffix.
 
-**Note on Wildcards:** The wildcards (`*`) in this diagram represent pattern matching for documentation purposes only. Actual type IDs use concrete values (e.g., `acme.analytics.ext.data_updated.v1`). Wildcards are used only when explaining pattern matching in `TypeSystemPlugin.query()`.
+**Note on Wildcards:** The wildcards (`*`) in this diagram represent pattern matching for documentation purposes only. Actual type IDs use concrete values (e.g., `acme.analytics.ext.data_updated.v1`).
 
 ```
 +-------------------------------------------------------------+
@@ -521,13 +447,13 @@ interface ScreensetsRegistryConfig {
   typeSystem: TypeSystemPlugin;
 
   /**
-   * Optional custom MFE handler instance.
-   * If provided, this handler will be registered with the registry.
+   * Optional MFE handler instances.
+   * If provided, these handlers will be registered with the registry.
    *
    * Note: The default MfeHandlerMF is NOT automatically registered.
    * Applications must explicitly provide handlers they want to use.
    */
-  mfeHandler?: MfeHandler;
+  mfeHandlers?: MfeHandler[];
 }
 
 // Factory-with-cache (see Decision 18 in registry-runtime.md)

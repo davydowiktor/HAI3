@@ -10,13 +10,12 @@
  */
 
 import type { TypeSystemPlugin } from '../plugins/types';
-import type { MfeHandler, ParentMfeBridge } from '../handler/types';
+import type { ParentMfeBridge } from '../handler/types';
 import type {
   ExtensionDomain,
   Extension,
   ActionsChain,
 } from '../types';
-import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../mediator';
 import type { ContainerProvider } from './container-provider';
 
 /**
@@ -146,13 +145,9 @@ export abstract class ScreensetsRegistry {
    * Delegates to the ActionsChainsMediator for chain execution.
    *
    * @param chain - Actions chain to execute
-   * @param options - Optional execution options
-   * @returns Promise resolving to chain result
+   * @returns Promise resolving when execution is complete
    */
-  abstract executeActionsChain(
-    chain: ActionsChain,
-    options?: ChainExecutionOptions
-  ): Promise<ChainResult>;
+  abstract executeActionsChain(chain: ActionsChain): Promise<void>;
 
   // --- Lifecycle Triggering ---
 
@@ -236,57 +231,6 @@ export abstract class ScreensetsRegistry {
    * @returns ParentMfeBridge if extension is mounted, null otherwise
    */
   abstract getParentBridge(extensionId: string): ParentMfeBridge | null;
-
-  // --- Action Handlers (mediator-facing) ---
-
-  /**
-   * Register an extension's action handler.
-   *
-   * @param extensionId - ID of the extension
-   * @param domainId - ID of the domain
-   * @param entryId - ID of the MFE entry
-   * @param handler - The action handler
-   */
-  abstract registerExtensionActionHandler(
-    extensionId: string,
-    domainId: string,
-    entryId: string,
-    handler: ActionHandler
-  ): void;
-
-  /**
-   * Unregister an extension's action handler.
-   *
-   * @param extensionId - ID of the extension
-   */
-  abstract unregisterExtensionActionHandler(extensionId: string): void;
-
-  /**
-   * Register a domain's action handler.
-   *
-   * @param domainId - ID of the domain
-   * @param handler - The action handler
-   */
-  abstract registerDomainActionHandler(
-    domainId: string,
-    handler: ActionHandler
-  ): void;
-
-  /**
-   * Unregister a domain's action handler.
-   *
-   * @param domainId - ID of the domain
-   */
-  abstract unregisterDomainActionHandler(domainId: string): void;
-
-  // --- Handlers ---
-
-  /**
-   * Register an MFE handler.
-   *
-   * @param handler - Handler instance to register
-   */
-  abstract registerHandler(handler: MfeHandler): void;
 
   // --- Lifecycle ---
 

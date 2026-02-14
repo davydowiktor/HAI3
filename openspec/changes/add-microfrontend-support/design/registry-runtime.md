@@ -14,6 +14,10 @@ This document covers the ScreensetsRegistry runtime isolation model, action chai
 
 ## Design Notes
 
+### No Static Methods on Abstract Classes
+
+All abstract classes in the MFE system use instance methods only -- no static methods, no static factory methods. This is a universal constraint and is not restated per-class below.
+
 ### Standalone Functions vs Class-Based Capabilities
 
 The established rule is: "NEVER standalone functions, ALWAYS abstract class + concrete class." This applies to **stateful capabilities** -- components that manage coordination, state, or property subscriptions. See [Decision 18](#decision-18-abstract-class-layers-with-singleton-construction) for the complete pattern.
@@ -24,16 +28,7 @@ The established rule is: "NEVER standalone functions, ALWAYS abstract class + co
 
 ### Runtime Bridge Factory (Class-Based)
 
-The `bridge-factory.ts` module provides the internal bridge wiring logic that connects host and child MFEs. This is a **distinct concern** from the handler's `MfeBridgeFactory` (in `handler/types.ts`), which is a public abstraction for custom bridge implementations by MFE handlers.
-
-**Two bridge factory concepts:**
-
-| Factory | Responsibility | Location | Visibility |
-|---|---|---|---|
-| `MfeBridgeFactory` (handler) | Creates `ChildMfeBridge` instances for custom handler implementations | `handler/types.ts` | Public abstract class |
-| `RuntimeBridgeFactory` (runtime) | Wires internal bridge connections: creates `ParentMfeBridgeImpl`/`ChildMfeBridgeImpl` pair, connects property subscriptions, wires action chain callbacks, sets up child domain forwarding | `runtime/runtime-bridge-factory.ts` (abstract) / `runtime/default-runtime-bridge-factory.ts` (concrete) | `@internal`, NOT exported from barrel |
-
-The runtime bridge factory follows the same abstract + concrete pattern as all other collaborators:
+`RuntimeBridgeFactory` wires internal bridge connections (bridge pairs, property subscriptions, action chain callbacks, child domain forwarding). It is a distinct concern from the handler-level `MfeBridgeFactory` -- see [glossary](./glossary.md) for definitions of both.
 
 ```typescript
 // packages/screensets/src/mfe/runtime/runtime-bridge-factory.ts
@@ -42,7 +37,7 @@ The runtime bridge factory follows the same abstract + concrete pattern as all o
 import type { ParentMfeBridge, ChildMfeBridge } from '../handler/types';
 import type { ExtensionDomainState } from './extension-manager';
 import type { ActionsChain } from '../types';
-import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../mediator/types';
+import type { ActionHandler } from '../mediator/types';
 
 /**
  * Abstract runtime bridge factory -- contract for internal bridge wiring.
@@ -72,7 +67,7 @@ export abstract class RuntimeBridgeFactory {
     domainState: ExtensionDomainState,
     extensionId: string,
     entryTypeId: string,
-    executeActionsChain: (chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>,
+    executeActionsChain: (chain: ActionsChain) => Promise<void>,
     registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void,
     unregisterDomainActionHandler: (domainId: string) => void
   ): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge };
@@ -278,7 +273,7 @@ runtime.updateDomainProperties(domainId, new Map([
 
 ### Decision 18: Abstract Class Layers with Singleton Construction
 
-**What**: Every major stateful component MUST have an abstract class defining the public contract (a pure abstract class with NO static methods) and a concrete implementation. Single-instance components with no configuration are exposed as singleton constants; single-instance components that require configuration use the factory-with-cache pattern; multi-instance components are constructed directly by internal wiring code. External consumers ALWAYS depend on abstract types, never concrete classes. Standalone factory functions and static factory methods on abstract classes are both forbidden.
+**What**: Every major stateful component MUST have an abstract class defining the public contract and a concrete implementation. Single-instance components with no configuration are exposed as singleton constants; single-instance components that require configuration use the factory-with-cache pattern; multi-instance components are constructed directly by internal wiring code. External consumers ALWAYS depend on abstract types, never concrete classes. Standalone factory functions are forbidden.
 
 **Why**:
 - **Dependency Inversion Principle (DIP)**: Consumers depend on stable abstractions, not volatile implementations
@@ -312,22 +307,18 @@ new DefaultMfeStateContainer(config)                          -->  MfeStateConta
 gtsPlugin (singleton constant)                                -->  TypeSystemPlugin (one instance, no factory)
 ```
 
-**Rule**: Only singleton constant initializers (in barrel/initialization files), factory-with-cache implementations, and internal wiring constructors reference concrete classes. Abstract classes are pure contracts with NO static methods. All other code types against the abstract class. Standalone factory functions and static factory methods on abstract classes are both forbidden.
+**Rule**: Only singleton constant initializers (in barrel/initialization files), factory-with-cache implementations, and internal wiring constructors reference concrete classes. All other code types against the abstract class. Standalone factory functions are forbidden.
 
 #### ScreensetsRegistry Abstract Class
 
 ```typescript
 // packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts
-// ~75 lines -- pure abstract class with public method signatures only, NO static methods
-// NOTE: loadExtension, mountExtension, unmountExtension, preloadExtension are NOT here.
-// These operations are internal to MountManager, accessed via callbacks in
-// ExtensionLifecycleActionHandler. See mfe-ext-lifecycle-actions.md.
-// getParentBridge IS here -- it is a query method, not a lifecycle operation.
+// ~75 lines -- pure abstract class with public method signatures only
+// Load/mount/unmount are internal to MountManager -- see "Load vs Mount" above.
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type { ExtensionDomain, Extension, ActionsChain } from '../types';
-import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../mediator';
 import type { ContainerProvider } from './container-provider';
 
 /**
@@ -335,7 +326,6 @@ import type { ContainerProvider } from './container-provider';
  *
  * This is the ONLY type external consumers should depend on.
  * Obtain via screensetsRegistryFactory.build(config).
- * This class has NO static methods and NO knowledge of DefaultScreensetsRegistry.
  */
 export abstract class ScreensetsRegistry {
   abstract readonly typeSystem: TypeSystemPlugin;
@@ -352,7 +342,7 @@ export abstract class ScreensetsRegistry {
   abstract updateDomainProperties(domainId: string, properties: Map<string, unknown>): void;
 
   // --- Action Chains ---
-  abstract executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+  abstract executeActionsChain(chain: ActionsChain): Promise<void>;
 
   // --- Lifecycle Triggering ---
   abstract triggerLifecycleStage(extensionId: string, stageId: string): Promise<void>;
@@ -388,42 +378,21 @@ export abstract class ScreensetsRegistry {
    */
   abstract getParentBridge(extensionId: string): ParentMfeBridge | null;
 
-  // --- Action Handlers (mediator-facing) ---
-  abstract registerExtensionActionHandler(extensionId: string, domainId: string, entryId: string, handler: ActionHandler): void;
-  abstract unregisterExtensionActionHandler(extensionId: string): void;
-  abstract registerDomainActionHandler(domainId: string, handler: ActionHandler): void;
-  abstract unregisterDomainActionHandler(domainId: string): void;
-
-  // --- Handlers ---
-  abstract registerHandler(handler: MfeHandler): void;
-
   // --- Lifecycle ---
   abstract dispose(): void;
 }
 
-// NOTE: loadExtension(), mountExtension(), unmountExtension(), and preloadExtension()
-// are NOT on the abstract ScreensetsRegistry. These operations are performed exclusively
-// via actions chains (executeActionsChain with HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT,
-// HAI3_ACTION_UNMOUNT_EXT). The ExtensionLifecycleActionHandler receives focused callbacks
-// that go through OperationSerializer -> MountManager, bypassing the registry entirely.
-// See mfe-ext-lifecycle-actions.md for the complete design.
-//
-// getParentBridge(extensionId) IS on the abstract class -- it is a query method that
-// returns the bridge stored in ExtensionState.bridge after a mount completes. This closes
-// the return value gap left by removing mountExtension() (which returned ParentMfeBridge).
-// See mfe-ext-lifecycle-actions.md - ParentMfeBridge Return Value Gap.
+// Load/mount/unmount are internal to MountManager -- see "Load vs Mount" above.
 ```
 
 #### Factory-with-Cache Pattern
 
-The `screensetsRegistryFactory` factory-with-cache pattern is the current construction mechanism for `ScreensetsRegistry`. The factory provides a `build(config)` method to obtain the `ScreensetsRegistry` instance. The abstract `ScreensetsRegistry` class is a pure contract with NO static methods. The abstract `ScreensetsRegistryFactory` class is also a pure contract with NO static methods.
+The `screensetsRegistryFactory` factory-with-cache pattern is the current construction mechanism for `ScreensetsRegistry`. The factory provides a `build(config)` method to obtain the `ScreensetsRegistry` instance.
 
 **Why factory-with-cache instead of singleton constant**: The `ScreensetsRegistry` requires a `TypeSystemPlugin` at construction time (via `ScreensetsRegistryConfig.typeSystem`). A singleton constant would hardcode `gtsPlugin` at module initialization time, defeating the pluggability of `TypeSystemPlugin`. The factory-with-cache pattern defers this binding to application wiring time, allowing consumers to provide any `TypeSystemPlugin` implementation.
 
 ```typescript
 // packages/screensets/src/mfe/runtime/ScreensetsRegistryFactory.ts
-// Pure contract, NO static methods
-
 /**
  * Abstract factory for creating the ScreensetsRegistry singleton.
  * The build() method accepts configuration and returns the registry instance.
@@ -485,11 +454,7 @@ const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 ```typescript
 // packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts
 // ~600 lines -- full implementation, NOT exported from public barrel
-// NOTE: loadExtension, mountExtension, unmountExtension, preloadExtension are NOT
-// implemented here. These operations are internal to MountManager. The
-// ExtensionLifecycleActionHandler receives focused callbacks wired in registerDomain()
-// that go through OperationSerializer -> MountManager.
-// getParentBridge IS implemented here -- delegates to extensionManager.getExtensionState().
+// Load/mount/unmount are internal to MountManager -- see "Load vs Mount" above.
 
 import { ScreensetsRegistry } from './ScreensetsRegistry';
 // ... all collaborator imports ...
@@ -614,8 +579,8 @@ All modules that currently reference the concrete `ScreensetsRegistry` class are
 
 ```
 packages/screensets/src/mfe/runtime/
-  ScreensetsRegistry.ts              # ABSTRACT class (~85 lines, pure contract, NO static methods, includes getParentBridge)
-  ScreensetsRegistryFactory.ts       # ABSTRACT factory class (~10 lines, pure contract, NO static methods)
+  ScreensetsRegistry.ts              # ABSTRACT class (~85 lines, pure contract, includes getParentBridge)
+  ScreensetsRegistryFactory.ts       # ABSTRACT factory class (~10 lines, pure contract)
   DefaultScreensetsRegistry.ts       # CONCRETE class (~650 lines, NOT exported from barrel)
   DefaultScreensetsRegistryFactory.ts # CONCRETE factory (~20 lines, NOT exported from barrel)
   index.ts                           # Barrel: exports abstract classes + screensetsRegistryFactory singleton
@@ -634,19 +599,25 @@ packages/screensets/src/mfe/runtime/
 
 **Note on bridge-factory.ts**: The original `bridge-factory.ts` file (containing standalone `createBridge()` and `disposeBridge()` functions) is deleted and replaced by `runtime-bridge-factory.ts` (abstract) and `default-runtime-bridge-factory.ts` (concrete). See [Runtime Bridge Factory](#runtime-bridge-factory-class-based) design note.
 
-The abstract `ScreensetsRegistry` class has NO static methods and NO knowledge of `DefaultScreensetsRegistry`. The abstract `ScreensetsRegistryFactory` class has NO static methods and NO knowledge of `DefaultScreensetsRegistryFactory`.
+The abstract `ScreensetsRegistry` class has no knowledge of `DefaultScreensetsRegistry`. The abstract `ScreensetsRegistryFactory` class has no knowledge of `DefaultScreensetsRegistryFactory`.
 
 #### Export Policy
 
 The `@hai3/screensets` public barrel exports:
-- `ScreensetsRegistry` (abstract class, pure contract -- NO static methods)
-- `ScreensetsRegistryFactory` (abstract class, pure contract -- NO static methods)
+- `ScreensetsRegistry` (abstract class, pure contract)
+- `ScreensetsRegistryFactory` (abstract class, pure contract)
 - `screensetsRegistryFactory` (singleton `ScreensetsRegistryFactory` instance -- the ONLY way to obtain a `ScreensetsRegistry`)
 - `ScreensetsRegistryConfig` (interface)
 - `ContainerProvider` (abstract class, pure contract -- consumers extend this for custom domain container management)
-- `MfeStateContainer` (abstract class, pure contract -- NO static methods)
-- `MfeStateContainerConfig` (interface)
 - `TypeSystemPlugin` (interface)
+- `MfeHandler` (abstract class -- consumers extend this for custom entry type handlers)
+- `MfeEntryLifecycle` (interface -- MFEs implement this for mount/unmount)
+- `ChildMfeBridge` (interface -- MFEs receive this for parent communication)
+- `ParentMfeBridge` (interface -- parent uses this for child instance management)
+- GTS type interfaces: `MfeEntry`, `MfeEntryMF`, `ExtensionDomain`, `Extension`, `SharedProperty`, `Action`, `ActionsChain`, `LifecycleStage`, `LifecycleHook`
+- Action constants: `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`
+- Shadow DOM utilities: `createShadowRoot`, `injectCssVariables`
+- Validation types: `ValidationResult`, `ValidationError`, `JSONSchema`
 
 The `@hai3/screensets/plugins/gts` subpath export provides:
 - `gtsPlugin` (singleton `TypeSystemPlugin` instance)
@@ -654,11 +625,11 @@ The `@hai3/screensets/plugins/gts` subpath export provides:
 
 These are NOT re-exported from the main `@hai3/screensets` barrel to avoid pulling in `@globaltypesystem/gts-ts` for consumers who do not need it.
 
-All other concrete classes, internal collaborators, and factory functions are internal implementation details and are NOT exported. Test files that need access to concrete internals import directly from the concrete file paths using relative imports, bypassing the public barrel.
+All other symbols are internal implementation details and are NOT exported from the public barrel. This includes: concrete classes (`DefaultScreensetsRegistry`, `DefaultExtensionManager`, etc.), internal abstract classes (`RuntimeCoordinator`, `ActionsChainsMediator`, `MfeBridgeFactory`, `RuntimeBridgeFactory`), internal types (`RuntimeConnection`, `ChainResult`, `ChainExecutionOptions`, `MfeStateContainer`, `MfeStateContainerConfig`), error classes (all 13 `MfeError` subclasses), validation helpers (`validateContract`, `validateExtensionType`), Module Federation internals (`MfManifest`, `SharedDependencyConfig`) -- note: `MfeEntryMF` is a public GTS type interface listed above, not an internal, and constant collections (`HAI3_CORE_TYPE_IDS`, `HAI3_LIFECYCLE_STAGE_IDS`, `HAI3_MF_TYPE_IDS`). Test files that need access to these internals import directly from the concrete file paths using relative imports, bypassing the public barrel.
 
 #### MfeStateContainer
 
-`MfeStateContainer` manages isolated per-MFE state. It requires MULTIPLE instances (one per MFE), so it CANNOT be a singleton. The abstract class is a pure contract with NO static methods and NO knowledge of `DefaultMfeStateContainer`. Instances are created directly by internal wiring code (`DefaultMountManager`) that already knows about the concrete type. There is no public construction path.
+`MfeStateContainer` manages isolated per-MFE state. It requires MULTIPLE instances (one per MFE), so it CANNOT be a singleton. Instances are created directly by internal wiring code (`DefaultMountManager`) that already knows about the concrete type. There is no public construction path.
 
 ```typescript
 // packages/screensets/src/mfe/state/mfe-state-container.ts
@@ -669,8 +640,7 @@ interface MfeStateContainerConfig<TState> {
 
 /**
  * Abstract class defining the MFE state container contract.
- * Exported from @hai3/screensets for DIP -- consumers type against this.
- * This class has NO static methods and NO knowledge of DefaultMfeStateContainer.
+ * Internal -- NOT exported from @hai3/screensets public barrel.
  * Instances are created internally by DefaultMountManager.
  */
 abstract class MfeStateContainer<TState> {
@@ -713,7 +683,7 @@ const stateContainer = new DefaultMfeStateContainer({ initialState });
 
 There is no standalone `createMfeStateContainer()` function and no `MfeStateContainer.create()` static method. `DefaultMountManager` constructs instances directly.
 
-**Export policy**: `MfeStateContainer` (abstract class, pure contract -- NO static methods) and `MfeStateContainerConfig` (interface) are exported from `@hai3/screensets`. `DefaultMfeStateContainer` and any standalone factory function are NOT exported.
+**Export policy**: `MfeStateContainer`, `MfeStateContainerConfig`, and `DefaultMfeStateContainer` are all internal. None are exported from the `@hai3/screensets` public barrel. Consumers never create or interact with state containers directly -- they are an internal implementation detail of `DefaultMountManager`.
 
 #### GtsPlugin Singleton
 

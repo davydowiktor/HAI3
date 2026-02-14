@@ -70,8 +70,8 @@ class ManifestCache {
  * Uses the concrete ChildMfeBridgeImpl class to avoid unsafe casts.
  */
 class MfeBridgeFactoryDefault extends MfeBridgeFactory<ChildMfeBridgeImpl> {
-  create(domainId: string, entryTypeId: string, instanceId: string): ChildMfeBridgeImpl {
-    return new ChildMfeBridgeImpl(domainId, entryTypeId, instanceId);
+  create(domainId: string, _entryTypeId: string, instanceId: string): ChildMfeBridgeImpl {
+    return new ChildMfeBridgeImpl(domainId, instanceId);
   }
 
   dispose(bridge: ChildMfeBridgeImpl): void {
@@ -130,19 +130,6 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       this.config.retries ?? 0,
       1000
     );
-  }
-
-  /**
-   * Preload MFE bundles for faster mounting.
-   * Batches container preloading by grouping entries by manifest.
-   *
-   * @param entries - MfeEntryMF entries to preload
-   */
-  async preload(entries: MfeEntryMF[]): Promise<void> {
-    for (const entry of entries) {
-      const manifest = await this.resolveManifest(entry.manifest);
-      await this.loadRemoteContainer(manifest);
-    }
   }
 
   /**

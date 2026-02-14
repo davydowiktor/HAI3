@@ -16,22 +16,14 @@
  */
 
 import {
-  isValidGtsID,
-  parseGtsID,
   GtsStore,
-  GtsQuery,
   createJsonEntity,
-  type ParseResult,
   type ValidationResult as GtsValidationResult,
-  type CompatibilityResult as GtsCompatibilityResult,
-  type QueryResult as GtsQueryResult,
   type JsonEntity,
 } from '@globaltypesystem/gts-ts';
 import type {
   TypeSystemPlugin,
   ValidationResult,
-  CompatibilityResult,
-  AttributeResult,
   JSONSchema,
 } from '../types';
 import { loadSchemas, loadLifecycleStages, loadBaseActions } from '../../gts/loader';
@@ -80,35 +72,6 @@ export class GtsPlugin implements TypeSystemPlugin {
       const entity: JsonEntity = createJsonEntity(action);
       this.gtsStore.register(entity);
     }
-  }
-
-  // === Type ID Operations ===
-  // Note: buildTypeId() is intentionally omitted. GTS type IDs are consumed
-  // (validated, parsed) but never programmatically generated at runtime.
-  // All type IDs are defined as string constants.
-
-  isValidTypeId(id: string): boolean {
-    return isValidGtsID(id);
-  }
-
-  parseTypeId(id: string): Record<string, unknown> {
-    // parseGtsID returns ParseResult { ok, segments, error }
-    const result: ParseResult = parseGtsID(id);
-    if (!result.ok || result.segments.length === 0) {
-      throw new Error(result.error ?? `Invalid GTS ID: ${id}`);
-    }
-    // Return the first segment's components (primary type identifier)
-    const segment = result.segments[0];
-    return {
-      vendor: segment.vendor,
-      package: segment.package,
-      namespace: segment.namespace,
-      type: segment.type,
-      verMajor: segment.verMajor,
-      verMinor: segment.verMinor,
-      // For derived types, include additional segments
-      segments: result.segments,
-    };
   }
 
   // === Schema Registry ===
@@ -163,19 +126,6 @@ export class GtsPlugin implements TypeSystemPlugin {
     };
   }
 
-  // === Query ===
-
-  query(pattern: string, limit?: number): string[] {
-    const result: GtsQueryResult = GtsQuery.query(this.gtsStore, pattern, limit);
-    // GtsQuery returns full entity objects, extract type IDs
-    return (result.items || []).map((item: { $id?: string }) => {
-      if (typeof item === 'string') return item;
-      // Extract ID from $id field, removing 'gts://' prefix
-      const id = item.$id || '';
-      return id.startsWith('gts://') ? id.slice(6) : id;
-    });
-  }
-
   // === Type Hierarchy ===
 
   isTypeOf(typeId: string, baseTypeId: string): boolean {
@@ -183,45 +133,6 @@ export class GtsPlugin implements TypeSystemPlugin {
     // e.g., 'gts.hai3.mfes.mfe.entry.v1~acme.corp.mfe.entry_acme.v1~'
     // is derived from 'gts.hai3.mfes.mfe.entry.v1~'
     return typeId.startsWith(baseTypeId) || typeId === baseTypeId;
-  }
-
-  // === Compatibility (REQUIRED) ===
-
-  checkCompatibility(oldTypeId: string, newTypeId: string): CompatibilityResult {
-    const result: GtsCompatibilityResult = this.gtsStore.checkCompatibility(oldTypeId, newTypeId);
-    const backwardErrors = result.backward_errors || [];
-    const forwardErrors = result.forward_errors || [];
-
-    return {
-      compatible: result.is_fully_compatible,
-      breaking: !result.is_fully_compatible && backwardErrors.length > 0,
-      changes: [
-        ...backwardErrors.map((e: string) => ({
-          type: 'removed' as const,
-          path: '',
-          description: e,
-        })),
-        ...forwardErrors.map((w: string) => ({
-          type: 'added' as const,
-          path: '',
-          description: w,
-        })),
-      ],
-    };
-  }
-
-  // === Attribute Access (REQUIRED for dynamic schema resolution) ===
-
-  getAttribute(typeId: string, path: string): AttributeResult {
-    const result = this.gtsStore.getAttribute(typeId, path);
-    return {
-      typeId,
-      path,
-      resolved: result !== undefined,
-      value: result,
-      error:
-        result === undefined ? `Attribute '${path}' not found in type '${typeId}'` : undefined,
-    };
   }
 }
 

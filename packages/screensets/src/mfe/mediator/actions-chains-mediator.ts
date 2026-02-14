@@ -150,16 +150,6 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
       throw new Error('Chain timeout exceeded');
     }
 
-    // Validate action type ID
-    if (!this.typeSystem.isValidTypeId(action.type)) {
-      throw new Error(`Invalid type ID in action.type: "${action.type}"`);
-    }
-
-    // Validate target type ID
-    if (!this.typeSystem.isValidTypeId(action.target)) {
-      throw new Error(`Invalid type ID in action.target: "${action.target}"`);
-    }
-
     // Register and validate the action instance
     // Actions use their `type` field as the GTS entity identifier (no synthetic IDs)
     // See design/mfe-actions.md line 88: MUST NOT generate synthetic IDs

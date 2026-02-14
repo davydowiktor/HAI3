@@ -25,8 +25,6 @@ export interface MfeContextValue {
   extensionId: string;
   /** Domain ID where MFE is mounted */
   domainId: string;
-  /** Entry type ID */
-  entryTypeId: string;
 }
 
 // ============================================================================
