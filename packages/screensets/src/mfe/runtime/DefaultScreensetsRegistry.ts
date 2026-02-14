@@ -35,6 +35,7 @@ import { DefaultRuntimeBridgeFactory } from './default-runtime-bridge-factory';
 import { ExtensionLifecycleActionHandler, type ExtensionLifecycleCallbacks } from './extension-lifecycle-action-handler';
 import type { ContainerProvider } from './container-provider';
 import { HAI3_ACTION_UNMOUNT_EXT } from '../constants';
+import { EntryTypeNotHandledError } from '../errors';
 
 /**
  * Default concrete implementation of ScreensetsRegistry.
@@ -157,6 +158,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       // already holds the serializer lock for this entity ID, so calling
       // registry.unmountExtension would deadlock. Go directly to MountManager.
       unmountExtension: (extensionId) => this.mountManager.unmountExtension(extensionId),
+      validateEntryType: (entryTypeId) => this.validateEntryType(entryTypeId),
     });
 
     // Initialize lifecycle manager (needs extension manager)
@@ -220,6 +222,31 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
         `TypeSystemPlugin is missing first-class citizen schemas. ` +
         `The following schemas are required but not found: ${missingSchemas.join(', ')}. ` +
         `Ensure the plugin has all built-in schemas registered during construction.`
+      );
+    }
+  }
+
+  /**
+   * Validate that at least one registered handler can handle the given entry type.
+   * If no handler matches and handlers are registered, throws EntryTypeNotHandledError.
+   * If no handlers are registered, validation is skipped (early registration scenario).
+   *
+   * @param entryTypeId - Type ID of the entry to validate
+   * @throws {EntryTypeNotHandledError} if handlers are registered but none can handle the entry type
+   */
+  private validateEntryType(entryTypeId: string): void {
+    if (this.handlers.length === 0) {
+      // No handlers registered -- skip validation.
+      // Loading will fail later when the extension is loaded,
+      // but registration is allowed during early setup.
+      return;
+    }
+
+    const canHandle = this.handlers.some(handler => handler.canHandle(entryTypeId));
+    if (!canHandle) {
+      throw new EntryTypeNotHandledError(
+        entryTypeId,
+        this.handlers.map(h => h.handledBaseTypeId)
       );
     }
   }
@@ -376,8 +403,10 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * 2. Check domain exists
    * 3. Validate contract (entry vs domain)
    * 4. Validate extension type (if domain specifies extensionsTypeId)
-   * 5. Register in internal state
-   * 6. Trigger 'init' lifecycle stage
+   * 5. Validate lifecycle hooks
+   * 6. Validate entry type is handleable by registered handlers
+   * 7. Register in internal state
+   * 8. Trigger 'init' lifecycle stage
    *
    * @param extension - Extension to register
    * @returns Promise resolving when registration is complete
@@ -385,6 +414,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @throws {Error} if domain not registered
    * @throws {ContractValidationError} if contract validation fails
    * @throws {ExtensionTypeError} if extension type validation fails
+   * @throws {EntryTypeNotHandledError} if no registered handler can handle the entry type
    */
   async registerExtension(extension: Extension): Promise<void> {
     return this.operationSerializer.serializeOperation(extension.id, async () => {

@@ -126,8 +126,16 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     return moduleFactory();
   }
 
-  private async resolveManifest(manifestRef: string): Promise<MfManifest> {
-    // Check cache first
+  private async resolveManifest(manifestRef: string | MfManifest): Promise<MfManifest> {
+    // If manifestRef is an inline MfManifest object, validate and return it
+    if (typeof manifestRef === 'object' && manifestRef !== null) {
+      if (typeof manifestRef.id !== 'string' || typeof manifestRef.remoteEntry !== 'string') {
+        throw new MfeLoadError('Inline manifest missing required fields (id, remoteEntry)', '');
+      }
+      return manifestRef;
+    }
+
+    // String reference: check cache first
     const cached = this.manifestCache.getManifest(manifestRef);
     if (cached) {
       return cached;

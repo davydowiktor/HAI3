@@ -11,13 +11,12 @@ import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeEntryMF, MfManifest } from '../types';
 import {
   MfeHandler,
-  MfeBridgeFactory,
   ChildMfeBridge,
   MfeEntryLifecycle,
 } from './types';
 import { MfeLoadError } from '../errors';
 import { RetryHandler } from '../errors/error-handler';
-import { ChildMfeBridgeImpl } from '../bridge/ChildMfeBridge';
+import { MfeBridgeFactoryDefault } from './mfe-bridge-factory-default';
 
 /**
  * Module Federation container interface.
@@ -62,20 +61,6 @@ class ManifestCache {
    */
   getContainer(remoteName: string): ModuleFederationContainer | undefined {
     return this.containers.get(remoteName);
-  }
-}
-
-/**
- * Default bridge factory - creates ChildMfeBridgeImpl instances.
- * Uses the concrete ChildMfeBridgeImpl class to avoid unsafe casts.
- */
-class MfeBridgeFactoryDefault extends MfeBridgeFactory<ChildMfeBridgeImpl> {
-  create(domainId: string, _entryTypeId: string, instanceId: string): ChildMfeBridgeImpl {
-    return new ChildMfeBridgeImpl(domainId, instanceId);
-  }
-
-  dispose(bridge: ChildMfeBridgeImpl): void {
-    bridge.cleanup();
   }
 }
 
@@ -347,4 +332,4 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   }
 }
 
-export { MfeHandlerMF, MfeBridgeFactoryDefault };
+export { MfeHandlerMF };

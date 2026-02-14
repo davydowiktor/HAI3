@@ -18,13 +18,16 @@ HAI3 applications need to compose functionality from multiple independently depl
 
 **Key Principles:**
 - **Screensets is CORE to HAI3** - automatically initialized by `createHAI3()`, NOT a `.use()` plugin
-- **Microfrontends plugin enables MFE capabilities** with NO static configuration
-- **All MFE registration is dynamic** - happens at runtime via actions/API, not at initialization
+- **Microfrontends plugin enables MFE capabilities** with optional handler configuration (`mfeHandlers?: MfeHandler[]`)
+- **All domain/extension registration is dynamic** - happens at runtime via actions/API, not at initialization
 
 ```typescript
 // Screensets is CORE - automatically initialized by createHAI3()
+// NOTE: The mfeHandlers configuration is the target state after Phase 34.2.
+// Currently microfrontends() rejects all arguments; handler registration
+// is wired in Phase 34.2.1.
 const app = createHAI3()
-  .use(microfrontends())  // No configuration - just enables MFE capabilities
+  .use(microfrontends({ mfeHandlers: [new MfeHandlerMF(gtsPlugin)] }))
   .build();
 
 // All registration happens dynamically at runtime:
@@ -88,7 +91,7 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
 | `MfManifest` | `id, remoteEntry, remoteName, sharedDependencies?: SharedDependencyConfig[], entries?: string[]` | Module Federation manifest (standalone) |
-| `MfeEntryMF` | `(extends MfeEntry) manifest, exposedModule` | Module Federation entry (derived) |
+| `MfeEntryMF` | `(extends MfeEntry) manifest: string \| MfManifest, exposedModule` | Module Federation entry (derived) |
 
 **Framework-Agnostic Lifecycle Interface (1 type):**
 
@@ -181,12 +184,13 @@ Lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`) call `
 - `packages/screensets/src/mfe/plugins/` - Type System plugin interface and implementations
 - `packages/screensets/src/mfe/plugins/gts/` - GTS plugin implementation (default)
 - `packages/screensets/src/mfe/handler/` - MfeHandler abstract class, MfeBridgeFactory, and handler registry
-- `packages/screensets/src/mfe/handler/mf-handler.ts` - MfeHandlerMF (Module Federation handler) and MfeBridgeFactoryDefault (bridge factory for MfeHandlerMF)
+- `packages/screensets/src/mfe/handler/mf-handler.ts` - MfeHandlerMF (Module Federation handler)
+- `packages/screensets/src/mfe/handler/mfe-bridge-factory-default.ts` - MfeBridgeFactoryDefault (bridge factory for MfeHandlerMF)
 
 **Modified packages:**
 - `packages/screensets/src/state/` - Isolated state instances (uses @hai3/state)
 - `packages/screensets/src/screensets/` - Extension domain registration
-- `packages/framework/src/plugins/microfrontends/` - Enables MFE capabilities (no static configuration)
+- `packages/framework/src/plugins/microfrontends/` - Enables MFE capabilities (optional handler configuration via `mfeHandlers`)
 
 ### Test File Location Convention
 

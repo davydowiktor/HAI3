@@ -206,6 +206,26 @@ export class NoActionsChainHandlerError extends MfeError {
 }
 
 /**
+ * Error thrown when an extension's entry type is not handled by any registered handler
+ */
+export class EntryTypeNotHandledError extends MfeError {
+  constructor(
+    public readonly entryTypeId: string,
+    public readonly registeredHandlerBaseTypeIds: string[]
+  ) {
+    const handlerList = registeredHandlerBaseTypeIds.length > 0
+      ? registeredHandlerBaseTypeIds.join(', ')
+      : '(none)';
+    super(
+      `No registered handler can handle entry type '${entryTypeId}'. ` +
+      `Registered handler base type IDs: ${handlerList}`,
+      'ENTRY_TYPE_NOT_HANDLED'
+    );
+    this.name = 'EntryTypeNotHandledError';
+  }
+}
+
+/**
  * Error thrown when attempting to use a disposed bridge
  */
 export class BridgeDisposedError extends MfeError {

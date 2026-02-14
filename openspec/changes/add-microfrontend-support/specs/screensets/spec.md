@@ -170,7 +170,7 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 
 - **WHEN** a vendor creates an MFE entry for Module Federation 2.0
 - **THEN** the entry SHALL conform to `MfeEntryMF` TypeScript interface (extends MfeEntry)
-- **AND** the entry SHALL include manifest (reference to MfManifest type ID)
+- **AND** the entry SHALL include manifest (`string | MfManifest` -- either a type ID reference to a cached manifest or an inline MfManifest object)
 - **AND** the entry SHALL include exposedModule (federation exposed module name)
 - **AND** the entry SHALL inherit all contract fields from MfeEntry base
 
@@ -253,7 +253,7 @@ The system SHALL support a type hierarchy for MfeEntry to enable multiple loader
 
 - **WHEN** a Module Federation entry is created
 - **THEN** it SHALL derive from MfeEntry
-- **AND** it SHALL add manifest (reference to MfManifest)
+- **AND** it SHALL add manifest (`string | MfManifest` -- type ID reference or inline object)
 - **AND** it SHALL add exposedModule (federation module name)
 - **AND** it SHALL inherit requiredProperties, optionalProperties, actions, domainActions from base
 
@@ -471,12 +471,15 @@ The system SHALL provide consistent error handling for MFE operations.
 
 The Type System plugin SHALL propagate from @hai3/screensets through @hai3/framework layers.
 
-#### Scenario: Framework microfrontends plugin (zero-config)
+#### Scenario: Framework microfrontends plugin (optional config)
+
+**Implementation note**: This scenario describes the target state after Phase 34.2 implementation.
 
 - **WHEN** initializing the @hai3/framework microfrontends plugin
-- **THEN** the plugin SHALL accept NO configuration parameters
-- **AND** calling `microfrontends({ anything })` SHALL throw an error
-- **AND** the plugin SHALL create the ScreensetsRegistry via `screensetsRegistryFactory.build({ typeSystem: gtsPlugin })` at framework wiring time
+- **THEN** the plugin SHALL accept an optional configuration object with `mfeHandlers?: MfeHandler[]`
+- **AND** calling `microfrontends()` with no arguments SHALL be valid (zero handlers registered)
+- **AND** calling `microfrontends({ mfeHandlers: [handler] })` SHALL pass the handlers to the registry at build time
+- **AND** the plugin SHALL create the ScreensetsRegistry via `screensetsRegistryFactory.build({ typeSystem: gtsPlugin, mfeHandlers })` at framework wiring time
 - **AND** the same TypeSystemPlugin instance SHALL be used throughout the application
 
 #### Scenario: Base domains registration via runtime

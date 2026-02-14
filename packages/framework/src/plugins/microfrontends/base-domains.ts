@@ -1,0 +1,118 @@
+/**
+ * Base ExtensionDomain Constants (Framework L2)
+ *
+ * Defines the 4 well-known extension domains as constant objects satisfying
+ * the ExtensionDomain interface. These constants are used by the host
+ * application to register domains via registerDomain() without hand-authoring
+ * JSON.
+ *
+ * Relationship to string constants:
+ * - HAI3_SCREEN_DOMAIN, HAI3_SIDEBAR_DOMAIN, etc. (in constants.ts) are
+ *   domain ID strings used as action targets in executeActionsChain() calls.
+ * - screenDomain, sidebarDomain, etc. (here) are full ExtensionDomain objects
+ *   whose .id fields reference the same domain ID strings.
+ * - Consumers use HAI3_SCREEN_DOMAIN for action targets and screenDomain
+ *   for registerDomain().
+ *
+ * Domain Action Support Matrix (from mfe-ext-lifecycle-actions.md):
+ * - screen: 2 actions (load_ext, mount_ext) -- NO unmount_ext (swap semantics)
+ * - sidebar/popup/overlay: 3 actions (load_ext, mount_ext, unmount_ext) -- toggle semantics
+ *
+ * @packageDocumentation
+ */
+
+import type { ExtensionDomain } from '@hai3/screensets';
+import {
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+} from '@hai3/screensets';
+import {
+  HAI3_SCREEN_DOMAIN,
+  HAI3_SIDEBAR_DOMAIN,
+  HAI3_POPUP_DOMAIN,
+  HAI3_OVERLAY_DOMAIN,
+} from './constants';
+
+/**
+ * Default lifecycle stage instance IDs (4 stages).
+ * All domains use the same set of lifecycle stages.
+ */
+const DEFAULT_LIFECYCLE_STAGES: readonly string[] = [
+  'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+  'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
+  'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
+  'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+];
+
+/**
+ * Screen domain constant.
+ *
+ * Extension domain for main content area screens.
+ * Uses swap semantics: mounting a new screen implicitly unmounts the previous one.
+ * Only 2 actions: load_ext and mount_ext (NO unmount_ext).
+ */
+export const screenDomain: ExtensionDomain = {
+  id: HAI3_SCREEN_DOMAIN,
+  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT],
+  extensionsActions: [],
+  sharedProperties: [],
+  defaultActionTimeout: 30000,
+  lifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
+  extensionsLifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
+  lifecycle: undefined,
+};
+
+/**
+ * Sidebar domain constant.
+ *
+ * Extension domain for collapsible side panels.
+ * Uses toggle semantics: extensions can be explicitly mounted and unmounted.
+ * 3 actions: load_ext, mount_ext, unmount_ext.
+ */
+export const sidebarDomain: ExtensionDomain = {
+  id: HAI3_SIDEBAR_DOMAIN,
+  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
+  extensionsActions: [],
+  sharedProperties: [],
+  defaultActionTimeout: 30000,
+  lifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
+  extensionsLifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
+  lifecycle: undefined,
+};
+
+/**
+ * Popup domain constant.
+ *
+ * Extension domain for popup/modal dialogs.
+ * Uses toggle semantics: extensions can be explicitly mounted and unmounted.
+ * 3 actions: load_ext, mount_ext, unmount_ext.
+ */
+export const popupDomain: ExtensionDomain = {
+  id: HAI3_POPUP_DOMAIN,
+  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
+  extensionsActions: [],
+  sharedProperties: [],
+  defaultActionTimeout: 30000,
+  lifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
+  extensionsLifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
+  lifecycle: undefined,
+};
+
+/**
+ * Overlay domain constant.
+ *
+ * Extension domain for full-screen overlays.
+ * Uses toggle semantics: extensions can be explicitly mounted and unmounted.
+ * 3 actions: load_ext, mount_ext, unmount_ext.
+ */
+export const overlayDomain: ExtensionDomain = {
+  id: HAI3_OVERLAY_DOMAIN,
+  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
+  extensionsActions: [],
+  sharedProperties: [],
+  defaultActionTimeout: 30000,
+  lifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
+  extensionsLifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
+  lifecycle: undefined,
+};

@@ -175,3 +175,11 @@ export {
   HAI3_OVERLAY_DOMAIN,
   MfeEvents,
 } from './constants';
+
+// Re-export base ExtensionDomain constants
+export {
+  screenDomain,
+  sidebarDomain,
+  popupDomain,
+  overlayDomain,
+} from './base-domains';

@@ -10,21 +10,25 @@ The system SHALL provide a `microfrontends()` plugin in `@hai3/framework` that e
 
 **Key Principles:**
 - Screensets is built-in to HAI3 - NOT a `.use()` plugin
-- Microfrontends plugin enables MFE capabilities with NO static configuration
-- All MFE registrations happen dynamically at runtime via actions/API
+- Microfrontends plugin enables MFE capabilities with optional handler configuration
+- All MFE registrations (domains, extensions) happen dynamically at runtime via actions/API
 
 #### Scenario: Enable microfrontends in HAI3
 
+**Implementation note**: This scenario describes the target state after Phase 34 implementation. The `microfrontends({ mfeHandlers })` configuration and dynamic registration capabilities are implemented across Phases 32-34.
+
 ```typescript
 import { createHAI3, microfrontends } from '@hai3/framework';
+import { MfeHandlerMF } from '@hai3/screensets/mfe/handler'; // Note: The ./mfe/handler subpath export is added in Phase 34.2.2
+import { gtsPlugin } from '@hai3/screensets/plugins/gts';
 
 // Screensets is CORE - automatically initialized by createHAI3()
-// Microfrontends plugin just enables MFE capabilities - no static config
+// Microfrontends plugin enables MFE capabilities
 const app = createHAI3()
-  .use(microfrontends())  // No configuration object - just enables MFE capabilities
+  .use(microfrontends({ mfeHandlers: [new MfeHandlerMF(gtsPlugin)] }))
   .build();
 
-// All registration happens dynamically at runtime:
+// All domain/extension registration happens dynamically at runtime:
 // Extension registration via Flux actions (with store state tracking):
 // - mfeActions.registerExtension({ extension })
 // Domain registration via runtime API (direct, synchronous):
@@ -34,8 +38,8 @@ const app = createHAI3()
 - **WHEN** building an app with microfrontends plugin
 - **THEN** the plugin SHALL enable MFE capabilities
 - **AND** screensets SHALL be automatically available (core to HAI3)
-- **AND** the plugin SHALL NOT accept static configuration
-- **AND** all MFE registration SHALL happen dynamically at runtime
+- **AND** the plugin SHALL accept an optional configuration object with `mfeHandlers?: MfeHandler[]`
+- **AND** all domain and extension registration SHALL happen dynamically at runtime
 
 ### Requirement: Dynamic MFE Registration
 
@@ -391,8 +395,8 @@ The system SHALL validate shared dependency versions between host and MFE.
 #### Scenario: Version mismatch warning
 
 ```typescript
-// If host uses React 18.3.0 and MFE built with React 18.2.0:
-// Warning logged: "MFE entry 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' was built with react@18.2.0, host has 18.3.0"
+// If host uses React 19.2.0 and MFE built with React 19.1.0:
+// Warning logged: "MFE entry 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' was built with react@19.1.0, host has 19.2.0"
 ```
 
 - **WHEN** an MFE is loaded with different shared dependency versions
@@ -403,7 +407,7 @@ The system SHALL validate shared dependency versions between host and MFE.
 #### Scenario: Major version mismatch error
 
 ```typescript
-// If host uses React 18.x and MFE built with React 17.x:
+// If host uses React 19.x and MFE built with React 18.x:
 // The handler validates shared dependency versions when loading the MFE bundle
 try {
   await runtime.executeActionsChain({
@@ -508,9 +512,9 @@ const registeredExtensions = useAppSelector(selectRegisteredExtensions);
 ```typescript
 import { mfeActions } from '@hai3/framework';
 
-// App is created WITHOUT static configuration
+// App is created with handler configuration only; domain/extension registration is dynamic
 const app = createHAI3()
-  .use(microfrontends())  // No configuration - just enables MFE capabilities
+  .use(microfrontends({ mfeHandlers: [new MfeHandlerMF(gtsPlugin)] }))
   .build();
 
 // Entity fetching is OUTSIDE MFE system scope - application handles this

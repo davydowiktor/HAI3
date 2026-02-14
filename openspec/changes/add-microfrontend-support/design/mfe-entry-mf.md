@@ -121,8 +121,13 @@ interface MfeEntry {
  * GTS Type: gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~
  */
 interface MfeEntryMF extends MfeEntry {
-  /** Reference to MfManifest type ID containing Module Federation config */
-  manifest: string;
+  /**
+   * Module Federation manifest configuration.
+   * Can be either:
+   * - A type ID reference (string) to a cached manifest
+   * - An inline MfManifest object
+   */
+  manifest: string | MfManifest;
   /** Module Federation exposed module name (e.g., './ChartWidget') */
   exposedModule: string;
 }

@@ -48,6 +48,11 @@ export {
   HAI3_SIDEBAR_DOMAIN,
   HAI3_SCREEN_DOMAIN,
   HAI3_OVERLAY_DOMAIN,
+  // Base ExtensionDomain constants
+  screenDomain,
+  sidebarDomain,
+  popupDomain,
+  overlayDomain,
 } from './plugins';
 
 // MFE Action Constants (re-exported from @hai3/screensets for convenience)

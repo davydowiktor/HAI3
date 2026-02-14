@@ -2,7 +2,7 @@
 
 ## Status
 
-All MFE implementation tasks through Phase 31.7 are COMPLETE (441 tests passing: 364 screensets + 61 framework + 16 react, 4 tests skipped identifying validation gaps).
+All MFE implementation tasks through Phase 32 are COMPLETE (444 tests passing: 367 screensets + 61 framework + 16 react, 4 tests skipped identifying validation gaps).
 
 Phase 27 (React component migration) is COMPLETE. @hai3/screensets has zero React dependencies.
 
@@ -12,6 +12,14 @@ Phase 29 (Public API cleanup — remove internal symbols from barrels) is COMPLE
 
 Phase 30 (Framework MFE API cleanup) is COMPLETE.
 
+### Upcoming Work
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 32 | MFE Infrastructure: base `ExtensionDomain` constants, `MfeBridgeFactoryDefault` extraction, entry type validation | COMPLETE |
+| Phase 33 | Module Federation Build Configuration: Vite MF plugin, MFE remote package, `MfeEntryLifecycle` class, `MfeEntryMF` entries, shared deps | PENDING |
+| Phase 34 | Wire MFEs into Host App: host MF config, handler registration, domain + extension registration, remove legacy screenset API | PENDING |
+
 ### Completed Work
 
 | Area | Description | Status |
@@ -20,6 +28,7 @@ Phase 30 (Framework MFE API cleanup) is COMPLETE.
 | Phase 27 | Move React-dependent components (RefContainerProvider, ExtensionDomainSlot) to @hai3/react; zero React dependencies in @hai3/screensets | COMPLETE |
 | Phase 28 | Clean up ScreensetsRegistryConfig (remove test-only APIs, internal collaborator injection); move error callback to per-domain `registerDomain` | COMPLETE |
 | Phase 29 | Remove ~43 leaked internals from public barrels; simplify `executeActionsChain` to `Promise<void>`; slim `TypeSystemPlugin` to 7 methods; slim `ChildMfeBridge` (remove `entryTypeId`, `subscribeToAllProperties`); remove `preload()` from `MfeHandler`; provide handlers via config only; update specs and design docs | COMPLETE |
+| Phase 30 | Framework MFE API cleanup: remove unused vanilla DOM components, domain factory functions, redundant domain registration actions, `preloadExtension` duplicate; add missing screensets re-exports to framework; update framework tests; spec/design doc alignment | COMPLETE |
 | Phase 31 | React API completion: MFE re-exports, `useDomainExtensions` export chain fix, unused type removal, depcruiser + ESLint layer enforcement, `MfeBridgeFactory` barrel export | COMPLETE |
 
 ### Current Construction Patterns
@@ -32,276 +41,389 @@ Phase 30 (Framework MFE API cleanup) is COMPLETE.
 
 ---
 
-## Phase 30: Framework MFE API Cleanup
+## Phase 32: MFE Infrastructure (Framework-Level Domain Constants, Bridge Factory Extraction, Entry Type Validation)
 
-**Goal**: The `@hai3/framework` MFE public API exports ~30 symbols, most with zero consumer usage. Remove unused components, redundant actions, and trivial wrappers. Add missing `@hai3/screensets` re-exports so `@hai3/react` never imports from screensets directly (layering principle: L3 imports L2, not L1).
+**Goal**: Prepare infrastructure needed before Module Federation remotes can be wired. Define base `ExtensionDomain` constants for the 4 extension domains in `@hai3/framework`, extract `MfeBridgeFactoryDefault` to its own file, and add entry type validation to the handler registry so that registering an extension with an entry type that no concrete handler recognises is rejected early.
 
-### 30.1 Remove Unused Vanilla DOM Components
+### 32.1 Base ExtensionDomain Constants in `@hai3/framework`
 
-Delete the following files entirely:
-- `packages/framework/src/plugins/microfrontends/components/MfeErrorBoundary.ts`
-- `packages/framework/src/plugins/microfrontends/components/MfeLoadingIndicator.ts`
-- `packages/framework/src/plugins/microfrontends/components/ShadowDomContainer.ts`
-- `packages/framework/src/plugins/microfrontends/components/index.ts` (entire `components/` directory)
+The 4 extension domains (screen, sidebar, popup, overlay) are well-known. They must be defined as `ExtensionDomain` constant objects in `@hai3/framework` so the host application can import and register them without hand-authoring JSON. Each constant is a plain object literal satisfying the `ExtensionDomain` interface.
 
-Remove associated config types: `MfeErrorBoundaryConfig`, `MfeLoadingIndicatorConfig`, `ShadowDomContainerConfig`.
+**Relationship to existing string constants**: The existing `HAI3_SCREEN_DOMAIN`, `HAI3_SIDEBAR_DOMAIN`, `HAI3_POPUP_DOMAIN`, `HAI3_OVERLAY_DOMAIN` string constants (in `constants.ts`) remain unchanged -- they contain domain ID strings used as action targets in `executeActionsChain()` calls (e.g., `action.target = HAI3_SCREEN_DOMAIN`). The new `screenDomain`, `sidebarDomain`, `popupDomain`, `overlayDomain` are full `ExtensionDomain` objects whose `.id` fields reference the same domain ID strings as the existing constants. Consumers use `HAI3_SCREEN_DOMAIN` for action targets and `screenDomain` for `registerDomain()`.
 
-Remove all re-exports of these symbols from:
-- `packages/framework/src/plugins/microfrontends/index.ts`
-- `packages/framework/src/plugins/index.ts`
-- `packages/framework/src/index.ts`
+Note: Phase 30.2 deleted the original `base-domains.ts` (factory functions with zero consumer usage). This task creates a new file at the same path with `ExtensionDomain` constant objects -- a fundamentally different pattern. Barrel exports removed in Phase 30.2 must be re-added.
 
-- [x] 30.1.1 Delete the `components/` directory and all 4 files.
-- [x] 30.1.2 Remove component and config type exports from barrel files.
+Create file `packages/framework/src/plugins/microfrontends/base-domains.ts` containing:
 
-**Traceability**: Proposal -- these are unused placeholder components. `ShadowDomContainer` duplicates `createShadowRoot` + `injectCssVariables` from screensets. The component files themselves note "React-based equivalents should be in @hai3/react".
+- `screenDomain: ExtensionDomain` -- id `gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1`, `actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT]` (2 actions, NO `HAI3_ACTION_UNMOUNT_EXT`), `extensionsActions: []`, `sharedProperties: []`, `defaultActionTimeout: 30000`, `lifecycleStages` and `extensionsLifecycleStages` populated with the 4 default stage instance IDs (`init`, `activated`, `deactivated`, `destroyed`), `lifecycle: undefined`.
+- `sidebarDomain: ExtensionDomain` -- id `gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1`, `actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT]` (3 actions), same shape.
+- `popupDomain: ExtensionDomain` -- id `gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1`, 3 actions, same shape.
+- `overlayDomain: ExtensionDomain` -- id `gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1`, 3 actions, same shape.
 
-### 30.2 Remove Domain Factory Functions
+Export all 4 from the barrel chain: `microfrontends/index.ts` -> `plugins/index.ts` -> `framework/src/index.ts`.
 
-Delete `packages/framework/src/plugins/microfrontends/base-domains.ts` entirely. The JSON domain definitions and factory functions (`createSidebarDomain()`, `createPopupDomain()`, `createScreenDomain()`, `createOverlayDomain()`) are trivial wrappers with zero consumer usage. Tests that need domain JSON constants can import from `gts/loader.ts` directly.
+Re-export from `@hai3/react` barrel (`packages/react/src/index.ts`).
 
-- [x] 30.2.1 Delete `base-domains.ts` entirely.
-- [x] 30.2.2 Remove `base-domains` exports from barrel files (`packages/framework/src/plugins/microfrontends/index.ts`, `packages/framework/src/plugins/index.ts`, and the top-level `packages/framework/src/index.ts` barrel).
+- [x] 32.1.1 Create `packages/framework/src/plugins/microfrontends/base-domains.ts` with the 4 `ExtensionDomain` constants. Import `ExtensionDomain` type from `@hai3/screensets`. Import `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT` from `@hai3/screensets`.
+- [x] 32.1.2 Export the 4 domain constants from `packages/framework/src/plugins/microfrontends/index.ts`.
+- [x] 32.1.3 Ensure domain constants are reachable from `packages/framework/src/plugins/index.ts` and `packages/framework/src/index.ts`.
+- [x] 32.1.4 Re-export domain constants from `packages/react/src/index.ts`.
+- [x] 32.1.5 Update `packages/framework/src/plugins/microfrontends/constants.ts` (or equivalent) if `HAI3_SCREEN_DOMAIN`, `HAI3_SIDEBAR_DOMAIN`, `HAI3_POPUP_DOMAIN`, `HAI3_OVERLAY_DOMAIN` string constants already exist -- ensure they use the same IDs as the new domain objects. If they reference old factory functions that were deleted in Phase 30, remove those references.
 
-**Traceability**: Proposal -- unnecessary public API surface; consumers use domain JSON constants directly.
+**Traceability**: Design doc `mfe-ext-lifecycle-actions.md` -- Domain Action Support Matrix (screen: 2 actions, sidebar/popup/overlay: 3 actions). Design doc `registry-runtime.md` -- Export Policy (framework re-exports all public screensets symbols).
 
-### 30.3 Remove Redundant Domain Registration Actions
+### 32.2 Extract `MfeBridgeFactoryDefault` to Separate File
 
-Remove `registerDomain()` and `unregisterDomain()` action functions from `packages/framework/src/plugins/microfrontends/actions.ts`. Remove their payload types (`RegisterDomainPayload`, `UnregisterDomainPayload`). Remove from barrel exports and from the plugin's `provides.actions`. Remove the corresponding effects in `packages/framework/src/plugins/microfrontends/effects.ts` (domain registration/unregistration event handlers). Remove event augmentation entries for `mfe/registerDomainRequested` and `mfe/unregisterDomainRequested`. Remove `MfeEvents.RegisterDomainRequested` and `MfeEvents.UnregisterDomainRequested` from constants.
+`MfeBridgeFactoryDefault` currently lives inside `packages/screensets/src/mfe/handler/mf-handler.ts` alongside `MfeHandlerMF`. It is a distinct class with a focused responsibility (bridge creation/disposal). Extract it to its own file for better cohesion and to match the "one class per file" pattern used by all other collaborators.
 
-Reason: these actions do not update the store slice -- they proxy to `screensetsRegistry.registerDomain()` with error logging. Consumers should call `app.screensetsRegistry.registerDomain()` directly.
+- [x] 32.2.1 Create `packages/screensets/src/mfe/handler/mfe-bridge-factory-default.ts` containing the `MfeBridgeFactoryDefault` class. Import `MfeBridgeFactory`, `ChildMfeBridge` from `./types`. Import `ChildMfeBridgeImpl` from `../bridge/ChildMfeBridge`.
+- [x] 32.2.2 Remove `MfeBridgeFactoryDefault` class from `mf-handler.ts`. Update `mf-handler.ts` to import `MfeBridgeFactoryDefault` from `./mfe-bridge-factory-default`.
+- [x] 32.2.3 Update `packages/screensets/src/mfe/handler/index.ts` barrel to re-export `MfeBridgeFactoryDefault` from `./mfe-bridge-factory-default` (the handler sub-barrel already exports it per the Export Policy).
+- [x] 32.2.4 Verify no other files import `MfeBridgeFactoryDefault` from `./mf-handler` directly. If any do, update them.
+- [x] 32.2.5 Update design docs and proposal to reflect the new file location: In `proposal.md` line 184, change `mf-handler.ts` description from "MfeHandlerMF (Module Federation handler) and MfeBridgeFactoryDefault (bridge factory for MfeHandlerMF)" to "MfeHandlerMF (Module Federation handler)". In `design/mfe-loading.md`, update any references to `MfeBridgeFactoryDefault` living in `mf-handler.ts` (e.g., the `ManifestCache` comment at Decision 12 and the code block header at line ~226).
 
-- [x] 30.3.1 Remove `registerDomain()` and `unregisterDomain()` from `actions.ts`.
-- [x] 30.3.2 Remove `RegisterDomainPayload` and `UnregisterDomainPayload` types.
-- [x] 30.3.3 Remove domain registration/unregistration effects from `effects.ts`. This includes the `RegisterDomainRequested` and `UnregisterDomainRequested` event subscriptions in `initMfeEffects` AND their corresponding cleanup entries in the returned cleanup function.
-- [x] 30.3.4 Remove `MfeEvents.RegisterDomainRequested` and `MfeEvents.UnregisterDomainRequested` from constants.
-- [x] 30.3.5 Remove event augmentation entries for domain registration events.
-- [x] 30.3.6 Remove from barrel exports and plugin's `provides.actions`.
+**Traceability**: Design doc `registry-runtime.md` -- Export Policy (handler sub-barrel exports `MfeBridgeFactoryDefault`; concrete class, NOT in main barrel).
 
-**Traceability**: Proposal -- domain registration is synchronous; Flux event/effect/slice round-trip adds no value. Direct `screensetsRegistry.registerDomain()` is sufficient.
+### 32.3 Entry Type Validation in Handler Registry
 
-### 30.4 Remove `preloadExtension` Action
+When `registerExtension()` validates an extension, the system currently checks contract matching, type hierarchy, and GTS instance validation. However, it does NOT verify that the extension's `entry` type ID is handleable by any registered handler. If no handler can handle the entry type, the error surfaces only at load time (lazy). This should be caught at registration time.
 
-Remove `preloadExtension()` from `packages/framework/src/plugins/microfrontends/actions.ts`. Remove from barrel exports and plugin's `provides.actions`.
+Add entry type validation: during `registerExtension()`, after GTS validation succeeds, iterate the registered `MfeHandler` instances and call `handler.canHandle(entryTypeId)`. If no handler matches, throw `MfeLoadError` (or a new `EntryTypeNotHandledError` extending `MfeError`) with a message indicating the entry type and the list of registered handler base type IDs.
 
-Reason: `preloadExtension()` is identical to `loadExtension()` (both call `HAI3_ACTION_LOAD_EXT`); the only difference is `console.error` vs `console.warn` on failure.
+This validation is in `DefaultScreensetsRegistry.registerExtension()` (or its delegate `DefaultExtensionManager`), NOT in the public abstract class.
 
-- [x] 30.4.1 Remove `preloadExtension()` from `actions.ts`.
-- [x] 30.4.2 Remove from barrel exports and plugin's `provides.actions`.
-- [x] 30.4.3 Update the `onInit` debug log in `packages/framework/src/plugins/microfrontends/index.ts` (line ~124) that prints "MFE actions available: loadExtension, preloadExtension, mountExtension, unmountExtension" -- remove `preloadExtension` from the list.
+- [x] 32.3.1 In `DefaultScreensetsRegistry` (or its delegate), add entry type validation after contract validation. The check iterates `this.handlers` (the registered `MfeHandler[]`) and calls `canHandle(extension.entry)`. If no handler matches and `this.handlers.length > 0`, throw an error. If `this.handlers.length === 0`, skip the check (no handlers registered means loading will fail later anyway -- this is valid during early registration before handlers are configured).
+- [x] 32.3.2 Write unit test: register a handler for `MfeEntryMF`, then attempt to register an extension with an entry type ID that does NOT derive from `MfeEntryMF` -- expect the registration to throw.
+- [x] 32.3.3 Write unit test: register a handler for `MfeEntryMF`, then register an extension with a valid `MfeEntryMF`-derived entry type ID -- expect success.
+- [x] 32.3.4 Write unit test: register NO handlers, then register an extension -- expect success (validation skipped when no handlers).
 
-**Traceability**: Proposal -- duplicate of `loadExtension()`. Consumers call `loadExtension()` for both explicit load and preload.
+**Traceability**: Proposal requirement -- "entry type validation: the screensets package should throw when an extension is registered with an entry type that doesn't match any registered concrete handler type".
 
-### 30.5 Add Missing Screensets Re-Exports to Framework
+### 32.4 Validation
 
-**Layering principle**: Framework (L2) must fully cover screensets (L1) so consumers never need a direct `@hai3/screensets` import. Currently `@hai3/react` imports these from screensets directly:
-- `ChildMfeBridge` (type)
-- `ParentMfeBridge` (type)
-- `ScreensetsRegistry` (abstract class)
-- `ContainerProvider` (class)
-- `Extension` (type)
-
-Additionally, ALL public screensets exports must be re-exported from framework. Verify and add re-exports for: `ExtensionDomain`, `MfeHandler`, `ActionsChain`, `Action`, `SharedProperty`, `LifecycleStage`, `LifecycleHook`, `MfeEntryLifecycle`, `MfeEntry`, `MfeEntryMF`, `JSONSchema`, `ValidationError`, `ValidationResult`, `TypeSystemPlugin`, `ScreensetsRegistryConfig`, `screensetsRegistryFactory`, `ScreensetsRegistryFactory`, `LoadExtPayload`, `MountExtPayload`, `UnmountExtPayload`, `createShadowRoot`, `injectCssVariables`, `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`.
-
-Then update `packages/react/src/` imports to use `@hai3/framework` instead of `@hai3/screensets`.
-
-Note: This task covers MFE-related screensets exports only. Non-MFE screensets exports are already re-exported by framework.
-
-- [x] 30.5.1 Add re-exports of all public `@hai3/screensets` MFE symbols from `packages/framework/src/index.ts`.
-- [x] 30.5.2 Update all `packages/react/src/` imports to use `@hai3/framework` instead of `@hai3/screensets`.
-
-**Traceability**: Proposal -- layering principle: L3 (@hai3/react) imports from L2 (@hai3/framework), never from L1 (@hai3/screensets).
-
-### 30.6 Update Framework Tests
-
-Update tests that reference removed symbols. Delete or update tests for:
-- Removed components (`MfeErrorBoundary`, `MfeLoadingIndicator`, `ShadowDomContainer`)
-- Removed domain factory functions (`createSidebarDomain`, etc.)
-- Removed domain registration actions (`registerDomain`, `unregisterDomain`)
-- Removed `preloadExtension` action
-
-- [x] 30.6.1 Delete or update tests referencing removed components.
-- [x] 30.6.2 Delete or update tests referencing removed domain factories.
-- [x] 30.6.3 Delete or update tests referencing removed domain registration actions/effects.
-- [x] 30.6.4 Delete or update tests referencing `preloadExtension`.
-
-**Traceability**: Tests must compile and pass after symbol removal.
-
-### 30.7 Validation
-
-- [x] 30.7.1 Run `npm run type-check` -- must pass.
-- [x] 30.7.2 Run `npm run test` -- all tests pass.
-- [x] 30.7.3 Run `npm run build` -- must pass.
-- [x] 30.7.4 Run `npm run lint` -- must pass.
-
-### 30.8 Spec and Design Doc Alignment
-
-- [x] 30.8.1 Remove references to deleted symbols (`MfeErrorBoundary`, `ShadowDomContainer`, `registerDomain()` action event bus section) from spec and design docs.
-
-**Traceability**: Proposal -- design docs represent target state only; stale references to removed symbols must be cleaned up.
+- [x] 32.4.1 Run `npm run type-check` -- must pass.
+- [x] 32.4.2 Run `npm run test` -- all tests pass.
+- [x] 32.4.3 Run `npm run build` -- must pass.
+- [x] 32.4.4 Run `npm run lint` -- must pass.
 
 ---
 
-## Phase 31: React API Completion & Tooling Enforcement
+## Phase 33: Module Federation Build Configuration (MFE Remotes)
 
-**Goal**: Close layering gaps in `@hai3/react`, fix unreachable exports, remove unused type bloat, and enforce layer boundaries via dependency-cruiser.
+**Goal**: Convert the demo screenset into a real Module Federation 2.0 remote. Create a separate MFE package with its own Vite + Module Federation build config producing a `remoteEntry.js`. Create the `MfeEntryLifecycle` implementation (class-based). Create `mfe.json` with `MfeEntryMF` entries. Configure shared dependencies with `singleton: false` for React/react-dom.
 
-### 31.1 React MFE Re-Exports (Layering Compliance)
+### 33.0 Background
 
-`@hai3/react` (L3) re-exports all non-MFE framework symbols but zero MFE symbols. Consumers using `@hai3/react` must fall through to `@hai3/framework` for MFE functionality, violating the principle that each layer fully covers the layer below.
+The repo uses Vite. The design docs mention `@originjs/vite-plugin-federation` as the Vite-compatible Module Federation plugin (see `mfe-loading.md` Decision 11: "Works with existing HAI3 Vite build (via `@originjs/vite-plugin-federation`)"). The demo screenset at `src/screensets/demo/` has 4 screens (HelloWorld, CurrentTheme, Profile, UIKitElements). For the initial MFE demo, convert ONE screen (HelloWorld) into an MFE remote to prove the pipeline end-to-end. Additional screens can be converted later.
 
-Add re-exports from `@hai3/framework` to `packages/react/src/index.ts` for:
+Each MFE remote is a separate build artifact in `src/mfe_packages/<name>/`.
 
-**Plugin factories:**
-- `microfrontends`
-- `mock`
+### 33.1 Install Module Federation Vite Plugin
 
-**Action functions:**
-- `loadExtension`, `mountExtension`, `unmountExtension`, `registerExtension`, `unregisterExtension`
+- [ ] 33.1.1 Install `@originjs/vite-plugin-federation` as a dev dependency at the repo root: `npm install --save-dev @originjs/vite-plugin-federation`.
+- [ ] 33.1.2 Verify the package installs without conflicts. If `@originjs/vite-plugin-federation` is incompatible with the current Vite version, use `@module-federation/vite` instead and adjust subsequent tasks accordingly.
 
-**Selectors:**
-- `selectExtensionState`, `selectRegisteredExtensions`, `selectExtensionError`
+**Traceability**: Design doc `mfe-loading.md` Decision 11 -- "Works with existing HAI3 Vite build (via `@originjs/vite-plugin-federation`)".
 
-**Domain constants:**
-- `HAI3_POPUP_DOMAIN`, `HAI3_SIDEBAR_DOMAIN`, `HAI3_SCREEN_DOMAIN`, `HAI3_OVERLAY_DOMAIN`
+### 33.2 Create MFE Remote Package Structure
 
-**Action constants:**
-- `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`
+Create `src/mfe_packages/hello-world-mfe/` with the following structure:
 
-**Types (re-exported as types):**
-- `ChildMfeBridge`, `ParentMfeBridge`, `Extension`, `ExtensionDomain`, `ActionsChain`, `Action`, `SharedProperty`, `LifecycleStage`, `LifecycleHook`, `MfeEntryLifecycle`, `MfeEntry`, `MfeEntryMF`, `JSONSchema`, `ValidationError`, `ValidationResult`, `LoadExtPayload`, `MountExtPayload`, `UnmountExtPayload`, `ScreensetsRegistryConfig`, `TypeSystemPlugin`
+```
+src/mfe_packages/hello-world-mfe/
+  vite.config.ts          # Vite config with Module Federation remote plugin
+  src/
+    lifecycle.tsx         # MfeEntryLifecycle implementation (class-based, .tsx because it renders JSX)
+    HelloWorldScreen.tsx  # The actual React component (moved/adapted from demo screenset)
+  mfe.json                # MfeEntryMF + MfManifest GTS instance definitions
+  package.json            # Minimal package.json for the MFE build
+  tsconfig.json           # TypeScript config extending root
+```
 
-**Abstract classes:**
-- `MfeHandler`, `ScreensetsRegistry`, `ScreensetsRegistryFactory`, `ContainerProvider`
+- [ ] 33.2.1 Create `src/mfe_packages/hello-world-mfe/package.json` with: `name: "@hai3/hello-world-mfe"`, `private: true`, `type: "module"`, `scripts: { "dev": "vite --port 3001", "build": "vite build", "preview": "vite preview --port 3001" }`, `dependencies` including `react`, `react-dom` (same versions as root) and `@hai3/screensets` (the SDK package that defines MFE contracts -- `MfeEntryLifecycle`, `ChildMfeBridge`), `devDependencies` including `@vitejs/plugin-react`, `@originjs/vite-plugin-federation`, `vite`, `typescript`.
+- [ ] 33.2.2 Create `src/mfe_packages/hello-world-mfe/tsconfig.json` extending `../../../tsconfig.json` with `compilerOptions.jsx: "react-jsx"` and appropriate `include`/`exclude`.
 
-**Factory instance:**
-- `screensetsRegistryFactory`
+**Traceability**: Proposal -- "Each MFE must have a Module Federation build config producing a remoteEntry.js".
 
-**Utilities:**
-- `createShadowRoot`, `injectCssVariables`
+### 33.3 MFE Remote Vite Configuration
 
-**MFE plugin types (re-exported as types):**
-- `MfeState`, `ExtensionRegistrationState`, `RegisterExtensionPayload`, `UnregisterExtensionPayload`
+Create `src/mfe_packages/hello-world-mfe/vite.config.ts`:
 
-- [x] 31.1.1 Add all MFE symbol re-exports from `@hai3/framework` to `packages/react/src/index.ts`. Note: `registerExtension` and `unregisterExtension` are currently missing from `packages/framework/src/plugins/index.ts` and `packages/framework/src/index.ts` (despite being exported from `microfrontends/index.ts`). Add them to both framework barrels first, then re-export from react.
-- [x] 31.1.2 Re-export the `EventBus` type from `@hai3/framework` (add `export type { EventBus } from '@hai3/state';` to the framework barrel). Then update `packages/react/src/index.ts` to import `EventBus` from `@hai3/framework` instead of `@hai3/state`, eliminating the direct L1 import that would violate the `react-no-sdk` depcruiser rule added in 31.4.
+```typescript
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import federation from '@originjs/vite-plugin-federation';
 
-**Traceability**: Proposal -- layering principle: L3 (`@hai3/react`) must fully cover L2 (`@hai3/framework`). Sub-task 31.1.2 prevents a `react-no-sdk` violation for the `EventBus` type import.
+export default defineConfig({
+  plugins: [
+    react(),
+    federation({
+      name: 'helloWorldMfe',
+      filename: 'remoteEntry.js',
+      exposes: {
+        './lifecycle': './src/lifecycle.tsx',
+      },
+      shared: {
+        react: { singleton: false, requiredVersion: '^19.0.0' },
+        'react-dom': { singleton: false, requiredVersion: '^19.0.0' },
+      },
+    }),
+  ],
+  build: {
+    target: 'esnext',
+    minify: false,
+    cssCodeSplit: false,
+  },
+});
+```
 
-### 31.2 Fix `useDomainExtensions` Export Gap
+Key design decisions reflected:
+- `singleton: false` for React and react-dom per design docs (instance isolation).
+- `filename: 'remoteEntry.js'` -- standard Module Federation convention.
+- `exposes` maps `'./lifecycle'` to the lifecycle module -- this is the `exposedModule` value referenced by `MfeEntryMF`.
+- `name: 'helloWorldMfe'` -- this is the `remoteName` in the `MfManifest`.
 
-`useDomainExtensions` hook is defined in `packages/react/src/mfe/hooks/index.ts` but is NOT re-exported from `packages/react/src/mfe/index.ts`. The hook is unreachable from the main barrel.
+- [ ] 33.3.1 Create `src/mfe_packages/hello-world-mfe/vite.config.ts` as described above.
+- [ ] 33.3.2 Verify the config is valid by running `npm run build` inside the MFE package directory.
 
-- [x] 31.2.1 Add `useDomainExtensions` export to `packages/react/src/mfe/index.ts`.
-- [x] 31.2.2 Verify the hook is reachable from `packages/react/src/index.ts` via the `mfe/index.ts` barrel.
+**Traceability**: Design doc `mfe-loading.md` Decision 11 -- `singleton: false` for React/react-dom. Design doc `mfe-manifest.md` -- `remoteName`, `remoteEntry`.
 
-**Traceability**: Proposal -- `useDomainExtensions` scenario requires the hook to be importable from `@hai3/react`.
+### 33.4 MFE Lifecycle Implementation (Class-Based)
 
-### 31.3 Remove Unused React Type Exports
+Create `src/mfe_packages/hello-world-mfe/src/lifecycle.tsx`. This is the module exposed via Module Federation. It exports a class implementing `MfeEntryLifecycle`.
 
-Remove 8 unused type exports from `packages/react/src/types.ts` and their re-exports from `packages/react/src/index.ts`. Before deletion, grep the entire repo (excluding `node_modules`) for each type name to confirm zero usage outside its own declaration and re-export. If any type has non-trivial consumers, do NOT remove it -- flag it for review instead.
+**CRITICAL**: The lifecycle MUST be a class, not a plain object or standalone functions. Per memory: "EVERY component MUST be a class."
 
-- `UseLanguageReturn` -- no `useLanguage` hook exists
-- `UseMenuReturn` -- no `useMenu` hook exists
-- `UseScreenReturn` -- no `useScreen` hook exists
-- `UseScreensetReturn` -- no `useScreenset` hook exists
-- `UsePopupReturn` -- no `usePopup` hook exists
-- `UseOverlayReturn` -- no `useOverlay` hook exists
-- `HAI3ProviderComponent` -- trivial alias `React.FC<HAI3ProviderProps>`, unused
-- `AppRouterComponent` -- trivial alias `React.FC<AppRouterProps>`, unused
+```typescript
+import { createRoot, type Root } from 'react-dom/client';
+import type { MfeEntryLifecycle, ChildMfeBridge } from '@hai3/screensets';
+import { HelloWorldScreen } from './HelloWorldScreen';
 
-- [x] 31.3.1 Remove the 8 type definitions from `packages/react/src/types.ts`.
-- [x] 31.3.2 Remove the 8 type re-exports from `packages/react/src/index.ts`.
+/**
+ * Lifecycle implementation for the HelloWorld MFE remote.
+ * Implements MfeEntryLifecycle with React rendering.
+ */
+class HelloWorldLifecycle implements MfeEntryLifecycle<ChildMfeBridge> {
+  private root: Root | null = null;
 
-**Traceability**: Proposal -- public API surface must not contain phantom types for hooks that do not exist.
+  mount(container: Element, bridge: ChildMfeBridge): void {
+    this.root = createRoot(container);
+    this.root.render(
+      // HelloWorldScreen receives bridge for communication
+      <HelloWorldScreen bridge={bridge} />
+    );
+  }
 
-### 31.4 Fix Depcruiser Layer Enforcement
+  unmount(_container: Element): void {
+    if (this.root) {
+      this.root.unmount();
+      this.root = null;
+    }
+  }
+}
 
-**Prerequisite**: 31.1 must be complete before 31.4. The `react-no-sdk` rule (31.4.4) forbids `@hai3/react` from importing SDK packages, but `packages/react/src/index.ts` currently imports `EventBus` from `@hai3/state`. Task 31.1.2 eliminates this direct L1 import by routing it through `@hai3/framework`.
+// Module Federation expects a default export or named export
+// The handler calls moduleFactory() which returns the module,
+// then validates it has mount/unmount.
+// Export an instance of the lifecycle class.
+export default new HelloWorldLifecycle();
+```
 
-**Bug fix 1 -- Stale `layout` reference**: The `screensets` package was renamed from `layout`. Two depcruiser config files still reference the old name.
+Note: The file uses JSX, so it should be `lifecycle.tsx`. Update the `exposes` mapping in `vite.config.ts` accordingly.
 
-- [x] 31.4.1 In `internal/depcruise-config/react.cjs` line 26: change `state|layout|api|i18n` to `state|screensets|api|i18n`.
-- [x] 31.4.2 In `internal/depcruise-config/sdk.cjs` line 20: change `state|layout|api|i18n` to `state|screensets|api|i18n`.
+- [ ] 33.4.1 Create `src/mfe_packages/hello-world-mfe/src/lifecycle.tsx` with a `HelloWorldLifecycle` class implementing `MfeEntryLifecycle<ChildMfeBridge>`. The class manages a React root internally. Export a singleton instance as default export. Note: MFE remotes are independent build artifacts outside the monorepo layer hierarchy. They import types directly from `@hai3/screensets` (the SDK package that defines the MFE contracts).
+- [ ] 33.4.2 Create `src/mfe_packages/hello-world-mfe/src/HelloWorldScreen.tsx` -- adapt from `src/screensets/demo/screens/helloworld/HelloWorldScreen.tsx`. Simplify: remove screenset-specific imports (i18n, layout state). The component receives `bridge: ChildMfeBridge` as a prop and renders a minimal "Hello World from MFE" UI. It should demonstrate bridge usage (e.g., `bridge.domainId`, `bridge.instanceId`).
+- [ ] 33.4.3 Update `vite.config.ts` exposes to `'./lifecycle': './src/lifecycle.tsx'` (note `.tsx` extension).
 
-**Bug fix 2 -- Missing root layer rules**: The root `.dependency-cruiser.cjs` is missing two layer enforcement rules.
+**Traceability**: Design doc `mfe-api.md` -- `MfeEntryLifecycle` interface (`mount(container, bridge)`, `unmount(container)`). Memory -- "EVERY component MUST be a class."
 
-- [x] 31.4.3 Add `framework-no-react` rule: error severity, from `^packages/framework/` to `^packages/react/`. Comment: "LAYER VIOLATION: Framework (L2) cannot import React (L3)."
-- [x] 31.4.4 Add `react-no-sdk` rule: error severity, from `^packages/react/` to `^packages/(state|screensets|api|i18n)/`. Comment: "LAYER VIOLATION: React (L3) cannot import SDK (L1) directly. Use @hai3/framework re-exports."
+### 33.5 MFE Entry and Manifest JSON Definitions
 
-**Traceability**: Proposal -- layer enforcement must match the actual package names and enforce all layer boundaries.
+Create `src/mfe_packages/hello-world-mfe/mfe.json` containing the GTS instance definitions for the `MfeEntryMF` and `MfManifest`.
 
-### 31.5 Validation
+```json
+{
+  "manifest": {
+    "id": "gts.hai3.mfes.mfe.mf_manifest.v1~hai3.app.mfe.hello_world.manifest.v1",
+    "remoteEntry": "http://localhost:3001/assets/remoteEntry.js",
+    "remoteName": "helloWorldMfe",
+    "sharedDependencies": [
+      { "name": "react", "requiredVersion": "^19.0.0", "singleton": false },
+      { "name": "react-dom", "requiredVersion": "^19.0.0", "singleton": false }
+    ]
+  },
+  "entry": {
+    "id": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.app.mfe.hello_world.v1",
+    "requiredProperties": [],
+    "actions": [],
+    "domainActions": [],
+    "manifest": "gts.hai3.mfes.mfe.mf_manifest.v1~hai3.app.mfe.hello_world.manifest.v1",
+    "exposedModule": "./lifecycle"
+  },
+  "extension": {
+    "id": "gts.hai3.mfes.ext.extension.v1~hai3.app.ext.hello_world_screen.v1",
+    "domain": "gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1",
+    "entry": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.app.mfe.hello_world.v1"
+  }
+}
+```
 
-- [x] 31.5.1 Run `npm run type-check` -- must pass.
-- [x] 31.5.2 Run `npm run test` -- all tests pass.
-- [x] 31.5.3 Run `npm run build` -- must pass.
-- [x] 31.5.4 Run `npm run lint` -- must pass.
-- [x] 31.5.5 Run dependency-cruiser validation -- must pass with new rules.
+Key points:
+- Entry ID uses `MfeEntryMF` schema: `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~<instance>` (instance ID does NOT end with `~`).
+- Manifest `remoteEntry` points to `http://localhost:3001/assets/remoteEntry.js` for development. The port matches the MFE dev server.
+- `exposedModule: "./lifecycle"` matches the `exposes` key in `vite.config.ts`.
+- Extension targets the screen domain.
+- The `manifest` field on the entry is the manifest instance ID (a string reference). The manifest object itself will be registered separately or provided inline.
 
-### 31.6 ESLint Layer Enforcement in Root Config
+- [ ] 33.5.1 Create `src/mfe_packages/hello-world-mfe/mfe.json` as described above.
+- [ ] 33.5.2 Verify the entry type ID conforms to the `MfeEntryMF` schema pattern: `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~<vendor>.<package>.<namespace>.<type>.v<N>`.
 
-**Problem**: The root `eslint.config.js` blanket-disables `@typescript-eslint/no-restricted-imports` for SDK, framework, and react packages (lines 34-90). This removes the app-layer rules (which would incorrectly block packages from importing lower layers), but it also means `npm run lint` (root) does NOT enforce any layer boundaries for packages. Only per-package lint scripts (`lint:react`, `lint:framework`) enforce them via `internal/eslint-config/*.ts`.
+**Traceability**: Design doc `mfe-entry-mf.md` -- MfeEntryMF type hierarchy, example instance. Design doc `type-system.md` -- Instance ID Convention (instance IDs do NOT end with `~`). Design doc `mfe-loading.md` Decision 11 -- `singleton: false` for React/react-dom.
 
-Additionally, the root config defines monorepo boundary patterns via the base `no-restricted-imports` rule for `packages/**/*` (lines 117-139). The base rule does NOT catch `import type { X } from 'y'` statements. This block must be converted to `@typescript-eslint/no-restricted-imports` (which catches all import forms) and moved before the layer-specific blocks so it serves as a catch-all for packages without layer-specific rules (CLI, studio, uicore).
+### 33.6 Build and Verify Remote
 
-**Fix**: In each SDK, framework, and react config block, REPLACE `'@typescript-eslint/no-restricted-imports': 'off'` with `'@typescript-eslint/no-restricted-imports': ['error', { patterns: [...] }]` containing BOTH layer-specific patterns AND monorepo boundary patterns. Then convert the `packages/**/*` block from base `no-restricted-imports` to `@typescript-eslint/no-restricted-imports` and move it BEFORE the layer-specific blocks. In ESLint flat config, for the same rule key the LAST matching config wins, so layer blocks override the catch-all for SDK/framework/react files while CLI, studio, and uicore files inherit monorepo boundary enforcement from the catch-all. Also remove `@typescript-eslint/no-restricted-imports: 'off'` from the CLI block so it inherits the catch-all patterns.
+- [ ] 33.6.1 Run the MFE build: `cd src/mfe_packages/hello-world-mfe && npm install && npm run build`. Verify `dist/assets/remoteEntry.js` is produced.
+- [ ] 33.6.2 Start the MFE dev server: `npm run dev` (port 3001). Verify `http://localhost:3001/assets/remoteEntry.js` is accessible. (Manual verification step.)
+- [ ] 33.6.3 Verify the `remoteEntry.js` file sets a global `helloWorldMfe` on the window object when loaded (this is how `MfeHandlerMF.getContainerFromWindow()` retrieves it).
 
-- [x] 31.6.1 **SDK packages block** (lines 34-46): Replace `'@typescript-eslint/no-restricted-imports': 'off'` with `'@typescript-eslint/no-restricted-imports': ['error', { patterns }]`:
-  - `@hai3/*` -- "SDK VIOLATION: SDK packages cannot import other @hai3 packages."
-  - `react`, `react-dom`, `react/*` -- "SDK VIOLATION: SDK packages cannot import React."
-  - `@hai3/*/src/**` -- "MONOREPO VIOLATION: Import from package root, not internal paths."
-  - `@/*` -- "PACKAGE VIOLATION: Use relative imports within packages."
+**Traceability**: Design doc `mfe-loading.md` -- `loadRemoteContainer()` / `getContainerFromWindow()` expects `window[remoteName]`.
 
-- [x] 31.6.2 **Framework block** (lines 51-59, non-effects files): Replace `'@typescript-eslint/no-restricted-imports': 'off'` with `'@typescript-eslint/no-restricted-imports': ['error', { patterns }]`:
-  - `@hai3/react` -- "FRAMEWORK VIOLATION: Framework cannot import @hai3/react (circular dependency)."
-  - `@hai3/uikit`, `@hai3/uikit/*` -- "FRAMEWORK VIOLATION: Framework cannot import @hai3/uikit."
-  - `react`, `react-dom`, `react/*` -- "FRAMEWORK VIOLATION: Framework cannot import React."
-  - `@hai3/*/src/**` -- "MONOREPO VIOLATION: Import from package root, not internal paths."
-  - `@/*` -- "PACKAGE VIOLATION: Use relative imports within packages."
+---
 
-- [x] 31.6.3 **Framework effects block** (lines 62-69): Replace `'@typescript-eslint/no-restricted-imports': 'off'` with the same `@typescript-eslint/no-restricted-imports` patterns as 31.6.2 (effects files keep `no-restricted-syntax` Flux rules but need layer enforcement too).
+## Phase 34: Wire MFEs into Host App + Remove Legacy Screenset API
 
-- [x] 31.6.4 **Framework action files in effects block** (lines 72-79): Replace `'@typescript-eslint/no-restricted-imports': 'off'` with the same `@typescript-eslint/no-restricted-imports` patterns as 31.6.2.
+**Goal**: Configure the host application as a Module Federation host. Register `MfeHandlerMF` as the handler. Register base domains with `ContainerProvider`s. Register MFE extensions using the `MfeEntryMF` entries from `mfe.json`. Remove the legacy screenset registry and auto-discovery pattern. The host app loads MFE remotes via `MfeHandlerMF` at runtime.
 
-- [x] 31.6.5 **React block** (lines 81-90): Replace `'@typescript-eslint/no-restricted-imports': 'off'` with `'@typescript-eslint/no-restricted-imports': ['error', { patterns }]`:
-  - `@hai3/state`, `@hai3/state/*` -- "REACT VIOLATION: Import from @hai3/framework instead."
-  - `@hai3/screensets`, `@hai3/screensets/*` -- "REACT VIOLATION: Import from @hai3/framework instead."
-  - `@hai3/api`, `@hai3/api/*` -- "REACT VIOLATION: Import from @hai3/framework instead."
-  - `@hai3/i18n`, `@hai3/i18n/*` -- "REACT VIOLATION: Import from @hai3/framework instead."
-  - `@hai3/*/src/**` -- "MONOREPO VIOLATION: Import from package root, not internal paths."
-  - `@/*` -- "PACKAGE VIOLATION: Use relative imports within packages."
-  Note: `@hai3/i18n` IS restricted. The react package no longer imports directly from `@hai3/i18n` -- the `Language` enum is re-exported from `@hai3/framework` (Phase 31.1), and react already imports it from there.
+### 34.1 Host App Module Federation Configuration
 
-- [x] 31.6.6 **Convert and move `packages/**/*` block** (lines 117-139): Convert the base `no-restricted-imports` rule to `@typescript-eslint/no-restricted-imports` (same patterns: `@hai3/*/src/**` and `@/*`). Move the block to appear BEFORE the SDK/framework/react layer blocks (right after the monorepo ignores block). In ESLint flat config, for the same rule key the LAST matching config wins, so the layer-specific blocks (31.6.1-31.6.5) override this catch-all for their files. CLI, studio, and uicore files -- which have no layer-specific `@typescript-eslint/no-restricted-imports` -- inherit the monorepo boundary enforcement from this catch-all.
+Update the root `vite.config.ts` to add Module Federation host configuration. The host does NOT expose any modules -- it only consumes remotes.
 
-- [x] 31.6.7 **Remove `@typescript-eslint/no-restricted-imports: 'off'` from the CLI block** (lines 92-100): Delete the `'@typescript-eslint/no-restricted-imports': 'off'` line from the CLI config block. The CLI block appears AFTER the `packages/**/*` catch-all and would override it with `'off'`, nullifying monorepo boundary enforcement for CLI files. The CLI block must keep `'no-restricted-syntax': 'off'` but drop the restricted-imports override so CLI files inherit the catch-all patterns.
+```typescript
+import federation from '@originjs/vite-plugin-federation';
 
-- [x] 31.6.8 Run `npm run lint` -- must pass with the new layer enforcement rules.
+// Add to plugins array:
+federation({
+  name: 'host',
+  remotes: {
+    helloWorldMfe: 'http://localhost:3001/assets/remoteEntry.js',
+  },
+  shared: {
+    react: { singleton: false, requiredVersion: '^19.0.0' },
+    'react-dom': { singleton: false, requiredVersion: '^19.0.0' },
+  },
+}),
+```
 
-**Traceability**: Proposal -- "ESLint rules enforce that effects files cannot call `executeActionsChain()`" (Flux Architecture Compliance section). Layer enforcement is the broader principle: the per-package configs define layer rules, but the root config must enforce them too so `npm run lint` catches violations.
+Note: The `remotes` configuration here is a build-time hint for the Module Federation plugin. At runtime, `MfeHandlerMF` loads remotes dynamically via script injection (not via the `remotes` config). The `remotes` config is needed primarily to tell the bundler about shared dependency resolution. If the Vite federation plugin supports runtime-only loading without build-time `remotes`, omit the `remotes` field and rely solely on `MfeHandlerMF`'s script injection.
 
-### 31.7 Fix Missing `MfeBridgeFactory` Barrel Export
+- [ ] 34.1.1 Install `@originjs/vite-plugin-federation` as a dev dependency at the repo root (if not already done in 33.1.1).
+- [ ] 34.1.2 Update `vite.config.ts` at the repo root to add the Module Federation host plugin. Add `shared` configuration for react and react-dom with `singleton: false`. Add `build.target: 'esnext'` if not already set.
+- [ ] 34.1.3 Verify the host app still builds: `npm run build` at repo root.
 
-**Problem**: `MfeBridgeFactory` is documented as a public abstract class in `registry-runtime.md` (Export Policy, line 451) and is confirmed as a main barrel re-export (line 468). The class IS exported from the handler sub-barrel (`handler/index.ts` line 13), but is NOT propagated to `mfe/index.ts` -- only `MfeHandler` is re-exported from `./handler/types` (line 51). This makes `MfeBridgeFactory` unreachable from `@hai3/screensets`, `@hai3/framework`, and `@hai3/react`.
+**Traceability**: Design doc `mfe-loading.md` Decision 11 -- Module Federation for bundle loading. `singleton: false` per isolation model.
 
-Consumers who extend `MfeHandler` must also extend `MfeBridgeFactory` (the `bridgeFactory` property on `MfeHandler` is typed as `MfeBridgeFactory`). Without the barrel export, consumers cannot import the abstract class from the public API.
+### 34.2 Register MfeHandlerMF in Host App
 
-**Fix**: Add `MfeBridgeFactory` to each barrel in the export chain.
+Update `src/app/main.tsx` to:
+1. Import `microfrontends` plugin from `@hai3/react` and add `.use(microfrontends({ mfeHandlers: [...] }))` to the `createHAI3App` chain.
+2. Import `MfeHandlerMF` from the handler sub-barrel. Note: `@hai3/screensets` does NOT expose a `./mfe/handler` subpath in `package.json` exports. The host app must import `MfeHandlerMF` via a direct deep path (`@hai3/screensets/dist/mfe/handler/mf-handler`) or the `microfrontends()` plugin must re-export or accept a factory. The definitive approach is to pass handlers via the `microfrontends()` plugin config, which internally passes them to `screensetsRegistryFactory.build()`.
+3. Import `gtsPlugin` from `@hai3/screensets/plugins/gts` (this subpath IS in the package.json exports map).
 
-- [x] 31.7.1 Add `MfeBridgeFactory` to the `mfe/index.ts` barrel export alongside `MfeHandler`:
-  - In `packages/screensets/src/mfe/index.ts` line 51, change `export { MfeHandler } from './handler/types';` to `export { MfeHandler, MfeBridgeFactory } from './handler/types';`.
+The `microfrontends()` plugin accepts an optional config: `microfrontends({ mfeHandlers: [new MfeHandlerMF(gtsPlugin)] })`. Internally, the plugin passes `mfeHandlers` to `screensetsRegistryFactory.build({ typeSystem: gtsPlugin, mfeHandlers })`.
 
-- [x] 31.7.2 Add `MfeBridgeFactory` to the top-level `@hai3/screensets` barrel:
-  - In `packages/screensets/src/index.ts` line 100, change `export { MfeHandler } from './mfe';` to `export { MfeHandler, MfeBridgeFactory } from './mfe';`.
+- [ ] 34.2.1 Update `packages/framework/src/plugins/microfrontends/index.ts` to accept an optional config object with `mfeHandlers?: MfeHandler[]`. Pass `mfeHandlers` through to `screensetsRegistryFactory.build()`.
+- [ ] 34.2.2 Add an `./mfe/handler` subpath export to `packages/screensets/package.json` so host apps can import `MfeHandlerMF` without deep-path hacks: `"./mfe/handler": { "types": "./dist/mfe/handler/index.d.ts", "import": "./dist/mfe/handler/index.js", "require": "./dist/mfe/handler/index.cjs" }`. Update `tsup.config.ts` entry points accordingly.
+- [ ] 34.2.3 Update `src/app/main.tsx`: import `MfeHandlerMF` from `@hai3/screensets/mfe/handler`, import `gtsPlugin` from `@hai3/screensets/plugins/gts`, and add `.use(microfrontends({ mfeHandlers: [new MfeHandlerMF(gtsPlugin)] }))` to the `createHAI3App` chain.
+- [ ] 34.2.4 Verify the registry is created with `MfeHandlerMF` registered. The registry's internal handler registry should contain exactly one handler with `handledBaseTypeId === 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~'`.
 
-- [x] 31.7.3 Add `MfeBridgeFactory` to the `@hai3/framework` barrel re-export:
-  - In `packages/framework/src/index.ts` line 86, add `MfeBridgeFactory` to the `MfeHandler` abstract class re-export block from `@hai3/screensets`.
+**Traceability**: Design doc `mfe-loading.md` Decision 10 -- handlers provided via `ScreensetsRegistryConfig.mfeHandlers`. Design doc `registry-runtime.md` Decision 18 -- factory-with-cache pattern.
 
-- [x] 31.7.4 Add `MfeBridgeFactory` to the `@hai3/react` barrel re-export:
-  - In `packages/react/src/index.ts` line 430, add `MfeBridgeFactory` to the MFE abstract classes re-export block from `@hai3/framework`.
+### 34.3 Register Base Domains with ContainerProviders
 
-- [x] 31.7.5 Run `npm run type-check` -- must pass.
-- [x] 31.7.6 Run `npm run build` -- must pass.
+After the registry is created, register the 4 extension domains with `ContainerProvider` instances. Each domain needs a `ContainerProvider` that supplies a DOM element for mounting MFE content.
 
-**Traceability**: Design doc `registry-runtime.md` Export Policy -- `MfeBridgeFactory` is listed as a public abstract class that must be re-exported from the main `@hai3/screensets` barrel and propagated through the layer chain.
+For the demo, create a `RefContainerProvider` (from `@hai3/react`) for the screen domain, connected to a React ref in the App component. Sidebar, popup, and overlay domains can use placeholder providers or be registered lazily.
+
+- [ ] 34.3.1 In `src/app/App.tsx` (or a new `src/app/MfeBootstrap.tsx` component), create a `RefContainerProvider` for the screen domain. The ref targets a `<div>` element where the MFE screen content renders.
+- [ ] 34.3.2 Register `screenDomain` (imported from `@hai3/react`) with the screen `ContainerProvider`: `registry.registerDomain(screenDomain, screenContainerProvider)`.
+- [ ] 34.3.3 Optionally register `sidebarDomain`, `popupDomain`, `overlayDomain` with placeholder `ContainerProvider` instances (can be no-op providers that return a detached DOM element). These domains are not used in the initial demo but should be registered to demonstrate the pattern.
+- [ ] 34.3.4 The domain registration must happen AFTER `screensetsRegistryFactory.build()` returns and BEFORE any `registerExtension` calls.
+
+**Traceability**: Design doc `mfe-ext-lifecycle-actions.md` -- ContainerProvider Abstraction. Design doc `registry-runtime.md` -- `registerDomain(domain, containerProvider)`.
+
+### 34.4 Register MFE Extensions from `mfe.json`
+
+Load the MFE definitions from `src/mfe_packages/hello-world-mfe/mfe.json` and register them with the screensets registry. This demonstrates the "dynamic registration after fetching" pattern from the design docs.
+
+- [ ] 34.4.1 In `src/app/main.tsx` (or `MfeBootstrap.tsx`), import the MFE JSON definitions. For the demo app, a static import of `mfe.json` is acceptable: `import mfeConfig from '@/mfe_packages/hello-world-mfe/mfe.json'`.
+- [ ] 34.4.2 Register the manifest with the type system: `gtsPlugin.register(mfeConfig.manifest)`. GTS entities must be registered with the type system before `registerExtension()` can validate them via `validateInstance()`.
+- [ ] 34.4.3 Register the entry with the type system: `gtsPlugin.register(mfeConfig.entry)`. GTS entities must be registered with the type system before `registerExtension()` can validate them via `validateInstance()`.
+- [ ] 34.4.4 Register the extension: `await registry.registerExtension(mfeConfig.extension)`. This triggers GTS validation, contract matching, and the new entry type validation (Phase 32.3).
+- [ ] 34.4.5 Mount the extension via actions chain:
+```typescript
+await registry.executeActionsChain({
+  action: {
+    type: HAI3_ACTION_MOUNT_EXT,
+    target: screenDomain.id,
+    payload: { extensionId: mfeConfig.extension.id },
+  },
+});
+```
+- [ ] 34.4.6 Verify the HelloWorld MFE renders inside the screen domain's container element.
+
+**Traceability**: Design doc `registry-runtime.md` Decision 17 -- Dynamic Registration Model. Design doc `mfe-ext-lifecycle-actions.md` -- mount_ext action usage. Design doc `type-system.md` Decision 1 -- `register()` for GTS entities.
+
+### 34.5 Provide Inline Manifest in MfeEntryMF
+
+`MfeHandlerMF.resolveManifest()` supports both manifest ID references (string) and inline `MfManifest` objects. For the initial demo, use the **inline manifest** approach to simplify wiring (avoids the need to pre-cache manifests).
+
+Update the MFE extension registration to provide the manifest inline in the entry:
+
+```typescript
+const entry: MfeEntryMF = {
+  ...mfeConfig.entry,
+  manifest: mfeConfig.manifest, // Inline MfManifest object instead of string ID reference
+};
+```
+
+Then register the entry with the inline manifest. `MfeHandlerMF` will detect the object type and cache it internally.
+
+- [ ] 34.5.1 Update the extension registration code to use the inline manifest approach: set `entry.manifest` to the full `MfManifest` object (from `mfe.json`). Register the extension with the entry that has the inline manifest.
+- [ ] 34.5.2 Alternatively, if the string-reference approach is preferred, register the manifest with the type system first (`gtsPlugin.register(manifest)`) and use the manifest ID string. The `MfeHandlerMF` will look it up from the cache. Choose whichever approach is simpler for the demo.
+
+**Traceability**: Design doc `mfe-loading.md` Decision 12 -- Manifest as Internal Implementation Detail. `MfeHandlerMF.resolveManifest()` supports both string and inline object.
+
+### 34.6 Remove Legacy Screenset API Usage
+
+The host app currently uses the legacy screenset registry (`screensetRegistry`, auto-discovery via `import.meta.glob`). After MFE wiring is in place, remove the legacy screenset infrastructure:
+
+- [ ] 34.6.1 Remove `import '@/screensets/screensetRegistry'` from `src/app/main.tsx`.
+- [ ] 34.6.2 Remove `src/screensets/screensetRegistry.tsx` (the auto-discovery file).
+- [ ] 34.6.3 Remove `src/screensets/demo/demoScreenset.tsx` and the entire `src/screensets/demo/` directory (the demo screenset is now an MFE remote in `src/mfe_packages/hello-world-mfe/`).
+- [ ] 34.6.4 Keep `src/screensets/_blank/` as a template reference (do NOT delete). Note: `_blank` remains as a legacy template reference for `hai3 create` and will be updated to MFE patterns in a separate future task.
+- [ ] 34.6.5 Update the host app's `App.tsx` to remove any references to `screensetRegistry`, `ScreensetConfig`, `ScreensetCategory`, or legacy menu items. The screen domain is now managed by the MFE system.
+- [ ] 34.6.6 If the host app's Layout component relies on `screensetRegistry` for navigation (menu items, screen routing), replace it with MFE-based navigation. The screen domain's MFE extensions will handle rendering. Menu items can be derived from registered extensions or hardcoded in the demo.
+- [ ] 34.6.7 Update CLI templates: Check `packages/cli/templates/src/app/main.tsx` for stale `MfeHandlerLocal` reference (which no longer exists). Update to use `MfeHandlerMF` pattern or remove MFE handler reference if the template doesn't include MFE setup.
+
+**Traceability**: Proposal -- MFE system replaces legacy screenset registry. The screenset registry was a pre-MFE pattern for static screen registration.
+
+### 34.7 Dev Workflow: Running Host + Remote
+
+Document the development workflow for running both the host app and MFE remotes:
+
+- [ ] 34.7.1 Add a `dev:mfe` script to the root `package.json` that starts the MFE dev server: `"dev:mfe:hello-world": "cd src/mfe_packages/hello-world-mfe && npm run dev"`.
+- [ ] 34.7.2 Add a convenience `dev:all` script that starts both host and MFE dev servers using `concurrently`. Note: The MFE remote dev server must be running before the host app loads MFE content at runtime. Use `concurrently --kill-others` to ensure both servers are stopped together. Example: `"dev:all": "concurrently --kill-others \"npm run dev:mfe:hello-world\" \"npm run dev\""`. The host app will fail gracefully (load error with fallback) if the remote is not yet available, but for development convenience the remote should start first or both should start simultaneously.
+- [ ] 34.7.3 Verify the full workflow:
+  - Start MFE remote: `npm run dev:mfe:hello-world` (port 3001)
+  - Start host: `npm run dev` (default port, typically 5173)
+  - Open host in browser -- the HelloWorld MFE loads from the remote and renders in the screen domain
+
+**Traceability**: End-to-end verification that the MFE system works with real Module Federation remotes.
+
+### 34.8 Validation
+
+- [ ] 34.8.1 Run `npm run type-check` -- must pass.
+- [ ] 34.8.2 Run `npm run test` -- all existing tests pass. New MFE integration tests are NOT required in this phase (they require a running MFE dev server).
+- [ ] 34.8.3 Run `npm run build` -- must pass (both host and MFE remote).
+- [ ] 34.8.4 Run `npm run lint` -- must pass.
+- [ ] 34.8.5 Manual E2E verification: start both dev servers, open host in browser, verify MFE renders.

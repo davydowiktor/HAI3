@@ -72,17 +72,27 @@ export class DefaultExtensionManager extends ExtensionManager {
    */
   private readonly unmountExtension: (extensionId: string) => Promise<void>;
 
+  /**
+   * Entry type validation callback.
+   * Called during registerExtension() to verify that at least one registered handler
+   * can handle the extension's entry type. If no handler matches and handlers exist,
+   * throws EntryTypeNotHandledError.
+   */
+  private readonly validateEntryType: (entryTypeId: string) => void;
+
   constructor(config: {
     typeSystem: TypeSystemPlugin;
     triggerLifecycle: LifecycleTriggerCallback;
     triggerDomainOwnLifecycle: DomainLifecycleTriggerCallback;
     unmountExtension: (extensionId: string) => Promise<void>;
+    validateEntryType: (entryTypeId: string) => void;
   }) {
     super();
     this.typeSystem = config.typeSystem;
     this.triggerLifecycle = config.triggerLifecycle;
     this.triggerDomainOwnLifecycle = config.triggerDomainOwnLifecycle;
     this.unmountExtension = config.unmountExtension;
+    this.validateEntryType = config.validateEntryType;
   }
 
   /**
@@ -241,7 +251,10 @@ export class DefaultExtensionManager extends ExtensionManager {
       );
     }
 
-    // 6. Register in internal state
+    // 6. Validate entry type is handleable by at least one registered handler
+    this.validateEntryType(entry.id);
+
+    // 7. Register in internal state
     const extensionState: ExtensionState = {
       extension,
       entry,
@@ -257,7 +270,7 @@ export class DefaultExtensionManager extends ExtensionManager {
     // Add to domain's extensions set
     domainState.extensions.add(extension.id);
 
-    // 7. Trigger 'init' lifecycle stage
+    // 8. Trigger 'init' lifecycle stage
     await this.triggerLifecycle(
       extension.id,
       'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1'

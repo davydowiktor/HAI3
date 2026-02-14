@@ -402,14 +402,14 @@ The ScreensetsRegistry requires a Type System plugin at initialization:
 
 `ScreensetsRegistryConfig` requires `typeSystem: TypeSystemPlugin` and optionally accepts `mfeHandlers?: MfeHandler[]`. The registry is obtained via `screensetsRegistryFactory.build(config)`. See [registry-runtime.md - Decision 18](./registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) for the complete factory-with-cache pattern.
 
-### Decision 7: Framework Plugin Model (No Static Configuration)
+### Decision 7: Framework Plugin Model (Optional Handler Configuration)
 
 **Key Principles:**
 - Screensets is CORE to HAI3 -- automatically initialized, NOT a plugin
-- The microfrontends plugin enables MFE capabilities with NO static configuration
-- All MFE registrations happen dynamically at runtime
+- The microfrontends plugin enables MFE capabilities with optional handler configuration (`mfeHandlers?: MfeHandler[]`)
+- All domain and extension registrations happen dynamically at runtime
 
-The `microfrontends()` plugin creates the `ScreensetsRegistry` via `screensetsRegistryFactory.build()` and registers MFE actions, effects, and the store slice. Domain registration is called directly on `ScreensetsRegistry` (synchronous, no Flux round-trip). Lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`) call `executeActionsChain()` fire-and-forget. Extension registration (`registerExtension`, `unregisterExtension`) uses effects with store state tracking. See [mfe-ext-lifecycle-actions.md](./mfe-ext-lifecycle-actions.md) for the complete lifecycle actions design.
+The `microfrontends()` plugin creates the `ScreensetsRegistry` via `screensetsRegistryFactory.build({ typeSystem: gtsPlugin, mfeHandlers })` and registers MFE actions, effects, and the store slice. Domain registration is called directly on `ScreensetsRegistry` (synchronous, no Flux round-trip). Lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`) call `executeActionsChain()` fire-and-forget. Extension registration (`registerExtension`, `unregisterExtension`) uses effects with store state tracking. See [mfe-ext-lifecycle-actions.md](./mfe-ext-lifecycle-actions.md) for the complete lifecycle actions design.
 
 #### Framework Re-Export Policy
 
