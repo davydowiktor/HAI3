@@ -21,6 +21,11 @@
       "types": "./dist/mfe/plugins/gts/index.d.ts",
       "import": "./dist/mfe/plugins/gts/index.js",
       "require": "./dist/mfe/plugins/gts/index.cjs"
+    },
+    "./mfe/handler": {
+      "types": "./dist/mfe/handler/index.d.ts",
+      "import": "./dist/mfe/handler/index.js",
+      "require": "./dist/mfe/handler/index.cjs"
     }
   },
   "files": [

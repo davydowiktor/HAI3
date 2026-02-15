@@ -87,7 +87,7 @@ abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge extends Ch
   /**
    * Load an MFE bundle and return its lifecycle interface.
    */
-  abstract load(entry: TEntry): Promise<MfeEntryLifecycle<ChildMfeBridge>>;
+  abstract load(entry: TEntry): Promise<MfeEntryLifecycle<TBridge>>;
 }
 ```
 
@@ -115,12 +115,15 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   // canHandle() inherited from base class uses:
   // this.typeSystem.isTypeOf(entryTypeId, this.handledBaseTypeId)
 
-  async load(entry: MfeEntryMF): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
+  async load(entry: MfeEntryMF): Promise<MfeEntryLifecycle<ChildMfeBridge>> { // TBridge = ChildMfeBridge for MfeHandlerMF
     // Resolve manifest from entry - manifest info is embedded in MfeEntryMF
     // or referenced by type ID and resolved internally
     const manifest = await this.resolveManifest(entry.manifest);
     // Cache manifest for reuse by other entries from same remote
     this.manifestCache.cacheManifest(manifest);
+    // loadRemoteContainer uses ESM dynamic import(manifest.remoteEntry) internally,
+    // NOT script tag injection. The Vite federation plugin produces ESM remoteEntry.js
+    // files with named exports (get/init). See task 34.2.5 for the ESM adaptation.
     const container = await this.loadRemoteContainer(manifest);
     const moduleFactory = await container.get(entry.exposedModule);
     return moduleFactory();
@@ -158,7 +161,7 @@ class MfeHandlerAcme extends MfeHandler<MfeEntryAcme, ChildMfeBridgeAcme> {
     this.bridgeFactory = new MfeBridgeFactoryAcme(router, apiClient);
   }
 
-  async load(entry: MfeEntryAcme): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
+  async load(entry: MfeEntryAcme): Promise<MfeEntryLifecycle<ChildMfeBridgeAcme>> { // TBridge = ChildMfeBridgeAcme for MfeHandlerAcme
     // Custom loading with preload assets, feature flags, etc.
   }
 }
@@ -216,10 +219,51 @@ Module Federation's shared dependencies provide TWO independent benefits:
 | React | `false` | Has hooks state, context, reconciler |
 | ReactDOM | `false` | Has fiber tree, event system |
 | @hai3/* | `false` | Has TypeSystemPlugin, schema registry |
+| tailwindcss | `false` | Styles must be initialized per Shadow DOM root |
+| @hai3/uikit | `false` | Component styles must be initialized per Shadow DOM root |
+
+#### Required Shared Dependencies for MFEs
+
+Every MFE built with the default handler (`MfeHandlerMF`) MUST include the following in its Module Federation `shared` config:
+
+| Dependency | singleton | Reason |
+|-----------|-----------|--------|
+| react | `false` | Instance isolation |
+| react-dom | `false` | Instance isolation |
+| tailwindcss | `false` | Styles initialized per Shadow DOM root |
+| @hai3/uikit | `false` | Component styles initialized per Shadow DOM root |
+
+Since MFEs mount inside Shadow DOM boundaries (enforced by `MfeHandlerMF`), host styles do NOT penetrate into MFE shadow roots. Each MFE must initialize its own styles inside its shadow root at mount time. See [Principles - Shadow DOM Style Isolation](./principles.md#shadow-dom-style-isolation-default-handler) for the canonical description.
+
+#### Shadow DOM Mount Flow (Default Handler)
+
+When `DefaultMountManager` mounts an MFE using `MfeHandlerMF`, the mount flow enforces Shadow DOM isolation:
+
+1. `ContainerProvider.getContainer(extensionId)` returns the host `Element`
+2. `DefaultMountManager` creates a Shadow DOM boundary: `const shadowRoot = container.attachShadow({ mode: 'open' })`
+3. The MFE's `lifecycle.mount(shadowRoot, bridge)` receives the **shadow root**, NOT the host element
+4. The MFE renders its UI inside the shadow root and initializes its own styles (Tailwind, UIKit)
+
+```
+Host Element (from ContainerProvider)
+  |
+  +-- Shadow DOM Boundary (created by DefaultMountManager)
+       |
+       +-- [MFE content rendered here by lifecycle.mount()]
+       |    - MFE initializes its own Tailwind CSS
+       |    - MFE initializes its own UIKit styles
+       |    - MFE sets CSS variables from domain properties (theme, language)
+       |
+       (Host CSS variables do NOT penetrate -- see principles.md)
+```
+
+**Key**: The Shadow DOM creation is performed by `DefaultMountManager` (internal to the registry), NOT by `MfeHandlerMF.load()`. The handler only loads the bundle; the mount manager handles DOM isolation. This separation means custom handlers can override loading behavior without affecting the mount isolation strategy.
+
+**Note**: Only `MfeHandlerMF` (via `DefaultMountManager`) enforces Shadow DOM. Custom handler implementations may use different isolation strategies. See [Principles - Shadow DOM Style Isolation](./principles.md#shadow-dom-style-isolation-default-handler) for the complete policy.
 
 #### Loading Algorithm
 
-All loading logic is internal to `MfeHandlerMF`. The `MfeHandlerMF.load(entry)` method performs manifest resolution, container loading, and module factory extraction. `ManifestCache` is a private helper class inside `mf-handler.ts` (see Decision 12 below). Configuration: `timeout` (default 30000ms), `retries` (default 2).
+All loading logic is internal to `MfeHandlerMF`. The `MfeHandlerMF.load(entry)` method performs manifest resolution, container loading, and module factory extraction. `ManifestCache` is a private helper class inside `mf-handler.ts` (see Decision 12 below). Configuration: `timeout` (default 30000ms), `retries` (default 2). **Note**: Retry logic is already implemented via `RetryHandler` (in `packages/screensets/src/mfe/errors/error-handler.ts`) and is wired into `MfeHandlerMF.load()` from prior phases. Phase 34 does not need to re-implement retry; the existing `RetryHandler` handles transient load failures with the configured retry count and timeout.
 
 <a name="decision-12"></a>
 ### Decision 12: Manifest as Internal Implementation Detail of MfeHandlerMF
@@ -297,20 +341,40 @@ await runtime.executeActionsChain({
 
 How the manifest data is obtained (backend API, static config, etc.) is outside MFE system scope. The MfeEntryMF carries the manifest reference, and MfeHandlerMF resolves it internally.
 
----
+### Multi-Entry mfe.json Format
 
-## Risks and Mitigations
+When an MFE package contains multiple entries (e.g., a consolidated screenset with multiple screens), the `mfe.json` file uses a top-level structure with arrays for entries and extensions that all share a single manifest:
 
-| Risk | Mitigation |
-|------|------------|
-| Type System plugin complexity | Provide comprehensive GTS plugin as reference implementation |
-| Contract validation overhead | Cache validation results, validate once at registration |
-| Module Federation bundle size | Tree-shaking, shared dependencies, lazy loading |
-| Manifest availability | Clear error messages when manifest not registered |
-| Dynamic registration race conditions | Sequential registration with async/await, per-entity operation serialization |
+```json
+{
+  "manifest": {
+    "id": "gts.hai3.mfes.mfe.mf_manifest.v1~acme.demo.mfe.manifest.v1",
+    "remoteEntry": "http://localhost:3001/remoteEntry.js",
+    "remoteName": "demoMfe",
+    "sharedDependencies": [
+      { "name": "react", "singleton": false },
+      { "name": "react-dom", "singleton": false }
+    ]
+  },
+  "entries": [
+    {
+      "id": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.demo.mfe.helloworld.v1",
+      "manifest": "gts.hai3.mfes.mfe.mf_manifest.v1~acme.demo.mfe.manifest.v1",
+      "exposedModule": "./lifecycle-helloworld",
+      "requiredProperties": ["..."],
+      "actions": [],
+      "domainActions": ["..."]
+    }
+  ],
+  "extensions": [
+    {
+      "id": "gts.hai3.mfes.ext.extension.v1~acme.demo.screens.helloworld.v1",
+      "domain": "gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1",
+      "entry": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.demo.mfe.helloworld.v1",
+      "presentation": { "label": "Hello World", "icon": "lucide:globe", "route": "/hello-world", "order": 10 }
+    }
+  ]
+}
+```
 
-## Testing Strategy
-
-1. **Unit Tests**: Plugin interface, contract validation, type validation, bridge communication
-2. **Integration Tests**: MFE loading, domain registration, action chain execution, Shadow DOM isolation
-3. **E2E Tests**: Full MFE lifecycle with real Module Federation bundles
+The host bootstrap code imports this file and registers the single manifest, all entries, and all extensions with the registry. This follows the ONE SCREENSET = ONE MFE principle: a screenset with N screens becomes 1 MFE package with 1 manifest, N entries (each with its own `exposedModule`), and N extensions.

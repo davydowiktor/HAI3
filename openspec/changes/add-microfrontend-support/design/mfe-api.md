@@ -11,13 +11,13 @@ The MFE API defines the runtime contract between parent and MFE instance. It con
 - **ChildMfeBridge**: The communication channel passed to each MFE **instance** (child) for parent interaction
 - **ParentMfeBridge**: Parent-side bridge interface used by the parent to manage MFE instance (child) communication
 
-These interfaces are framework-agnostic - MFEs can use React, Vue, Angular, Svelte, or vanilla JS while implementing the same lifecycle contract. Each MFE **instance** receives its own ChildMfeBridge instance (even multiple instances of the same MFE entry get separate bridges). The ChildMfeBridge allows MFE instances to execute [actions chains](./mfe-actions.md) (via a pass-through to the registry) and subscribe to [shared properties](./mfe-shared-property.md).
+These interfaces are framework-agnostic - MFEs can use React, Vue, Angular, Svelte, or vanilla JS while implementing the same lifecycle contract. Each MFE **instance** receives its own ChildMfeBridge instance (even multiple instances of the same MFE entry get separate bridges). The ChildMfeBridge allows MFE instances to execute [actions chains](./mfe-actions.md) (via a pass-through to the registry) and subscribe to shared properties (see [schemas.md - Shared Property Schema](./schemas.md#shared-property-schema)).
 
 ## Definition
 
 **MfeEntryLifecycle**: A runtime interface (not a GTS type) that defines `mount()` and `unmount()` methods every MFE must implement to integrate with the parent.
 
-**ChildMfeBridge**: A read-only interface exposed to MFE components (child) for executing actions chains (via a pass-through to the registry's `executeActionsChain()`) and subscribing to [shared properties](./mfe-shared-property.md).
+**ChildMfeBridge**: A read-only interface exposed to MFE components (child) for executing actions chains (via a pass-through to the registry's `executeActionsChain()`) and subscribing to shared properties (see [schemas.md - Shared Property Schema](./schemas.md#shared-property-schema)).
 
 **ParentMfeBridge**: A minimal bridge interface used by the parent to identify the child instance and manage bridge lifecycle (dispose). The parent uses `registry.executeActionsChain()` directly for action chain execution.
 
@@ -72,14 +72,26 @@ interface ChildMfeBridge {
    */
   executeActionsChain(chain: ActionsChain): Promise<void>;
 
-  /** Subscribe to a shared property from the domain */
+  /**
+   * Subscribe to a shared property from the domain.
+   *
+   * The callback receives the runtime property value (set by `updateDomainProperty`),
+   * not the GTS SharedProperty type definition. The SharedProperty GTS type defines
+   * the contract (supported values); the runtime value is a concrete value conforming
+   * to that contract.
+   */
   subscribeToProperty(
     propertyTypeId: string,
-    callback: (value: SharedProperty) => void
+    callback: (value: unknown) => void
   ): () => void;
 
-  /** Get current value of a shared property */
-  getProperty(propertyTypeId: string): SharedProperty | undefined;
+  /**
+   * Get current runtime value of a shared property.
+   *
+   * Returns the runtime value (set by `updateDomainProperty`), not the GTS
+   * SharedProperty type definition.
+   */
+  getProperty(propertyTypeId: string): unknown;
 }
 ```
 
@@ -351,10 +363,11 @@ Shared properties are managed at the DOMAIN level, not per-MFE. When the parent 
 - Subscription is determined by the entry's `requiredProperties` or `optionalProperties`
 
 ```typescript
-// Update a shared property for all subscribed extensions in the domain
-runtime.updateDomainProperty(
-  'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
-  'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
-  'dark'
-);
+import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE, HAI3_SCREEN_DOMAIN } from '@hai3/react';
+
+// Update theme for all subscribed extensions in the screen domain
+runtime.updateDomainProperty(HAI3_SCREEN_DOMAIN, HAI3_SHARED_PROPERTY_THEME, 'dark');
+
+// Update language for all subscribed extensions in the screen domain
+runtime.updateDomainProperty(HAI3_SCREEN_DOMAIN, HAI3_SHARED_PROPERTY_LANGUAGE, 'de');
 ```

@@ -18,6 +18,10 @@ This document covers the core architectural principles for the MFE system.
 4. **MFE Independence (Default)** - Each MFE instance takes full responsibility for its own needs
 5. **Hierarchical Composition** - Domains can exist at any level; MFEs can be both extensions and domain providers
 6. **Abstract Class Layers with Singleton Construction** - Every major stateful component has an abstract class (pure contract, NO static methods) and a concrete implementation. Single-instance components with no configuration are exposed as singleton constants; single-instance components that require configuration use the factory-with-cache pattern (e.g., `screensetsRegistryFactory`); multi-instance components are constructed by internal wiring code. Standalone factory functions and static factory methods on abstract classes are both forbidden. Consumers always depend on abstract types.
+7. **Shadow DOM Style Isolation (Default Handler)** - HAI3's default handler (`MfeHandlerMF`) enforces CSS isolation via Shadow DOM. The MFE receives the shadow root as its mount container, NOT the host element. CSS variables from the host do NOT penetrate into the MFE's shadow root. Each MFE instance is fully responsible for its own styles, including initializing Tailwind CSS and UIKit inside its shadow root. Custom `MfeHandler` implementations may choose different isolation strategies (e.g., no Shadow DOM, iframe isolation, etc.).
+8. **Theme and Language via Domain Properties** - Theme and language are communicated to MFEs through built-in shared properties (`HAI3_SHARED_PROPERTY_THEME`, `HAI3_SHARED_PROPERTY_LANGUAGE`) declared on all 4 base extension domains. CSS variables do NOT propagate from host to MFE. The MFE reads these from its `ChildMfeBridge` and applies its own CSS variables and i18n translations inside its Shadow DOM. MFE entries declare these in `requiredProperties` to ensure contract validation at registration time.
+9. **No Monorepo Tooling Exclusions for MFE Packages** - MFE packages under `src/mfe_packages/` are app-level (L4) code and MUST follow ALL monorepo rules (ESLint, dependency-cruiser, knip, tsconfig). No exclusions or ignore patterns for `src/mfe_packages/` are permitted.
+10. **MFE Layer Enforcement** - MFE packages are L4 (app-level). They can ONLY import from `@hai3/react` (L3). Never from `@hai3/screensets` (L1) or `@hai3/framework` (L2) directly. The ESLint layer rules under `src/` enforce this.
 
 ---
 
@@ -54,66 +58,103 @@ With HAI3's default handler, each MFE instance has its own API services, router,
 
 ### Private Optimization Layer
 
-Libraries like `@hai3/api` can be used by MFEs to optimize performance:
+Optimizations for duplicate API requests happen through **optional private libraries** (e.g., `@hai3/api` with transparent cache sync), NOT through public contracts. Each MFE instance gets its own library instance; libraries may sync caches implicitly. This is opt-in and does not affect MfeBridge or action interfaces. Implementation of the private optimization layer is out of scope for this proposal.
 
-```typescript
-// MFE code - simple, independent API call
-const api = createApiClient();  // MFE gets its own instance
-const user = await api.get('/users/123');
+---
 
-// Under the hood (TRANSPARENT to MFE):
-// - Library checks shared cache first
-// - If another MFE already fetched this, returns cached value
-// - Deduplicates in-flight requests across MFEs
-// - MFE code doesn't know or care
+## Shadow DOM Style Isolation (Default Handler)
+
+> **Canonical definition**: This is the authoritative definition of Shadow DOM style isolation. Other documents reference this for context.
+
+**What**: HAI3's default handler (`MfeHandlerMF`) enforces CSS isolation by mounting each MFE instance inside a Shadow DOM boundary. The abstract `MfeHandler` class does NOT mandate Shadow DOM -- this is a property of the `MfeHandlerMF` concrete implementation only.
+
+**How**: When `MfeHandlerMF` mounts an MFE, `DefaultMountManager` creates a Shadow DOM boundary on the container element and passes the **shadow root** (not the host element) to the MFE's `mount(container, bridge)` method. From the MFE's perspective, the `container` parameter IS the shadow root.
+
+**Consequences**:
+- CSS variables from the host application do NOT penetrate into the MFE's shadow root
+- Global styles from the host do NOT affect MFE content
+- Each MFE instance is fully responsible for initializing its own styles (Tailwind CSS, UIKit) inside its shadow root
+- MFEs MUST NOT use inline styles -- they use Tailwind classes and UIKit components
+
+**Custom handlers**: Other `MfeHandler` implementations (written by companies extending HAI3) may use different isolation strategies -- no Shadow DOM, iframe isolation, CSS Modules, or any other approach. The Shadow DOM enforcement is specific to `MfeHandlerMF`.
+
+### Shared Dependencies: Tailwind + UIKit
+
+Each MFE MUST use Tailwind CSS and `@hai3/uikit` for styling:
+- Both are added to the Module Federation `shared` config alongside React/react-dom
+- Since styles are isolated via Shadow DOM, the MFE must initialize its own Tailwind/UIKit styles inside its shadow root at mount time
+- No inline styles -- MFEs use Tailwind classes and UIKit components just like host app code
+- Monorepo ESLint rules (including `no-inline-styles`) apply to MFE packages under `src/mfe_packages/` with zero exclusions
+
+### Theme and Language as Domain Properties
+
+Theme and language are communicated to MFEs through built-in shared property instances on the bridge:
+- HAI3 defines two shared property instances: `HAI3_SHARED_PROPERTY_THEME` (`gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1`) and `HAI3_SHARED_PROPERTY_LANGUAGE` (`gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1`)
+- All 4 base extension domains declare both in their `sharedProperties` array
+- MFE entries declare both in their `requiredProperties` array to ensure contract validation at registration time
+- When the host changes theme/language, domain properties update via `registry.updateDomainProperty(domainId, HAI3_SHARED_PROPERTY_THEME, 'dark')`
+- The MFE reads `theme` and `language` from its `ChildMfeBridge` (via `bridge.subscribeToProperty()` / `bridge.getProperty()`) and applies them inside its Shadow DOM
+- CSS variables do NOT propagate from host to MFE -- the MFE sets its own CSS variables based on domain property values (e.g., `theme: 'dark'` triggers the MFE to apply its dark mode CSS variables)
+- This is the mechanism for ALL shared UI state: theme, language, text direction (RTL/LTR), etc.
+
+```
+Host Application
+       |
+       | registry.updateDomainProperty(domainId, themePropertyId, 'dark')
+       v
+   Domain State
+       |
+       | property update propagated to all subscribed extensions
+       v
+  +---------+     +---------+
+  | MFE A   |     | MFE B   |
+  | (Shadow  |     | (Shadow  |
+  |  DOM)    |     |  DOM)    |
+  |          |     |          |
+  | bridge.  |     | bridge.  |
+  | subscribe|     | subscribe|
+  | ToProperty|    | ToProperty|
+  | ('theme')|     | ('theme')|
+  |          |     |          |
+  | Applies  |     | Applies  |
+  | own CSS  |     | own CSS  |
+  | vars for |     | vars for |
+  | 'dark'   |     | 'dark'   |
+  +---------+     +---------+
 ```
 
-**Key Characteristics:**
-1. **Each MFE instance gets its own library instance** - No singleton, full isolation semantics
-2. **Libraries sync cache implicitly** - Transparent to MFE code
-3. **Opt-in optimization** - MFE can use axios instead; system still works, just no cache sharing
-4. **No public contract changes** - Optimizations don't affect MfeBridge or action interfaces
+---
 
-### The Principle
+## MFE Monorepo Tooling Compliance
+
+MFE packages under `src/mfe_packages/` are app-level (L4) code and MUST follow ALL monorepo rules. There are NO exclusions:
+
+| Tool | Exclusion Status |
+|------|-----------------|
+| ESLint | `src/mfe_packages/**` is NOT excluded -- all rules apply, including `no-inline-styles` |
+| dependency-cruiser | `src/mfe_packages` is NOT excluded -- layer enforcement catches violations |
+| knip | `src/mfe_packages/**` is NOT excluded |
+| tsconfig | `src/mfe_packages` is NOT excluded from compilation |
+
+### MFE Layer Enforcement
+
+MFE packages are L4 (app-level). They can ONLY import from `@hai3/react` (L3):
 
 ```
-PUBLIC (Architecture Level)     PRIVATE (Implementation Level)
-+---------------------------+   +---------------------------+
-| - MfeEntryLifecycle       |   | - @hai3/api cache sync    |
-| - ChildMfeBridge          |   | - Request deduplication   |
-| - Actions                 |   | - Shared worker pools     |
-| - Shared Properties       |   | - Background prefetching  |
-+---------------------------+   +---------------------------+
-        THIN, STABLE                  OPT-IN, EVOLVABLE
+L4: src/mfe_packages/* (MFE app code)   -- can import L3
+L3: @hai3/react                          -- can import L2
+L2: @hai3/framework                      -- can import L1
+L1: @hai3/screensets, @hai3/state, etc.  -- no upward imports
 ```
 
-**Applies to**:
-- API services (each MFE instance has its own, library may optimize)
-- Routers (each MFE instance has its own, no sharing needed)
-- Any potential "singleton service" pattern (avoided in favor of per-instance isolation)
+**Forbidden imports from MFE packages**:
+- `@hai3/screensets` (L1) -- never directly; use `@hai3/react` re-exports
+- `@hai3/framework` (L2) -- never directly; use `@hai3/react` re-exports
 
-### Trade-offs
-
-- **Memory**: Duplicate runtime instances (not bundles - MF handles code sharing). Acceptable for isolation benefits; private optimization layer can address if needed.
-- **Cache Invalidation**: Equally complex for singleton or per-instance approaches.
-- **Opt-in**: MFEs can use any HTTP client; `@hai3/api` optimization is optional. Optimization stays at library level to preserve MFE independence.
-
-### Guarantees and Scope
-
-- **Cross-Instance Consistency**: Guaranteed when using HAI3 tooling (`@hai3/api`); third-party HTTP clients opt out.
-- **Platform-Level Data**: Auth, user context, feature flags shared via SharedProperty mechanism.
-- **Tooling Implementation**: Private optimization layer (`@hai3/api` cache sync) is out of scope for this proposal.
+The existing ESLint layer rules under `src/` enforce this. Since `@hai3/react` re-exports all public symbols from lower layers, MFEs have full access to the API while respecting layer boundaries.
 
 ---
 
 ## Abstract Class Layers with Singleton Construction
 
-Every major stateful component has an abstract class defining the public contract (a pure abstract class with NO static methods) and a concrete implementation. The construction pattern depends on the component's nature:
-
-- **Singleton constant** (no configuration needed): e.g., `gtsPlugin` -- created in barrel/initialization files.
-- **Factory-with-cache** (configurable singleton): e.g., `screensetsRegistryFactory` -- a factory abstract class provides a `build(config)` method that caches the instance after the first call. This defers configuration binding to application wiring time while preserving singleton semantics.
-- **Direct construction** (multi-instance): e.g., `MfeStateContainer` -- constructed directly by internal wiring code (e.g., `DefaultMountManager`).
-
-Consumers always depend on abstract types, never concrete classes. Standalone factory functions and static factory methods on abstract classes are both forbidden. This enforces Dependency Inversion (DIP) at every boundary.
-
-See [Registry Runtime - Decision 18](./registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) for the complete design including component table, file layout, exemptions, and code examples.
+Every major stateful component has an abstract class (pure contract, NO static methods) and a concrete implementation. Construction patterns: singleton constant, factory-with-cache, or direct construction. Consumers always depend on abstract types. See [Registry Runtime - Decision 18](./registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) for the complete design including component table, file layout, exemptions, and code examples.

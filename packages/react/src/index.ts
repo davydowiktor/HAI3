@@ -99,9 +99,6 @@ export {
   createHAI3App,
   presets,
 
-  // Backward compatibility singletons
-  screensetRegistry,
-
   // Backward compatibility constants
   ACCOUNTS_DOMAIN,
 
@@ -118,7 +115,6 @@ export {
   effects,
 
   // Registries
-  createScreensetRegistry,
   createThemeRegistry,
   createRouteRegistry,
 
@@ -134,7 +130,6 @@ export {
 
   // Layout domain exports
   LayoutDomain,
-  ScreensetCategory,
   layoutReducer,
   layoutDomainReducers,
   LAYOUT_SLICE_NAME,
@@ -254,7 +249,6 @@ export type {
   PluginFactory,
   PluginProvides,
   PluginLifecycle,
-  ScreensetRegistry,
   ThemeRegistry,
   ThemeConfig,
   RouteRegistry,
@@ -278,13 +272,6 @@ export type {
   HAI3Store,
 
   // Layout
-  ScreensetId,
-  ScreenId,
-  MenuItemConfig,
-  ScreenLoader,
-  ScreenConfig,
-  MenuScreenItem,
-  ScreensetDefinition,
   LayoutDomainState,
   HeaderUser,
   HeaderConfig,
@@ -346,9 +333,6 @@ export type {
   SseMockConfig,
   SseMockEvent,
 
-  // Backward compatibility type aliases
-  ScreensetConfig,
-
   // Theme types
   ThemeApplyFn,
   UikitTheme,
@@ -406,6 +390,13 @@ export {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
+  HAI3_ACTION_NOTIFY_USER,
+} from '@hai3/framework';
+
+// MFE Shared Property constants
+export {
+  HAI3_SHARED_PROPERTY_THEME,
+  HAI3_SHARED_PROPERTY_LANGUAGE,
 } from '@hai3/framework';
 
 // MFE Types
@@ -413,6 +404,7 @@ export type {
   ChildMfeBridge,
   ParentMfeBridge,
   Extension,
+  ExtensionPresentation,
   ExtensionDomain,
   ActionsChain,
   Action,
@@ -441,6 +433,9 @@ export {
   screensetsRegistryFactory,
   ContainerProvider,
 } from '@hai3/framework';
+
+// MFE Concrete implementations
+export { MfeHandlerMF, gtsPlugin } from '@hai3/framework';
 
 // MFE Utilities
 export {

@@ -32,7 +32,7 @@ import { DefaultMountManager } from './default-mount-manager';
 import { OperationSerializer } from './operation-serializer';
 import { RuntimeBridgeFactory } from './runtime-bridge-factory';
 import { DefaultRuntimeBridgeFactory } from './default-runtime-bridge-factory';
-import { ExtensionLifecycleActionHandler, type ExtensionLifecycleCallbacks } from './extension-lifecycle-action-handler';
+import { ExtensionLifecycleActionHandler, type ExtensionLifecycleCallbacks, type CustomActionHandler } from './extension-lifecycle-action-handler';
 import type { ContainerProvider } from './container-provider';
 import { HAI3_ACTION_UNMOUNT_EXT } from '../constants';
 import { EntryTypeNotHandledError } from '../errors';
@@ -259,13 +259,15 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @param domain - Domain to register
    * @param containerProvider - Container provider for the domain
    * @param onInitError - Optional callback for handling fire-and-forget init lifecycle errors
+   * @param customActionHandler - Optional handler for non-lifecycle domain actions
    * @throws {DomainValidationError} if GTS validation fails
    * @throws {UnsupportedLifecycleStageError} if lifecycle hooks reference unsupported stages
    */
   registerDomain(
     domain: ExtensionDomain,
     containerProvider: ContainerProvider,
-    onInitError?: (error: Error) => void
+    onInitError?: (error: Error) => void,
+    customActionHandler?: CustomActionHandler
   ): void {
     // Step 1: Register domain state (with onInitError callback)
     this.extensionManager.registerDomain(domain, onInitError);
@@ -293,7 +295,8 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       domain.id,
       lifecycleCallbacks,
       domainSemantics,
-      containerProvider
+      containerProvider,
+      customActionHandler
     );
     this.registerDomainActionHandler(domain.id, actionHandler);
   }

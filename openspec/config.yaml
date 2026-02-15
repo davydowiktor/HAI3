@@ -9,7 +9,7 @@ context: |
   Registries (screensets, uikit, theme, api, route, i18n) self-register at import; do not edit registry root files to add items.
   Imports: same package = relative; app cross-branch = @/; cross-package = workspace name (@hai3/…). Forbidden: package internals (@hai3/*/src/*), any, "as unknown as", barrel exports hiding imports, central ID constants (define where used).
   File naming: components/types/interfaces PascalCase; utils/services/constants/configs/slices/effects/actions camelCase.
-  Initialization sequence: uikitRegistry → screensetRegistry → themeRegistry → HAI3Provider.
+  Initialization sequence: uikitRegistry → themeRegistry → screensetsRegistryFactory.build() (with MFE handlers) → domain registration (with ContainerProviders) → extension registration → HAI3Provider.
   Build order: SDK → framework → react → UI → CLI (npm run build:packages).
   Never kill Chrome MCP processes (pkill breaks tools). See .ai/MCP_TROUBLESHOOTING.md.
 

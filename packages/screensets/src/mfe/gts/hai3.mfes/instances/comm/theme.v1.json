@@ -1,0 +1,4 @@
+{
+  "id": "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1",
+  "supportedValues": ["default", "light", "dark", "dracula", "dracula-large"]
+}

@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { gtsPlugin, GtsPlugin } from '../../../../src/mfe/plugins/gts/index';
 import { HAI3_CORE_TYPE_IDS } from '../../../../src/mfe/init';
+import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '../../../../src/mfe/constants';
 
 describe('GTS Plugin', () => {
   describe('schema registration and validation', () => {
@@ -120,6 +121,101 @@ describe('GTS Plugin', () => {
         'gts.hai3.mfes.mfe.entry.v1~'
       );
       expect(result).toBe(false);
+    });
+  });
+
+  describe('shared property instances', () => {
+    it('validates theme shared property instance', () => {
+      const result = gtsPlugin.validateInstance(HAI3_SHARED_PROPERTY_THEME);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('validates language shared property instance', () => {
+      const result = gtsPlugin.validateInstance(HAI3_SHARED_PROPERTY_LANGUAGE);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('theme instance has supportedValues with 5 theme IDs', () => {
+      // Access instance via getSchema (GtsStore returns both schemas and instances)
+      const instance = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_THEME);
+      expect(instance).toBeDefined();
+      expect((instance as { supportedValues?: string[] })?.supportedValues).toBeDefined();
+      expect((instance as { supportedValues?: string[] })?.supportedValues).toHaveLength(5);
+      expect((instance as { supportedValues?: string[] })?.supportedValues).toEqual(['default', 'light', 'dark', 'dracula', 'dracula-large']);
+    });
+
+    it('language instance has supportedValues with 36 language codes', () => {
+      // Access instance via getSchema (GtsStore returns both schemas and instances)
+      const instance = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_LANGUAGE);
+      expect(instance).toBeDefined();
+      expect((instance as { supportedValues?: string[] })?.supportedValues).toBeDefined();
+      expect((instance as { supportedValues?: string[] })?.supportedValues).toHaveLength(36);
+    });
+
+    it('theme instance does not have value field', () => {
+      // Access instance via getSchema (GtsStore returns both schemas and instances)
+      const instance = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_THEME);
+      expect(instance).toBeDefined();
+      expect(instance).not.toHaveProperty('value');
+    });
+
+    it('language instance does not have value field', () => {
+      // Access instance via getSchema (GtsStore returns both schemas and instances)
+      const instance = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_LANGUAGE);
+      expect(instance).toBeDefined();
+      expect(instance).not.toHaveProperty('value');
+    });
+  });
+
+  describe('extension presentation metadata', () => {
+    it('extension schema includes presentation field', () => {
+      const schema = gtsPlugin.getSchema('gts.hai3.mfes.ext.extension.v1~');
+      expect(schema).toBeDefined();
+      expect(schema?.properties).toHaveProperty('presentation');
+      expect((schema?.properties as Record<string, unknown>).presentation).toMatchObject({
+        type: 'object',
+        properties: {
+          label: { type: 'string' },
+          icon: { type: 'string' },
+          route: { type: 'string' },
+          order: { type: 'number' },
+        },
+        required: ['label', 'route'],
+      });
+    });
+
+    it('presentation field is optional in extension schema', () => {
+      const schema = gtsPlugin.getSchema('gts.hai3.mfes.ext.extension.v1~');
+      expect(schema).toBeDefined();
+      expect(schema?.required).not.toContain('presentation');
+    });
+  });
+
+  describe('shared property schema design', () => {
+    it('shared property schema requires supportedValues', () => {
+      const schema = gtsPlugin.getSchema('gts.hai3.mfes.comm.shared_property.v1~');
+      expect(schema).toBeDefined();
+      expect(schema?.required).toContain('supportedValues');
+    });
+
+    it('shared property schema does NOT require value', () => {
+      const schema = gtsPlugin.getSchema('gts.hai3.mfes.comm.shared_property.v1~');
+      expect(schema).toBeDefined();
+      expect(schema?.required).not.toContain('value');
+    });
+
+    it('shared property schema supportedValues is array of strings', () => {
+      const schema = gtsPlugin.getSchema('gts.hai3.mfes.comm.shared_property.v1~');
+      expect(schema).toBeDefined();
+      const properties = schema?.properties as Record<string, unknown>;
+      expect(properties.supportedValues).toMatchObject({
+        type: 'array',
+        items: {
+          type: 'string',
+        },
+      });
     });
   });
 });

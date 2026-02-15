@@ -32,6 +32,11 @@ import lifecycleDestroyedInstance from './hai3.mfes/instances/lifecycle/destroye
 import loadExtActionInstance from './hai3.mfes/instances/ext/load_ext.v1.json';
 import mountExtActionInstance from './hai3.mfes/instances/ext/mount_ext.v1.json';
 import unmountExtActionInstance from './hai3.mfes/instances/ext/unmount_ext.v1.json';
+import notifyUserActionInstance from './hai3.mfes/instances/lifecycle/notify_user.v1.json';
+
+// Import shared property instances
+import themeSharedPropertyInstance from './hai3.mfes/instances/comm/theme.v1.json';
+import languageSharedPropertyInstance from './hai3.mfes/instances/comm/language.v1.json';
 
 /**
  * Load all core MFE schema JSON files.
@@ -73,10 +78,26 @@ export function loadLifecycleStages(): LifecycleStage[] {
 
 /**
  * Load base action instances.
- * These are the generic extension lifecycle actions used by all domains.
+ * These are the generic extension lifecycle actions used by all domains,
+ * plus custom lifecycle notification actions.
  *
  * @returns Array of action instances
  */
 export function loadBaseActions(): Action[] {
-  return [loadExtActionInstance, mountExtActionInstance, unmountExtActionInstance] as Action[];
+  return [
+    loadExtActionInstance,
+    mountExtActionInstance,
+    unmountExtActionInstance,
+    notifyUserActionInstance,
+  ] as Action[];
+}
+
+/**
+ * Load default shared property instances.
+ * These are the 2 built-in shared properties: theme and language.
+ *
+ * @returns Array of shared property instances
+ */
+export function loadSharedProperties(): unknown[] {
+  return [themeSharedPropertyInstance, languageSharedPropertyInstance];
 }

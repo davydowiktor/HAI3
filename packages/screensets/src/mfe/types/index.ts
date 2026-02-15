@@ -11,7 +11,7 @@
 export type { MfeEntry } from './mfe-entry';
 export type { MfeEntryMF } from './mfe-entry-mf';
 export type { ExtensionDomain } from './extension-domain';
-export type { Extension } from './extension';
+export type { Extension, ExtensionPresentation } from './extension';
 export type { SharedProperty } from './shared-property';
 export type { Action } from './action';
 export type { ActionsChain } from './actions-chain';

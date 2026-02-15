@@ -7,9 +7,8 @@ This document contains the JSON Schema definitions for all MFE system types. The
 - [Type System](./type-system.md) - TypeSystemPlugin interface, GTS implementation, contract validation
 - [MFE Entry](./mfe-entry-mf.md) - MfeEntry and MfeEntryMF type details
 - [MFE Manifest](./mfe-manifest.md) - MfManifest type details
-- [MFE Domain](./mfe-domain.md) - ExtensionDomain type details
 - [MFE Actions](./mfe-actions.md) - Action and ActionsChain type details
-- [MFE Shared Property](./mfe-shared-property.md) - SharedProperty type details
+- [MFE API](./mfe-api.md) - SharedProperty usage, bridge interfaces
 
 ---
 
@@ -134,7 +133,7 @@ Defines an extension point where MFEs can be mounted.
 
 ### Extension Schema
 
-Binds an MFE entry to a domain. Domain-specific fields are defined in derived Extension schemas.
+Binds an MFE entry to a domain. Domain-specific fields are defined in derived Extension schemas. The base schema includes an optional `presentation` object for host UI integration (menu items, navigation).
 
 ```json
 {
@@ -154,6 +153,29 @@ Binds an MFE entry to a domain. Domain-specific fields are defined in derived Ex
       "x-gts-ref": "gts.hai3.mfes.mfe.entry.v1~*",
       "$comment": "MfeEntry type ID to mount"
     },
+    "presentation": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "$comment": "Display label for the extension in host UI (e.g., nav menu item text)"
+        },
+        "icon": {
+          "type": "string",
+          "$comment": "Icon identifier for the extension in host UI (e.g., icon name from UIKit)"
+        },
+        "route": {
+          "type": "string",
+          "$comment": "Route path for the extension (e.g., '/hello-world'). Used by navigation."
+        },
+        "order": {
+          "type": "number",
+          "$comment": "Sort order for the extension in host UI lists (lower = higher priority)"
+        }
+      },
+      "required": ["label", "route"],
+      "$comment": "Presentation metadata for host UI integration. Defines how this extension appears in navigation menus and other host UI elements. The same entry could mount in different domains with different presentation."
+    },
     "lifecycle": {
       "type": "array",
       "items": { "type": "object", "$ref": "gts://gts.hai3.mfes.lifecycle.hook.v1~" },
@@ -167,7 +189,7 @@ Binds an MFE entry to a domain. Domain-specific fields are defined in derived Ex
 
 ### Shared Property Schema
 
-Represents a typed value passed from parent to MFE.
+Represents a shared property contract defining which values consumers must support. Runtime values are set via `updateDomainProperty()`, not stored in the GTS instance.
 
 ```json
 {
@@ -178,9 +200,13 @@ Represents a typed value passed from parent to MFE.
     "id": {
       "x-gts-ref": "/$id"
     },
-    "value": {}
+    "supportedValues": {
+      "type": "array",
+      "items": { "type": "string" },
+      "$comment": "Enum contract: the set of values that consumers of this property must support"
+    }
   },
-  "required": ["id", "value"]
+  "required": ["id", "supportedValues"]
 }
 ```
 
@@ -330,7 +356,7 @@ Module Federation configuration for loading MFE bundles.
             "$comment": "Default false = isolated instances per MFE"
           }
         },
-        "required": ["name", "requiredVersion"]
+        "required": ["name"]
       }
     },
     "entries": {
@@ -368,15 +394,15 @@ Module Federation implementation extending the base MfeEntry.
 }
 ```
 
+**Design note (JSON schema vs TypeScript):** The JSON schema defines `manifest` as an `x-gts-ref` (string reference only) because it validates the persisted/serialized form where manifests are always stored as string references. The TypeScript runtime interface (`MfeEntryMF.manifest: string | MfManifest`) accepts both string references and inline MfManifest objects for convenience. Inline objects are resolved at load time by `MfeHandlerMF.resolveManifest()`. See [mfe-entry-mf.md](./mfe-entry-mf.md#typescript-interface-definitions) for the TypeScript interface.
+
 ---
 
 ## GTS Entity Storage Format
 
 ### JSON as Native GTS Format
 
-GTS entities (schemas, instances, domains, extensions, etc.) are natively represented as JSON. This is the canonical storage format for the Global Type System.
-
-**MANDATORY**: All GTS entities MUST be stored in `.json` files, not hardcoded as TypeScript objects. TypeScript interfaces provide compile-time type safety, while JSON files provide runtime validation via GTS.
+GTS entities (schemas, instances, domains, extensions, etc.) are natively represented as JSON. **All GTS entities MUST be stored in `.json` files**, not hardcoded as TypeScript objects.
 
 **Two-Package Organization**:
 
@@ -414,6 +440,9 @@ packages/screensets/src/mfe/gts/
         load_ext.v1.json             # gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1
         mount_ext.v1.json            # gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1
         unmount_ext.v1.json          # gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1
+      comm/
+        theme.v1.json                # gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1
+        language.v1.json             # gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1
 packages/framework/src/plugins/microfrontends/gts/
   hai3.screensets/                   # Screensets layout GTS package (L2 - runtime config)
     instances/
@@ -423,57 +452,6 @@ packages/framework/src/plugins/microfrontends/gts/
         screen.v1.json               # gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1
         overlay.v1.json              # gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1
 ```
-
-**What Goes Where**:
-- `@hai3/screensets`: `hai3.mfes/schemas/` - All 10 type schemas organized by namespace (mfe, ext, comm, lifecycle)
-- `@hai3/screensets`: `hai3.mfes/instances/lifecycle/` - The 4 default lifecycle stage instances (core MFE system)
-- `@hai3/screensets`: `hai3.mfes/instances/ext/` - Extension lifecycle action instances (load_ext, mount_ext, unmount_ext) (core MFE system)
-- `@hai3/framework`: `hai3.screensets/instances/domains/` - Layout domain instances (sidebar, popup, screen, overlay) (runtime config)
-
-**Loading JSON Schemas**:
-```typescript
-// Import JSON schema file
-import entrySchema from './gts/hai3.mfes/schemas/mfe/entry.v1.json';
-
-// Register with plugin
-plugin.registerSchema(entrySchema);
-
-// Or load dynamically
-const schema = await fetch('/gts/hai3.mfes/schemas/mfe/entry.v1.json').then(r => r.json());
-plugin.registerSchema(schema);
-```
-
-**TypeScript Type Safety**:
-When using JSON files, TypeScript interfaces provide compile-time type safety for code that works with these entities:
-```typescript
-// TypeScript interface for code
-interface MfeEntry {
-  id: string;
-  requiredProperties: string[];
-  // ...
-}
-
-// JSON file provides runtime validation via GTS
-// TypeScript interface provides compile-time validation
-```
-
-**Benefits of JSON Storage**:
-1. **Native GTS format** - No translation layer needed
-2. **Tool-friendly** - Can be generated, validated, and transformed by external tools
-3. **Runtime loadable** - Can be fetched dynamically without bundling
-4. **Shareable** - Can be published to registries or shared via HTTP
-5. **Version-independent** - Schema changes don't require code recompilation
-
-**When to Use TypeScript Objects** (LIMITED cases only):
-- For inline entity definitions in unit tests (test-specific mocks)
-- For temporary examples in documentation
-
-**When NOT to Use TypeScript Objects** (use JSON files instead):
-- First-class citizen schemas - MUST be in JSON files under `hai3.mfes/schemas/`
-- Default lifecycle stages - MUST be in JSON files under `hai3.mfes/instances/lifecycle/`
-- Base action types - MUST be in JSON files under `hai3.mfes/instances/comm/`
-- Layout domain instances - MUST be in JSON files under `hai3.screensets/instances/domains/` in `@hai3/framework` (L2, runtime config)
-- Any entity that will be registered with the GTS plugin at runtime
 
 ---
 

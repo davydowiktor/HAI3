@@ -7,8 +7,8 @@ This document covers the ScreensetsRegistry runtime isolation model, action chai
 - [MFE Loading](./mfe-loading.md) - MfeHandler abstract class, handler registry, Module Federation loading
 - [MFE API](./mfe-api.md) - MfeEntryLifecycle interface
 - [MFE Actions](./mfe-actions.md) - Action and ActionsChain types
-- [MFE Domain](./mfe-domain.md) - ExtensionDomain and Extension types
-- [MFE Lifecycle](./mfe-lifecycle.md) - Lifecycle stages and hooks
+- [Schemas](./schemas.md) - ExtensionDomain, Extension, LifecycleStage, LifecycleHook schema definitions
+- [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md) - Lifecycle actions and domain semantics
 
 ---
 
@@ -138,7 +138,9 @@ The MFE system defines a hierarchy of error classes for specific failure scenari
 
 Shadow DOM utilities are provided by `@hai3/screensets` for style isolation. The public barrel exports `createShadowRoot` and `injectCssVariables`. Other shadow DOM helpers (`injectStylesheet`, `ShadowRootOptions`) are internal.
 
-**Note on `HTMLElement` narrowing**: `createShadowRoot()` requires `HTMLElement` because `attachShadow()` is defined on `HTMLElement`, not the more general `Element`. Since `MfeEntryLifecycle.mount()` receives `container: Element`, MFE implementations that use shadow DOM must narrow via `container as HTMLElement` when calling `createShadowRoot()`.
+**Default handler behavior**: With `MfeHandlerMF`, `DefaultMountManager` creates the Shadow DOM boundary automatically during mount. The MFE's `mount(container, bridge)` receives the shadow root, NOT the host element. See [Principles - Shadow DOM Style Isolation](./principles.md#shadow-dom-style-isolation-default-handler) for the complete CSS isolation model (CSS variable behavior, style initialization, custom handler options).
+
+**Note on `HTMLElement` narrowing**: `createShadowRoot()` requires `HTMLElement` because `attachShadow()` is defined on `HTMLElement`, not the more general `Element`. Since `MfeEntryLifecycle.mount()` receives `container: Element`, MFE implementations that use shadow DOM must narrow via `container as HTMLElement` when calling `createShadowRoot()`. With the default handler, the container IS already the shadow root, so MFEs typically do not need to call `createShadowRoot()` themselves.
 
 ### Decision 17: Dynamic Registration Model
 
@@ -210,10 +212,10 @@ async function onUserLogin(user: User) {
 }
 
 // Domain-level shared property updates
-runtime.updateDomainProperty(domainId, themePropertyId, 'dark');
+runtime.updateDomainProperty(domainId, HAI3_SHARED_PROPERTY_THEME, 'dark');
 runtime.updateDomainProperties(domainId, new Map([
-  [themePropertyId, 'dark'],
-  [userContextPropertyId, { userId: '123' }],
+  [HAI3_SHARED_PROPERTY_THEME, 'dark'],
+  [HAI3_SHARED_PROPERTY_LANGUAGE, 'de'],
 ]));
 ```
 
@@ -268,6 +270,7 @@ import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type { ExtensionDomain, Extension, ActionsChain } from '../types';
 import type { ContainerProvider } from './container-provider';
+import type { CustomActionHandler } from './extension-lifecycle-action-handler';
 
 /**
  * Abstract ScreensetsRegistry - public contract for the MFE runtime facade.
@@ -279,7 +282,7 @@ export abstract class ScreensetsRegistry {
   abstract readonly typeSystem: TypeSystemPlugin;
 
   // --- Registration ---
-  abstract registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider, onInitError?: (error: Error) => void): void;
+  abstract registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider, onInitError?: (error: Error) => void, customActionHandler?: CustomActionHandler): void;
   abstract unregisterDomain(domainId: string): Promise<void>;
   abstract registerExtension(extension: Extension): Promise<void>;
   abstract unregisterExtension(extensionId: string): Promise<void>;
@@ -452,8 +455,9 @@ The `@hai3/screensets` public barrel exports:
 - `MfeEntryLifecycle` (interface -- MFEs implement this for mount/unmount)
 - `ChildMfeBridge` (interface -- MFEs receive this for parent communication)
 - `ParentMfeBridge` (interface -- parent uses this for child instance management)
-- GTS type interfaces: `MfeEntry`, `MfeEntryMF`, `ExtensionDomain`, `Extension`, `SharedProperty`, `Action`, `ActionsChain`, `LifecycleStage`, `LifecycleHook`
+- GTS type interfaces: `MfeEntry`, `MfeEntryMF`, `ExtensionDomain`, `Extension`, `SharedProperty`, `Action`, `ActionsChain`, `LifecycleStage`, `LifecycleHook`. Note: `SharedProperty` is the GTS contract type (defines `supportedValues`). Bridge property methods (`subscribeToProperty`, `getProperty`) return runtime values (`unknown`), not `SharedProperty` objects.
 - Action constants: `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`
+- Shared property constants: `HAI3_SHARED_PROPERTY_THEME`, `HAI3_SHARED_PROPERTY_LANGUAGE`
 - Shadow DOM utilities: `createShadowRoot`, `injectCssVariables`
 - Validation types: `ValidationResult`, `ValidationError`, `JSONSchema`
 
@@ -476,8 +480,18 @@ All other symbols are internal implementation details and are NOT exported from 
 Layer boundaries are enforced by dependency-cruiser rules:
 - **`framework-no-react`**: Framework (L2) cannot import React (L3).
 - **`react-no-sdk`**: React (L3) cannot import SDK packages (L1) directly; must use `@hai3/framework` re-exports.
+- **MFE packages (L4)**: `src/mfe_packages/` is NOT excluded from dependency-cruiser. Layer enforcement catches violations (e.g., importing from `@hai3/screensets` instead of `@hai3/react`).
 
 Package-level configs (`internal/depcruise-config/react.cjs`, `sdk.cjs`) use `state|screensets|api|i18n` to reference the L1 SDK packages.
+
+#### MFE Package Layer Rules
+
+MFE packages under `src/mfe_packages/` are app-level (L4) code:
+- They can ONLY import from `@hai3/react` (L3)
+- Never from `@hai3/screensets` (L1) or `@hai3/framework` (L2) directly
+- Since `@hai3/react` re-exports all public symbols from lower layers, MFEs have full API access while respecting layer boundaries
+- ESLint layer rules under `src/` enforce this automatically
+- No tooling exclusions are permitted for `src/mfe_packages/` in ESLint, dependency-cruiser, knip, or tsconfig
 
 #### MfeStateContainer
 

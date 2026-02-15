@@ -12,56 +12,22 @@
  *
  * @example
  * ```typescript
- * import {
- *   screensetRegistry,
- *   ScreensetDefinition,
- *   ScreensetCategory,
- *   LayoutDomain,
- * } from '@hai3/screensets';
+ * import { LayoutDomain } from '@hai3/screensets';
  *
- * const myScreenset: ScreensetDefinition = {
- *   id: 'myApp',
- *   name: 'My Application',
- *   category: ScreensetCategory.Production,
- *   defaultScreen: 'home',
- *   menu: [
- *     { menuItem: homeMenuItem, screen: () => import('./HomeScreen') }
- *   ]
- * };
- *
- * screensetRegistry.register(myScreenset);
+ * // LayoutDomain is used by framework layout slices
+ * const visibleDomains = [
+ *   LayoutDomain.Header,
+ *   LayoutDomain.Menu,
+ *   LayoutDomain.Screen
+ * ];
  * ```
  */
 
 // ============================================================================
-// Registry
+// Layout Domain Enum
 // ============================================================================
 
-export { screensetRegistry, createScreensetRegistry } from './registry';
-
-// ============================================================================
-// Types and Contracts
-// ============================================================================
-
-export {
-  // Enums
-  LayoutDomain,
-  ScreensetCategory,
-
-  // Branded types
-  type ScreensetId,
-  type ScreenId,
-
-  // Configuration interfaces
-  type MenuItemConfig,
-  type ScreenLoader,
-  type ScreenConfig,
-  type MenuScreenItem,
-  type ScreensetDefinition,
-
-  // Registry interface
-  type ScreensetRegistry,
-} from './types';
+export { LayoutDomain } from './types';
 
 // ============================================================================
 // MFE (Microfrontend) Support
@@ -81,6 +47,7 @@ export type {
   MfeEntryMF,
   ExtensionDomain,
   Extension,
+  ExtensionPresentation,
   SharedProperty,
   Action,
   ActionsChain,
@@ -104,6 +71,13 @@ export {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
+  HAI3_ACTION_NOTIFY_USER,
+} from './mfe';
+
+// HAI3 Shared Property Constants
+export {
+  HAI3_SHARED_PROPERTY_THEME,
+  HAI3_SHARED_PROPERTY_LANGUAGE,
 } from './mfe';
 
 // MFE Runtime (ScreensetsRegistry - the MFE-enabled registry)

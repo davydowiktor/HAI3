@@ -1,0 +1,39 @@
+{
+  "manifest": {
+    "id": "gts.hai3.mfes.mfe.mf_manifest.v1~[YOUR_ORG].[YOUR_APP].mfe.[YOUR_MFE_NAME].manifest.v1",
+    "remoteEntry": "http://localhost:3099/assets/remoteEntry.js",
+    "remoteName": "blankMfe",
+    "sharedDependencies": [
+      { "name": "react", "requiredVersion": "^19.0.0", "singleton": false },
+      { "name": "react-dom", "requiredVersion": "^19.0.0", "singleton": false },
+      { "name": "tailwindcss", "singleton": false },
+      { "name": "@hai3/uikit", "singleton": false }
+    ]
+  },
+  "entries": [
+    {
+      "id": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~[YOUR_ORG].[YOUR_APP].mfe.[YOUR_MFE_NAME].[YOUR_SCREEN_NAME].v1",
+      "requiredProperties": [
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1",
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1"
+      ],
+      "actions": [],
+      "domainActions": [],
+      "manifest": "gts.hai3.mfes.mfe.mf_manifest.v1~[YOUR_ORG].[YOUR_APP].mfe.[YOUR_MFE_NAME].manifest.v1",
+      "exposedModule": "./lifecycle"
+    }
+  ],
+  "extensions": [
+    {
+      "id": "gts.hai3.mfes.ext.extension.v1~[YOUR_ORG].[YOUR_APP].ext.[YOUR_SCREEN_NAME]_screen.v1",
+      "domain": "gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1",
+      "entry": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~[YOUR_ORG].[YOUR_APP].mfe.[YOUR_MFE_NAME].[YOUR_SCREEN_NAME].v1",
+      "presentation": {
+        "label": "[Your Screen Label]",
+        "icon": "lucide:home",
+        "route": "/[your-route]",
+        "order": 100
+      }
+    }
+  ]
+}

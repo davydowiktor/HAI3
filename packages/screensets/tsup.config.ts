@@ -5,6 +5,7 @@ export default defineConfig({
     index: 'src/index.ts',
     types: 'src/types.ts',
     'mfe/plugins/gts/index': 'src/mfe/plugins/gts/index.ts',
+    'mfe/handler/index': 'src/mfe/handler/index.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,

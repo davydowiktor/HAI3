@@ -220,7 +220,11 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
   /**
    * Load a Module Federation remote container.
-   * Uses script injection to load remoteEntry.js.
+   * Uses ESM dynamic import to load remoteEntry.js.
+   *
+   * @originjs/vite-plugin-federation produces ESM-format remoteEntry.js files
+   * with named exports (get/init), NOT UMD globals. We use ESM dynamic import
+   * instead of script injection + window lookup.
    */
   private async loadRemoteContainer(manifest: MfManifest): Promise<ModuleFederationContainer> {
     // Check if already loaded
@@ -229,56 +233,59 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       return cached;
     }
 
-    // Load the remote entry script
-    await this.loadScript(manifest.remoteEntry, this.config.timeout ?? 30000);
+    // Dynamically import the remote entry ESM module
+    // @vite-ignore directive prevents Vite from trying to analyze the dynamic import
+    const remoteModule = await this.loadRemoteModuleESM(
+      manifest.remoteEntry,
+      this.config.timeout ?? 30000
+    );
 
-    // Get the container from the global scope
-    const container = this.getContainerFromWindow(manifest.remoteName);
+    // Validate the imported module has required get/init methods
+    if (!this.isModuleFederationContainer(remoteModule)) {
+      throw new MfeLoadError(
+        `Remote module '${manifest.remoteEntry}' does not export required get/init functions. ` +
+        `Ensure the remote is built with Module Federation ESM format.`,
+        manifest.id
+      );
+    }
 
     // Initialize the container with shared dependencies
-    await container.init({});
+    await remoteModule.init({});
 
     // Cache the container
-    this.manifestCache.cacheContainer(manifest.remoteName, container);
+    this.manifestCache.cacheContainer(manifest.remoteName, remoteModule);
 
-    return container;
+    return remoteModule;
   }
 
   /**
-   * Load a remote script dynamically.
+   * Load a remote ESM module dynamically.
+   * Uses dynamic import() with timeout protection.
    */
-  private async loadScript(url: string, timeout: number): Promise<void> {
+  private async loadRemoteModuleESM(url: string, timeout: number): Promise<unknown> {
     return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = url;
-      script.type = 'text/javascript';
-      script.async = true;
-
       const timer = setTimeout(() => {
-        cleanup();
-        reject(new Error(`Script load timeout: ${url}`));
+        reject(new MfeLoadError(
+          `Timeout loading remote module: ${url} (${timeout}ms)`,
+          url
+        ));
       }, timeout);
 
-      const cleanup = (): void => {
-        clearTimeout(timer);
-        script.removeEventListener('load', onLoad);
-        script.removeEventListener('error', onError);
-      };
-
-      const onLoad = (): void => {
-        cleanup();
-        resolve();
-      };
-
-      const onError = (): void => {
-        cleanup();
-        reject(new Error(`Failed to load script: ${url}`));
-      };
-
-      script.addEventListener('load', onLoad);
-      script.addEventListener('error', onError);
-
-      document.head.appendChild(script);
+      // Dynamic import with @vite-ignore to prevent Vite analysis
+      // The imported module IS the container (exports get/init)
+      import(/* @vite-ignore */ url)
+        .then((module) => {
+          clearTimeout(timer);
+          resolve(module);
+        })
+        .catch((error) => {
+          clearTimeout(timer);
+          reject(new MfeLoadError(
+            `Failed to load remote module: ${url}`,
+            url,
+            error instanceof Error ? error : undefined
+          ));
+        });
     });
   }
 
@@ -293,23 +300,6 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       typeof (value as Record<string, unknown>).get === 'function' &&
       typeof (value as Record<string, unknown>).init === 'function'
     );
-  }
-
-  /**
-   * Get the Module Federation container from the window object.
-   * Validates the container implements the required get/init interface.
-   */
-  private getContainerFromWindow(remoteName: string): ModuleFederationContainer {
-    const globalScope = globalThis as Record<string, unknown>;
-    const container = globalScope[remoteName];
-
-    if (!this.isModuleFederationContainer(container)) {
-      throw new Error(
-        `Module Federation container '${remoteName}' not found on window or does not implement required get/init interface`
-      );
-    }
-
-    return container; // TypeScript now knows it's ModuleFederationContainer
   }
 
   /**

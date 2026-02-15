@@ -3,7 +3,6 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HAI3Provider, apiRegistry, createHAI3App } from '@hai3/react';
 import { AccountsApiService } from '@/app/api';
-import '@/screensets/screensetRegistry'; // Auto-registers screensets (includes API services + mocks + i18n loaders)
 import '@/app/events/bootstrapEvents'; // Register app-level events (type augmentation)
 import { registerBootstrapEffects } from '@/app/effects/bootstrapEffects'; // Register app-level effects
 import App from './App';

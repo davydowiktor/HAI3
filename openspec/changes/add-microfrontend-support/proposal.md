@@ -41,133 +41,47 @@ const app = createHAI3()
 
 HAI3's default handler enforces instance-level isolation. See [Runtime Isolation](./design/overview.md#runtime-isolation-default-behavior) for the complete isolation model, including recommendations for 3rd-party vs internal MFEs.
 
+**Shadow DOM Style Isolation**: The default handler (`MfeHandlerMF`) enforces CSS isolation via Shadow DOM. Each MFE receives the shadow root as its mount container, not the host element. See [Principles - Shadow DOM Style Isolation](./design/principles.md#shadow-dom-style-isolation-default-handler) for the full isolation model, CSS variable behavior, and custom handler options.
+
+**Theme and Language**: Communicated to MFEs through domain properties on the bridge (`theme`, `language`). The MFE reads these from its `ChildMfeBridge` and sets its own CSS variables inside its Shadow DOM. See [Principles - Theme and Language](./design/principles.md#theme-and-language-as-domain-properties) for the full propagation model.
+
+**Shared Dependencies**: Every MFE MUST include Tailwind CSS and `@hai3/uikit` in its Module Federation `shared` config (alongside React/react-dom), with `singleton: false`. No inline styles. See [MFE Loading - Why singleton: false](./design/mfe-loading.md#decision-11-module-federation-20-for-bundle-loading) for the rationale and [Principles - Shared Dependencies](./design/principles.md#shared-dependencies-tailwind--uikit) for the style requirements.
+
 Communication happens ONLY through the explicit contract (ChildMfeBridge interface):
-- **Shared properties** (parent to child, read-only)
+- **Shared properties** (parent to child, read-only) -- HAI3 provides built-in `theme` (`HAI3_SHARED_PROPERTY_THEME`) and `language` (`HAI3_SHARED_PROPERTY_LANGUAGE`) shared property instances. All 4 base extension domains declare both. MFE entries declare them in `requiredProperties`. See [MFE Shared Property](./design/mfe-shared-property.md) for the full contract flow.
 - **Actions chain** delivered by ActionsChainsMediator to targets
 
 **Hierarchical domains**: Domains can exist at ANY level. An MFE can be an extension to its parent's domain, define its OWN domains for nested MFEs, or both simultaneously.
 
-### Architectural Decision: Type System Plugin Abstraction
+### Architectural Decisions Summary
 
-The @hai3/screensets package abstracts the Type System as a **pluggable dependency**:
+> **Navigation index** -- authoritative content is in the linked design documents.
 
-1. **Opaque Type IDs**: The screensets package treats type IDs as opaque strings
-2. **Required Plugin**: A `TypeSystemPlugin` must be provided at initialization
-3. **Default Implementation**: GTS (`@globaltypesystem/gts-ts`) ships as the default plugin
-4. **Extensibility**: Other Type System implementations can be plugged in
+The table below maps each architectural topic to its authoritative design document. Each entry is a one-line summary; follow the link for the full design, rationale, and code examples.
 
-**Key Principle**: The screensets package treats type IDs as opaque strings. All type understanding is delegated to the plugin.
-
-See [Type System - Decision 1](./design/type-system.md#decision-1-type-system-plugin-interface) for the complete `TypeSystemPlugin` interface definition.
-
-**GTS-Native Validation Model:**
-See [type-system.md - Instance ID Convention](./design/type-system.md#instance-id-convention) for the `~` suffix convention (schema IDs end with `~`, instance IDs do not). gts-ts extracts the schema ID from the chained instance ID automatically and uses Ajv internally.
-
-**Built-in First-Class Citizen Schemas:**
-
-The GTS plugin ships with all HAI3 first-class citizen schemas built-in. No `registerSchema` calls are needed for core types. See [Type System - Decision 4](./design/type-system.md#decision-4-built-in-first-class-citizen-schemas) for the rationale.
-
-### HAI3 Internal TypeScript Types
-
-The MFE system uses these internal TypeScript interfaces. Each type has an `id: string` field as its identifier:
-
-**Core Types (8 type schemas):**
-
-> **Note on type count**: The 8 core types listed below are GTS **type schemas** (JSON Schema definitions). LifecycleStage and LifecycleHook are type schemas that define the structure for lifecycle-related entities. The 4 default lifecycle stages (`init`, `activated`, `deactivated`, `destroyed`) listed later are **instances/values** of the LifecycleStage type - they are pre-defined stage definitions, not additional type schemas.
-
-| TypeScript Interface | Fields | Purpose |
-|---------------------|--------|---------|
-| `MfeEntry` | `id, requiredProperties: string[], optionalProperties?: string[], actions: string[], domainActions: string[]` | Pure contract type (abstract GTS base type; TypeScript interface) |
-| `ExtensionDomain` | `id, sharedProperties: string[], actions: string[], extensionsActions: string[], extensionsTypeId?: string, defaultActionTimeout: number, lifecycleStages: string[], extensionsLifecycleStages: string[], lifecycle?: LifecycleHook[]` | Extension point contract |
-| `Extension` | `id, domain, entry, lifecycle?: LifecycleHook[]` | Extension binding (domain-specific fields in derived types) |
-| `SharedProperty` | `id, value` | Shared property instance |
-| `Action` | `type, target, payload?, timeout?` | Action with self-identifying type ID and optional timeout override |
-| `ActionsChain` | `action: Action, next?: ActionsChain, fallback?: ActionsChain` | Action chain for mediation (contains instances, no id) |
-| `LifecycleStage` | `id, description?` | Lifecycle event type that triggers actions chains |
-| `LifecycleHook` | `stage, actions_chain` | Binds a lifecycle stage to an actions chain |
-
-**MF-Specific Types (2 types):**
-
-| TypeScript Interface | Fields | Purpose |
-|---------------------|--------|---------|
-| `MfManifest` | `id, remoteEntry, remoteName, sharedDependencies?: SharedDependencyConfig[], entries?: string[]` | Module Federation manifest (standalone) |
-| `MfeEntryMF` | `(extends MfeEntry) manifest: string \| MfManifest, exposedModule` | Module Federation entry (derived) |
-
-**Framework-Agnostic Lifecycle Interface (1 type):**
-
-| TypeScript Interface | Fields | Purpose |
-|---------------------|--------|---------|
-| `MfeEntryLifecycle<TBridge>` | `mount(container: Element, bridge: TBridge): void \| Promise<void>, unmount(container: Element): void \| Promise<void>` | Lifecycle interface for MFE entries (TBridge defaults to ChildMfeBridge) |
-
-**Handler Abstraction (1 public type):**
-
-| TypeScript Interface | Fields | Purpose |
-|---------------------|--------|---------|
-| `MfeHandler<TEntry, TBridge>` | `bridgeFactory, canHandle(entryTypeId), load(entry), priority?` | Abstract handler class for different entry types |
-
-### Bridge Interface Names
-
-The MFE Bridge interfaces are named to clarify which side of the parent/child relationship each interface is for. See [MFE API - Bridge Interfaces](./design/mfe-api.md#mfe-bridge-interfaces) for the complete interface definitions, methods, and examples.
-
-### GTS Type ID Format
-
-The GTS type ID format is: `gts.<vendor>.<package>.<namespace>.<type>.v<MAJOR>[.<MINOR>]~`
-
-### Type System Registration (Built-in to GTS Plugin)
-
-The GTS plugin ships with all first-class citizen schemas **built-in** (8 core types, 4 default lifecycle stages, 2 MF-specific types). No `registerSchema` calls are needed for core types. See [Type System - Decision 2](./design/type-system.md#decision-2-gts-type-id-format-and-registration) for the complete GTS Type ID tables.
-
-### GTS JSON Schema Definitions
-
-Each of the 8 core types and 2 MF-specific types has a corresponding JSON Schema with proper `$id`. See [design/schemas.md](./design/schemas.md) for complete JSON Schema definitions of all types.
-
-**Note on `registerSchema`:** The `registerSchema(schema)` method is for vendor/dynamic schemas only. The type ID is extracted from the schema's `$id` field - no need to pass it separately. First-class citizen schemas are built into the plugin and do not require registration.
-
-### MfeEntry Type Hierarchy
-
-MfeEntry is the abstract base type for all entry contracts. MfeEntryMF extends it with Module Federation fields. Companies can create their own derived types (e.g., `MfeEntryAcme`) with richer contracts.
-
-For the complete type hierarchy diagram including field definitions, `x-gts-ref` annotations, and company custom entry type examples, see [design/mfe-entry-mf.md](./design/mfe-entry-mf.md#mfeentry-type-hierarchy).
-
-### Contract Matching Rules
-
-For mounting to be valid, the entry must be compatible with the domain. See [Contract Matching Rules in type-system.md](./design/type-system.md#decision-8-contract-matching-rules) for the complete validation algorithm and implementation details.
-
-### Domain-Specific Extension Validation via Derived Types
-
-Domain-specific fields are defined in **derived Extension schemas** directly (not a separate `uiMeta` field). `ExtensionDomain.extensionsTypeId` optionally references a derived Extension type; extensions must derive from it. Validation uses GTS-native `register()` + `validateInstance()` + `isTypeOf()`. See [Type System - Decision 9](./design/type-system.md#decision-9-domain-specific-extension-validation-via-derived-types) for details.
-
-### Explicit Timeout Configuration
-
-`Effective timeout = action.timeout ?? domain.defaultActionTimeout`. Timeout is treated as failure (triggers `ActionsChain.fallback`). Chain-level `chainTimeout` limits total chain execution. See [MFE Actions - Timeout](./design/mfe-actions.md#explicit-timeout-configuration) for details.
-
-### Actions Chain Runtime
-
-ActionsChainsMediator delivers actions chains to targets. On success: executes `next` chain; on failure/timeout: executes `fallback` chain. Recurses until chain ends. See [MFE Actions - Mediation](./design/mfe-actions.md#actions-chain-mediation) for the execution flow diagram.
-
-### Hierarchical Extension Domains
-
-Domains can exist at any level: host provides base layout domains (`sidebar`, `popup`, `screen`, `overlay`); MFEs can define their own domains for nested extensions; an MFE can be both extension and domain provider simultaneously. See [MFE Domain - Hierarchical Domains](./design/mfe-domain.md#hierarchical-extension-domains) for diagrams.
-
-### Extension Lifecycle Actions
-
-Three generic actions (`load_ext`, `mount_ext`, `unmount_ext`) serve as the consumer-facing API for extension lifecycle. Each domain handles them according to its layout semantics; `executeActionsChain()` is the only consumer-facing entry point. See [Extension Lifecycle Actions](./design/mfe-ext-lifecycle-actions.md) for action constant IDs, GTS instance IDs, domain support matrix, and the complete design.
-
-### Container Provider Abstraction
-
-A `ContainerProvider` abstract class shifts DOM container management from action callers to the domain. The provider is passed at domain registration time via `registerDomain(domain, containerProvider, onInitError?)`, and the `ExtensionLifecycleActionHandler` is the single owner of all provider interactions. See [Extension Lifecycle Actions - ContainerProvider](./design/mfe-ext-lifecycle-actions.md#container-provider-abstraction) for the complete design including the ownership model, `RefContainerProvider`, and callback wiring.
-
-### Dynamic Registration Model
-
-Extensions and MFEs are NOT known at app initialization time. `ScreensetsRegistry` handles dynamic registration at any point during the application lifecycle. Loading fetches the bundle; mounting renders to DOM. Entity fetching is outside MFE system scope. See [Registry Runtime - Decision 17](./design/registry-runtime.md#decision-17-dynamic-registration-model) for the complete API and [System Boundary](./design/overview.md#system-boundary) for scope.
-
-### Architectural Requirement: Abstract Class Layers
-
-Every major stateful component has an abstract class (pure contract) and a concrete implementation. See [Principle #6](./design/principles.md#abstract-class-layers-with-singleton-construction) and [Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) for the complete design including construction patterns (singleton constant, factory-with-cache, direct construction), export policy, and file layout.
-
-### Flux Architecture Compliance for MFE Lifecycle Actions
-
-Lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`) call `executeActionsChain()` directly (fire-and-forget, no await, void return). Effects remain only for `registerExtension` and `unregisterExtension` (async operations with store state tracking). Domain registration is called directly on `ScreensetsRegistry` (synchronous). Load/mount state is tracked internally by the registry via `ExtensionState`; the framework store slice tracks registration state only. ESLint rules enforce that effects files cannot call `executeActionsChain()` (ESLint rule modification required -- see tasks). See [mfe-ext-lifecycle-actions.md](./design/mfe-ext-lifecycle-actions.md) for the complete design.
+| Topic | Summary | Design Doc |
+|-------|---------|------------|
+| Type System Plugin | Opaque type IDs; `TypeSystemPlugin` required at init; GTS is the default | [type-system.md - Decision 1](./design/type-system.md#decision-1-type-system-plugin-interface) |
+| GTS-Native Validation | Schema IDs end with `~`, instance IDs do not; gts-ts extracts schema ID automatically | [type-system.md - Instance ID Convention](./design/type-system.md#instance-id-convention) |
+| Built-in Schemas | GTS plugin ships with all HAI3 first-class citizen schemas built-in; `registerSchema()` is vendor-only | [type-system.md - Decision 4](./design/type-system.md#decision-4-built-in-first-class-citizen-schemas) |
+| GTS Type IDs | 8 core + 2 MF-specific types; format `gts.<vendor>.<package>.<namespace>.<type>.v<N>~` | [type-system.md - Decision 2](./design/type-system.md#decision-2-gts-type-id-format-and-registration) |
+| TypeScript Interfaces | `id: string` identifier on all types; cross-references per type | [type-system.md - Decision 3](./design/type-system.md#decision-3-internal-typescript-type-definitions) |
+| JSON Schemas | 10 schemas with `$id`; `registerSchema()` for vendor schemas only | [schemas.md](./design/schemas.md) |
+| Bridge Interfaces | ChildMfeBridge (child side) / ParentMfeBridge (parent side) | [mfe-api.md - Bridge Interfaces](./design/mfe-api.md#mfe-bridge-interfaces) |
+| MfeEntry Type Hierarchy | MfeEntry (abstract) -> MfeEntryMF (MF); companies derive custom types | [mfe-entry-mf.md](./design/mfe-entry-mf.md#mfeentry-type-hierarchy) |
+| Contract Matching | 3 subset rules between entry and domain | [type-system.md - Decision 8](./design/type-system.md#decision-8-contract-matching-rules) |
+| Derived Extension Types | `extensionsTypeId` on domain; GTS-native validation | [type-system.md - Decision 9](./design/type-system.md#decision-9-domain-specific-extension-validation-via-derived-types) |
+| Action Timeouts | `action.timeout ?? domain.defaultActionTimeout`; timeout triggers fallback | [mfe-actions.md - Timeout](./design/mfe-actions.md#explicit-timeout-configuration) |
+| Actions Chain Mediation | Success -> next; failure/timeout -> fallback; recurse | [mfe-actions.md - Mediation](./design/mfe-actions.md#actions-chain-mediation) |
+| Hierarchical Domains | Domains at any level; MFEs can be both extension and domain provider | [schemas.md - Extension Domain Schema](./design/schemas.md#extension-domain-schema) |
+| Extension Presentation | Optional `presentation` metadata drives nav menu auto-population | [overview.md - Menu Auto-Population](./design/overview.md#navigation-menu-auto-population) |
+| Demo Conversion | 4 legacy screens -> independent MFE packages under `src/mfe_packages/` | [tasks.md - Phase 35](./tasks.md) |
+| Lifecycle Actions | `load_ext`, `mount_ext`, `unmount_ext` via `executeActionsChain()` | [mfe-ext-lifecycle-actions.md](./design/mfe-ext-lifecycle-actions.md) |
+| ContainerProvider | Abstract class; registered with domain; handler owns all interactions | [mfe-ext-lifecycle-actions.md - ContainerProvider](./design/mfe-ext-lifecycle-actions.md#container-provider-abstraction) |
+| Dynamic Registration | Extensions registered at any time; entity fetching out of scope | [registry-runtime.md - Decision 17](./design/registry-runtime.md#decision-17-dynamic-registration-model) |
+| Abstract Class Layers | Abstract (contract) + concrete (impl); singleton/factory-with-cache/direct | [registry-runtime.md - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) |
+| Monorepo Tooling | MFE packages are L4; zero exclusions; import only from `@hai3/react` (L3) | [principles.md - Tooling Compliance](./design/principles.md#mfe-monorepo-tooling-compliance) |
+| Flux Compliance | Lifecycle actions fire-and-forget; effects for register/unregister only | [mfe-ext-lifecycle-actions.md](./design/mfe-ext-lifecycle-actions.md) |
 
 ## Impact
 
@@ -185,7 +99,7 @@ Lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`) call `
 - `packages/screensets/src/mfe/plugins/gts/` - GTS plugin implementation (default)
 - `packages/screensets/src/mfe/handler/` - MfeHandler abstract class, MfeBridgeFactory, and handler registry
 - `packages/screensets/src/mfe/handler/mf-handler.ts` - MfeHandlerMF (Module Federation handler)
-- `packages/screensets/src/mfe/handler/mfe-bridge-factory-default.ts` - MfeBridgeFactoryDefault (bridge factory for MfeHandlerMF)
+- `packages/screensets/src/mfe/handler/mfe-bridge-factory-default.ts` - MfeBridgeFactoryDefault (bridge factory for MfeHandlerMF, extracted in Phase 32)
 
 **Modified packages:**
 - `packages/screensets/src/state/` - Isolated state instances (uses @hai3/state)

@@ -10,12 +10,17 @@ This document defines key terms used throughout the MFE system design documents.
 A Microfrontend (MFE) is an independently developed, deployed, and versioned UI component that can be loaded into a parent application at runtime. Communication happens only through defined contracts via the ChildMfeBridge. Throughout these documents, "MFE" is used as the standard abbreviation after the first occurrence. See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for isolation model details.
 
 ### Domain (ExtensionDomain)
-An extension point where MFE instances can be mounted. Domains can exist at **any level of the hierarchy** - the host application can define domains, and MFEs themselves can define their own domains for nested extensions. This enables hierarchical composition where an MFE acts as both an extension (to its parent's domain) and a domain provider (for its own child extensions). Domains define the contract with extensions by declaring shared properties, supported action types, and UI metadata schemas. See [mfe-domain.md](./mfe-domain.md).
+An extension point where MFE instances can be mounted. Domains can exist at **any level of the hierarchy** - the host application can define domains, and MFEs themselves can define their own domains for nested extensions. This enables hierarchical composition where an MFE acts as both an extension (to its parent's domain) and a domain provider (for its own child extensions). Domains define the contract with extensions by declaring shared properties, supported action types, and UI metadata schemas. See [schemas.md - Extension Domain Schema](./schemas.md#extension-domain-schema) for the type definition and [type-system.md - Decision 3](./type-system.md#decision-3-internal-typescript-type-definitions) for TypeScript interface references.
 
-**Note**: The framework defines 7 layout domains total: 4 are **extension domains** (screen, sidebar, popup, overlay) where MFE entries mount; 3 are **configuration domains** (header, footer, menu) that are static layout areas, not MFE mount targets. See [mfe-ext-lifecycle-actions.md - Extension Domains vs Configuration Domains](./mfe-ext-lifecycle-actions.md#extension-domains-vs-configuration-domains) for the complete table.
+All 4 base extension domains declare `theme` and `language` as shared properties, enabling MFEs to receive and react to UI state changes from the host.
+
+**Note**: The framework defines 7 layout domains total: 4 are **extension domains** (screen, sidebar, popup, overlay) where MFE entries mount; 3 are **configuration domains** (header, footer, menu) that are store-slice-driven layout areas, not MFE mount targets. Configuration domains are a conceptual categorization, NOT GTS `ExtensionDomain` instances, and are NOT registered with `ScreensetsRegistry`. The menu configuration domain is populated dynamically from the `presentation` metadata on registered screen extensions. See [mfe-ext-lifecycle-actions.md - Extension Domains vs Configuration Domains](./mfe-ext-lifecycle-actions.md#extension-domains-vs-configuration-domains) for the complete table.
 
 ### Extension
-A binding that connects an MFE entry to a specific domain, creating a concrete MFE instance. Domain-specific fields are defined in derived Extension types, validated natively by GTS. Extensions are registered dynamically at runtime. See [mfe-domain.md](./mfe-domain.md#extension). For isolation model, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
+A binding that connects an MFE entry to a specific domain, creating a concrete MFE instance. Extensions carry optional `presentation` metadata (label, icon, route, order) that drives host UI elements like the navigation menu. Domain-specific fields are defined in derived Extension types, validated natively by GTS. Extensions are registered dynamically at runtime. See [schemas.md - Extension Schema](./schemas.md#extension-schema) for the type definition and [type-system.md - Decision 9](./type-system.md#decision-9-domain-specific-extension-validation-via-derived-types) for derived type validation. For isolation model, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
+
+### ExtensionPresentation
+Presentation metadata on an Extension that describes how it appears in the host UI. Fields: `label` (display text), `icon` (icon identifier), `route` (URL path), `order` (sort priority). The host builds navigation menus dynamically from presentation metadata of registered screen extensions. See [schemas.md - Extension Schema](./schemas.md#extension-schema).
 
 ### Entry (MfeEntry)
 The contract that an MFE declares with its parent domain. Specifies required/optional properties and bidirectional action capabilities. MfeEntry is abstract; derived types (like MfeEntryMF) add loader-specific fields. See [mfe-entry-mf.md](./mfe-entry-mf.md).
@@ -43,17 +48,17 @@ A typed message with a target (domain or extension), self-identifying type ID, o
 A linked structure of actions with `next` (on success) and `fallback` (on failure) branches. Enables declarative action workflows where the outcome of one action determines which action executes next. See [mfe-actions.md](./mfe-actions.md).
 
 ### SharedProperty
-A typed value passed from the parent to mounted MFEs (one-way: parent to MFE). Domains declare which properties they provide; entries declare which properties they require. MFEs subscribe to property updates via the bridge. See [mfe-shared-property.md](./mfe-shared-property.md).
+A typed value passed from the parent to mounted MFEs (one-way: parent to MFE). Domains declare which properties they provide; entries declare which properties they require. MFEs subscribe to property updates via the bridge. HAI3 provides two built-in shared property instances: **theme** (`HAI3_SHARED_PROPERTY_THEME`) and **language** (`HAI3_SHARED_PROPERTY_LANGUAGE`). All 4 base extension domains declare both. See [schemas.md - Shared Property Schema](./schemas.md#shared-property-schema) for the type definition, [mfe-shared-property.md](./mfe-shared-property.md) for the built-in instances, and [mfe-api.md - Domain-Level Property Updates](./mfe-api.md#domain-level-property-updates) for the update mechanism.
 
 ---
 
 ## Lifecycle
 
 ### LifecycleStage
-A GTS type representing a lifecycle event that can trigger actions chains. HAI3 provides four default stages (`init`, `activated`, `deactivated`, `destroyed`), and projects can define custom stages. Lifecycle stages enable declarative, explicit lifecycle behavior on extensions and domains. See [mfe-lifecycle.md](./mfe-lifecycle.md) for stage definitions, triggering sequences, and custom stage examples. See [mfe-lifecycle.md#lifecyclestage](./mfe-lifecycle.md#lifecyclestage) for the schema definition.
+A GTS type representing a lifecycle event that can trigger actions chains. HAI3 provides four default stages (`init`, `activated`, `deactivated`, `destroyed`), and projects can define custom stages. See [schemas.md - Lifecycle Stage Schema](./schemas.md#lifecycle-stage-schema) for the type definition and [mfe-ext-lifecycle-actions.md](./mfe-ext-lifecycle-actions.md) for how lifecycle actions work.
 
 ### LifecycleHook
-A binding between a lifecycle stage and an actions chain. When the stage triggers, the system executes the associated actions chain. Extensions and domains can declare multiple hooks for different stages. See [mfe-lifecycle.md](./mfe-lifecycle.md) for usage examples and validation rules. See [mfe-lifecycle.md#lifecyclehook](./mfe-lifecycle.md#lifecyclehook) for the schema definition.
+A binding between a lifecycle stage and an actions chain. When the stage triggers, the system executes the associated actions chain. See [schemas.md - Lifecycle Hook Schema](./schemas.md#lifecycle-hook-schema) for the type definition and [mfe-ext-lifecycle-actions.md](./mfe-ext-lifecycle-actions.md) for the complete lifecycle actions design.
 
 ---
 
@@ -63,19 +68,16 @@ A binding between a lifecycle stage and an actions chain. When the stage trigger
 An abstract class that handles loading MFE bundles for specific entry types. Handlers use type hierarchy matching to determine which entries they can handle. HAI3 provides MfeHandlerMF for Module Federation; companies can register custom handlers. See [mfe-loading.md](./mfe-loading.md).
 
 ### MfeBridgeFactory
-An abstract factory that creates bridge instances for specific entry types. Each handler has an associated bridge factory. Custom handlers can provide rich bridges with additional services (routing, API clients, etc.). This is the **handler-level** factory for custom bridge implementations. See [mfe-loading.md](./mfe-loading.md).
+An abstract factory that creates bridge instances for specific entry types. Each handler has an associated bridge factory. This is the **handler-level** factory for custom bridge implementations. See [mfe-loading.md](./mfe-loading.md).
 
 ### RuntimeBridgeFactory
-An `@internal` abstract class that defines the contract for internal bridge wiring between host and child MFEs. `DefaultRuntimeBridgeFactory` (concrete) implements the bridge creation and disposal logic: creating `ParentMfeBridgeImpl`/`ChildMfeBridgeImpl` pairs, connecting property subscriptions, wiring action chain callbacks, and setting up child domain forwarding. This is a **different concern** from `MfeBridgeFactory` (handler-level) -- `RuntimeBridgeFactory` handles the runtime wiring, while `MfeBridgeFactory` creates custom bridge instances for handler implementations. See [registry-runtime.md - Runtime Bridge Factory](./registry-runtime.md#runtime-bridge-factory-class-based).
+An `@internal` abstract class for internal bridge wiring between host and child MFEs. This is a **different concern** from `MfeBridgeFactory` (handler-level) -- `RuntimeBridgeFactory` handles the runtime wiring, while `MfeBridgeFactory` creates custom bridge instances for handler implementations. See [registry-runtime.md - Runtime Bridge Factory](./registry-runtime.md#runtime-bridge-factory-class-based).
 
 ### ActionsChainsMediator
-The runtime component that routes action chains to their targets and handles success/failure branching. Validates action types against domain contracts before delivery. Each isolated runtime has its own mediator instance. **Note**: Always use the full name "ActionsChainsMediator" (not abbreviated) to maintain clarity. The public API is `registry.executeActionsChain()`, which delegates to the ActionsChainsMediator internally. See [mfe-actions.md](./mfe-actions.md).
+The runtime component that routes action chains to their targets and handles success/failure branching. The public API is `registry.executeActionsChain()`, which delegates to the ActionsChainsMediator internally. See [mfe-actions.md](./mfe-actions.md).
 
 ### ChildDomainForwardingHandler
-An `@internal` concrete class implementing `ActionHandler` that forwards actions targeting a child domain through the bridge transport to a child runtime. Registered in the parent's mediator for each child domain ID during hierarchical composition wiring. When the parent's mediator resolves a target matching a child domain, it invokes this handler, which wraps the action in an `ActionsChain` and forwards it via `parentBridgeImpl.sendActionsChain()`. See [mfe-api.md - Cross-Runtime Action Chain Routing](./mfe-api.md#cross-runtime-action-chain-routing-hierarchical-composition).
-
-### Runtime
-Conventional variable name for a `ScreensetsRegistry` instance. Example: `const runtime = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });`. Throughout these documents, "runtime" and "registry" refer to the same `ScreensetsRegistry` instance.
+An `@internal` class that forwards actions targeting a child domain through the bridge transport to a child runtime. See [mfe-api.md - Cross-Runtime Action Chain Routing](./mfe-api.md#cross-runtime-action-chain-routing-hierarchical-composition).
 
 ---
 

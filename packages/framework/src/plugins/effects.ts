@@ -27,14 +27,10 @@ export function effects(): HAI3Plugin {
     name: 'effects',
     dependencies: [],
 
-    onInit(app) {
+    onInit() {
       // Effects plugin provides the coordination layer
       // Individual plugins register their own effects in their onInit
       // This plugin ensures effect infrastructure is available
-
-      if (app.config.devMode) {
-        console.log('[HAI3] Effects plugin initialized');
-      }
     },
   };
 }

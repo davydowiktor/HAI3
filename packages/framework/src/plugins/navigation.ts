@@ -9,16 +9,34 @@
 import type { Dispatch, UnknownAction } from '@reduxjs/toolkit';
 import { eventBus } from '@hai3/state';
 import { i18nRegistry } from '@hai3/i18n';
-import { screenActions as screenActionsImport, menuActions as menuActionsImport } from '../slices';
+import { screenActions, menuActions } from '../slices';
 import type { HAI3Plugin, NavigateToScreenPayload, NavigateToScreensetPayload, NavigationConfig } from '../types';
 import { stripBase, prependBase, resolveBase } from '../utils/basePath';
-import type { MenuScreenItem, ScreensetDefinition } from '@hai3/screensets';
 import { extractRequiredParams } from '../utils/routeMatcher';
 
-// Type assertion for slice imports (needed for plugin system compatibility)
-type ActionCreators = Record<string, (payload?: unknown) => UnknownAction>;
-const screenActions = screenActionsImport as unknown as ActionCreators;
-const menuActions = menuActionsImport as unknown as ActionCreators;
+// Legacy types (inline definitions for deprecated navigation plugin)
+interface MenuScreenItem {
+  menuItem: {
+    id: string;
+    screenId?: string;
+    label: string;
+    icon?: string;
+    path?: string;
+  };
+  screen: () => Promise<{ default: React.ComponentType }>;
+}
+
+interface ScreensetDefinition {
+  id: string;
+  name: string;
+  menu: MenuScreenItem[];
+  defaultScreen: string;
+}
+
+interface ScreensetRegistry {
+  get(id: string): ScreensetDefinition | undefined;
+  getAll(): ScreensetDefinition[];
+}
 
 // Define navigation events for module augmentation
 declare module '@hai3/state' {
@@ -83,6 +101,16 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
       const routerMode = app.config.routerMode ?? 'browser';
       let currentScreensetId: string | null = null;
 
+      // Check if screensetRegistry exists (legacy mode) or if we're in MFE mode
+      const screensetRegistry = 'screensetRegistry' in app
+        ? (app as { screensetRegistry: ScreensetRegistry }).screensetRegistry
+        : undefined;
+
+      if (!screensetRegistry) {
+        // MFE mode - navigation is handled by actions chains, skip legacy navigation
+        return;
+      }
+
       // URL helpers that respect router mode
       const getCurrentPath = (): string => {
         if (typeof window === 'undefined') return '/';
@@ -134,7 +162,7 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
       // Update screenset menu items
       const updateScreensetMenu = (screenset: ScreensetDefinition): void => {
         const menuItems = screenset.menu.map((item: MenuScreenItem) => ({
-          id: item.menuItem.screenId ?? item.menuItem.id,
+          id: item.menuItem.id,
           label: item.menuItem.label,
           icon: item.menuItem.icon,
         }));
@@ -147,7 +175,7 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
           return;
         }
 
-        const screenset = app.screensetRegistry.get(screensetId);
+        const screenset = screensetRegistry.get(screensetId);
         if (!screenset) {
           return;
         }
@@ -213,7 +241,7 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
 
       // Handle navigation to screenset (default screen)
       eventBus.on('navigation/screenset/navigated', (payload: NavigateToScreensetPayload) => {
-        const screenset = app.screensetRegistry.get(payload.screensetId);
+        const screenset = screensetRegistry.get(payload.screensetId);
         if (!screenset) {
           console.warn(`Screenset "${payload.screensetId}" not found.`);
           return;
@@ -238,7 +266,7 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
           return;
         }
 
-        const screenset = app.screensetRegistry.get(currentScreensetId);
+        const screenset = screensetRegistry.get(currentScreensetId);
         if (!screenset) {
           return;
         }
@@ -277,7 +305,7 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
         if (match) {
           activateFromRouteMatch(match);
         } else if (autoNavigate) {
-          const screensets = app.screensetRegistry.getAll();
+          const screensets = screensetRegistry.getAll();
           if (screensets.length > 0) {
             navigateToScreenset({ screensetId: screensets[0].id });
           }
@@ -286,7 +314,7 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
         // Memory mode: auto-navigate without URL sync
         const autoNavigate = app.config.autoNavigate !== false;
         if (autoNavigate) {
-          const screensets = app.screensetRegistry.getAll();
+          const screensets = screensetRegistry.getAll();
           if (screensets.length > 0) {
             navigateToScreenset({ screensetId: screensets[0].id });
           }

@@ -170,28 +170,11 @@ describe('MfeContext', () => {
     });
   });
 
-  describe('14.5.6 HAI3Provider MFE detection', () => {
-    it('is deferred to integration testing', () => {
-      // DEFERRED TO INTEGRATION TESTING
-      //
-      // HAI3Provider MFE detection (when mfeBridge prop is provided) requires:
-      // 1. Full HAI3 app instance with store, registries, and plugin initialization
-      // 2. MFE bridge implementation with executeActionsChain() and subscribeToProperty()
-      // 3. Integration testing with actual MFE loading and mounting scenarios
-      //
-      // The implementation in HAI3Provider is straightforward (9 lines):
-      // - If mfeBridge prop is provided, wrap children with MfeProvider
-      // - Pass bridge, extensionId, domainId from mfeBridge to MfeProvider
-      //
-      // This will be properly tested when:
-      // - Bridge communication layer is complete
-      // - Integration tests with Chrome DevTools MCP Runtime are available
-      // - Full MFE lifecycle scenarios can be tested end-to-end
-      //
-      // Unit testing this feature in isolation would require extensive mocking
-      // of @hai3/framework internals, providing minimal value compared to the
-      // comprehensive integration testing.
-      expect(true).toBe(true);
-    });
-  });
+  // HAI3Provider MFE detection testing is deferred to integration tests.
+  // The feature (when mfeBridge prop is provided, wrap children with MfeProvider)
+  // requires full HAI3 app instance with store, registries, and plugin initialization.
+  // It will be properly tested when:
+  // - Bridge communication layer is complete
+  // - Integration tests with Chrome DevTools MCP Runtime are available
+  // - Full MFE lifecycle scenarios can be tested end-to-end
 });

@@ -1,10 +1,22 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import federation from '@originjs/vite-plugin-federation';
 import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    federation({
+      name: 'host',
+      shared: {
+        react: { singleton: false, requiredVersion: '^19.0.0' },
+        'react-dom': { singleton: false, requiredVersion: '^19.0.0' },
+        tailwindcss: { singleton: false },
+        '@hai3/uikit': { singleton: false },
+      },
+    }),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -14,6 +26,7 @@ export default defineConfig({
     include: ['react', 'react-dom', 'react/jsx-runtime', '@globaltypesystem/gts-ts'],
   },
   build: {
+    target: 'esnext',
     rollupOptions: {
       output: {
         manualChunks(id) {

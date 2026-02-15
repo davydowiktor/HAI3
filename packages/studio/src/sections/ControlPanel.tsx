@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigation, screensetRegistry, useTranslation, ScreensetCategory } from '@hai3/react';
+import { useNavigation, useTranslation } from '@hai3/react';
 import { ThemeSelector } from './ThemeSelector';
 import { ScreensetSelector, type ScreensetOption } from './ScreensetSelector';
 import { LanguageSelector } from './LanguageSelector';
 import { ApiModeToggle } from './ApiModeToggle';
+
+// Legacy enum (inline definition for deprecated studio)
+enum ScreensetCategory {
+  Drafts = 'drafts',
+  Mockups = 'mockups',
+  Production = 'production',
+}
 
 /**
  * All possible screenset categories
@@ -13,22 +20,20 @@ const ALL_CATEGORIES: ScreensetCategory[] = [ScreensetCategory.Drafts, Screenset
 /**
  * Build screenset options for selector
  * Returns all categories, even if empty
+ *
+ * NOTE: Legacy screensetRegistry removed. This function now returns empty data.
+ * The HAI3 Studio screenset selector is no longer functional with the MFE architecture.
+ * MFE navigation uses extension presentation metadata instead.
  */
 const buildScreensetOptions = (): ScreensetOption[] => {
-  const allScreensets = screensetRegistry.getAll();
   return ALL_CATEGORIES.map((category) => ({
     category,
-    screensets: allScreensets
-      .filter(s => s.category === category)
-      .map(s => ({
-        id: s.id,
-        name: s.name,
-      })),
+    screensets: [],
   }));
 };
 
 export const ControlPanel: React.FC = () => {
-  const { currentScreenset, navigateToScreenset } = useNavigation();
+  const { navigateToScreenset } = useNavigation();
   const [screensetOptions, setScreensetOptions] = useState<ScreensetOption[]>([]);
   const { t } = useTranslation();
 
@@ -38,11 +43,9 @@ export const ControlPanel: React.FC = () => {
   }, []);
 
   // Build current value in "category:screensetId" format
+  // NOTE: Legacy screensetRegistry removed - always returns empty string
   const getCurrentValue = (): string => {
-    if (!currentScreenset) return '';
-    const screenset = screensetRegistry.get(currentScreenset);
-    if (!screenset) return '';
-    return `${screenset.category}:${screenset.id}`;
+    return '';
   };
 
   // Handle screenset selection - extract screensetId from "category:screensetId"

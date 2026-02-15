@@ -62,7 +62,7 @@ module.exports = {
     ...standaloneConfig.options,
     exclude: {
       ...standaloneConfig.options.exclude,
-      path: 'packages/.*/dist'
+      path: 'packages/.*/dist|node_modules'
     }
   }
 };

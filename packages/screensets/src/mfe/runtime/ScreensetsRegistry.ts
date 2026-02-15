@@ -17,6 +17,7 @@ import type {
   ActionsChain,
 } from '../types';
 import type { ContainerProvider } from './container-provider';
+import type { CustomActionHandler } from './extension-lifecycle-action-handler';
 
 /**
  * Abstract ScreensetsRegistry - public contract for the MFE runtime facade.
@@ -57,13 +58,15 @@ export abstract class ScreensetsRegistry {
    * @param domain - Domain to register
    * @param containerProvider - Container provider for the domain
    * @param onInitError - Optional callback for handling fire-and-forget init lifecycle errors
+   * @param customActionHandler - Optional handler for non-lifecycle domain actions
    * @throws {DomainValidationError} if GTS validation fails
    * @throws {UnsupportedLifecycleStageError} if lifecycle hooks reference unsupported stages
    */
   abstract registerDomain(
     domain: ExtensionDomain,
     containerProvider: ContainerProvider,
-    onInitError?: (error: Error) => void
+    onInitError?: (error: Error) => void,
+    customActionHandler?: CustomActionHandler
   ): void;
 
   /**

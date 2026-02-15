@@ -4,8 +4,8 @@ This document defines the three extension lifecycle action types (`load_ext`, `m
 
 **Related Documents:**
 - [MFE Actions](./mfe-actions.md) - Action and ActionsChain types, mediation
-- [MFE Domain](./mfe-domain.md) - ExtensionDomain and Extension types
-- [MFE Lifecycle](./mfe-lifecycle.md) - Lifecycle stages and hooks
+- [Schemas](./schemas.md) - ExtensionDomain, Extension, LifecycleStage, LifecycleHook schema definitions
+- [Type System](./type-system.md) - TypeScript interface definitions, contract validation
 - [MFE API](./mfe-api.md) - MfeEntryLifecycle and bridge interfaces
 - [Registry Runtime](./registry-runtime.md) - ScreensetsRegistry methods
 - [MFE Errors](./mfe-errors.md) - Error class hierarchy
@@ -26,7 +26,7 @@ The MFE system's extension lifecycle operations (load, mount, unmount) are inter
 
 ## Extension Domains vs Configuration Domains
 
-The framework defines 7 layout domains total. Only 4 are **extension domains** (where MFE entries mount and render). The remaining 3 are **configuration domains** (static layout areas, not MFE mount targets):
+The framework defines 7 layout domains total. Only 4 are **extension domains** (where MFE entries mount and render). The remaining 3 are **configuration domains** (static layout areas managed by store slices, not MFE mount targets). Configuration domains are a conceptual categorization, NOT GTS `ExtensionDomain` instances, and are NOT registered with `ScreensetsRegistry`.
 
 | Domain | Type | Purpose |
 |--------|------|---------|
@@ -34,11 +34,13 @@ The framework defines 7 layout domains total. Only 4 are **extension domains** (
 | **sidebar** | Extension | Collapsible side panel |
 | **popup** | Extension | Modal dialogs |
 | **overlay** | Extension | Full-screen overlays |
-| header | Configuration | Top navigation bar (not an MFE mount target) |
-| footer | Configuration | Bottom bar (not an MFE mount target) |
-| menu | Configuration | Side navigation (not an MFE mount target) |
+| header | Configuration | Top navigation bar (store slice driven) |
+| footer | Configuration | Bottom bar (store slice driven) |
+| menu | Configuration | Side navigation (populated from registered screen extension presentation metadata) |
 
 Extension lifecycle actions are relevant only to extension domains.
+
+**Menu auto-population**: The menu configuration domain is populated dynamically from the `presentation` metadata on registered screen extensions. When a screen extension is registered with `presentation.label`, `presentation.icon`, `presentation.route`, and `presentation.order`, the host derives menu items from these fields. No hardcoded menu items exist. See [Extension Schema](./schemas.md#extension-schema) for the `presentation` field definition.
 
 ---
 
@@ -67,7 +69,12 @@ export const HAI3_ACTION_MOUNT_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext
 
 /** Unmount extension action -- remove extension from DOM */
 export const HAI3_ACTION_UNMOUNT_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1';
+
+/** Notify user action -- non-lifecycle action for user data updates */
+export const HAI3_ACTION_NOTIFY_USER = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.lifecycle.notify_user.v1';
 ```
+
+**Note**: `HAI3_ACTION_NOTIFY_USER` is a non-lifecycle domain action (declared on `screenDomain.actions`) that allows MFEs to notify the host application of user data updates. It is handled via `customActionHandler` on `registerDomain`, not by the lifecycle action handler. See "Custom Action Handlers for Non-Lifecycle Domain Actions" section below.
 
 ### Action Payloads
 
@@ -100,6 +107,8 @@ interface UnmountExtPayload {
 ```
 
 ### GTS Instance JSON Files
+
+**Note on `id` and `type` fields**: Action instances carry both `id` and `type` with the same value. `id` is required by GTS registration (all GTS entities have an `id`). `type` is the Action schema's self-identifying field (`x-gts-ref: "/$id"`). They share the same value because the action's identity IS its type.
 
 ```json
 // packages/screensets/src/mfe/gts/hai3.mfes/instances/ext/load_ext.v1.json
@@ -172,49 +181,106 @@ The screen domain does NOT support `unmount_ext` because:
 // Screen domain -- load_ext + mount_ext only (no unmount_ext)
 const screenDomain: ExtensionDomain = {
   id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1',
-  // ...
+  sharedProperties: [
+    HAI3_SHARED_PROPERTY_THEME,
+    HAI3_SHARED_PROPERTY_LANGUAGE,
+  ],
   actions: [
     HAI3_ACTION_LOAD_EXT,
     HAI3_ACTION_MOUNT_EXT,
+    HAI3_ACTION_NOTIFY_USER,  // Non-lifecycle action for user data updates
     // No HAI3_ACTION_UNMOUNT_EXT -- screen always has content
   ],
-  // ...
+  extensionsActions: [],
+  defaultActionTimeout: 30000,
+  lifecycleStages: [
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+  ],
+  extensionsLifecycleStages: [
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+  ],
 };
 
 // Sidebar domain -- all three actions
 const sidebarDomain: ExtensionDomain = {
   id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
-  // ...
+  sharedProperties: [
+    HAI3_SHARED_PROPERTY_THEME,
+    HAI3_SHARED_PROPERTY_LANGUAGE,
+  ],
   actions: [
     HAI3_ACTION_LOAD_EXT,
     HAI3_ACTION_MOUNT_EXT,
     HAI3_ACTION_UNMOUNT_EXT,
   ],
-  // ...
+  extensionsActions: [],
+  defaultActionTimeout: 30000,
+  lifecycleStages: [
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+  ],
+  extensionsLifecycleStages: [
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+  ],
 };
 
 // Popup domain -- all three actions
 const popupDomain: ExtensionDomain = {
   id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1',
-  // ...
+  sharedProperties: [
+    HAI3_SHARED_PROPERTY_THEME,
+    HAI3_SHARED_PROPERTY_LANGUAGE,
+  ],
   actions: [
     HAI3_ACTION_LOAD_EXT,
     HAI3_ACTION_MOUNT_EXT,
     HAI3_ACTION_UNMOUNT_EXT,
   ],
-  // ...
+  extensionsActions: [],
+  defaultActionTimeout: 30000,
+  lifecycleStages: [
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+  ],
+  extensionsLifecycleStages: [
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+  ],
 };
 
 // Overlay domain -- all three actions
 const overlayDomain: ExtensionDomain = {
   id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1',
-  // ...
+  sharedProperties: [
+    HAI3_SHARED_PROPERTY_THEME,
+    HAI3_SHARED_PROPERTY_LANGUAGE,
+  ],
   actions: [
     HAI3_ACTION_LOAD_EXT,
     HAI3_ACTION_MOUNT_EXT,
     HAI3_ACTION_UNMOUNT_EXT,
   ],
-  // ...
+  extensionsActions: [],
+  defaultActionTimeout: 30000,
+  lifecycleStages: [
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+  ],
+  extensionsLifecycleStages: [
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+  ],
 };
 ```
 
@@ -280,9 +346,64 @@ type DomainSemantics = 'swap' | 'toggle';
 - **`load_ext`**: Validates payload, delegates to `callbacks.loadExtension(extensionId)`.
 - **`mount_ext`**: Validates payload. For 'swap' semantics: unmounts the current extension (via `callbacks.getMountedExtension` + `callbacks.unmountExtension` + `containerProvider.releaseContainer`), then obtains a container via `containerProvider.getContainer` and mounts the new extension. For 'toggle' semantics: obtains container and mounts directly.
 - **`unmount_ext`**: Validates payload, unmounts via `callbacks.unmountExtension`, then calls `containerProvider.releaseContainer`.
-- **Other actions**: No-op (pass through).
+- **Other actions**: Delegates to `customActionHandler` if provided, otherwise no-op.
 
 All lifecycle actions require a payload; missing payload throws `MfeError` with code `LIFECYCLE_ACTION_MISSING_PAYLOAD`.
+
+#### Custom Action Handlers for Non-Lifecycle Domain Actions
+
+Domains may support non-lifecycle actions in their `actions` array. For example, the screen domain declares `HAI3_ACTION_NOTIFY_USER` to allow MFEs to notify the host of user data changes. The `ExtensionLifecycleActionHandler` delegates non-lifecycle actions to an optional `customActionHandler` callback.
+
+**Distinction between actions chains and custom action handlers:**
+- **Actions chains**: Declarative MFE lifecycle coordination (load/mount/unmount) and cross-runtime routing. Validated by the mediator, routed through operation serializer, and executed by MountManager.
+- **Custom action handlers**: Imperative host-side effects for non-lifecycle domain actions (Redux dispatch, external API calls, etc.). NOT part of the MFE lifecycle, but rather domain-specific host behaviors.
+
+**`CustomActionHandler` type:**
+
+```typescript
+/**
+ * Custom action handler callback type.
+ * Invoked for non-lifecycle actions on the domain.
+ */
+export type CustomActionHandler = (actionTypeId: string, payload: Record<string, unknown> | undefined) => Promise<void>;
+```
+
+**Usage example** (`src/app/mfe/bootstrap.ts`):
+
+```typescript
+const screenCustomActionHandler = async (actionTypeId: string, payload?: NotifyUserPayload) => {
+  if (actionTypeId === HAI3_ACTION_NOTIFY_USER && payload?.user) {
+    // Dispatch to host Redux store (header slice)
+    app.store.dispatch(headerActions.setUser({
+      displayName: payload.user.firstName && payload.user.lastName
+        ? `${payload.user.firstName} ${payload.user.lastName}`
+        : undefined,
+      email: payload.user.email,
+    }));
+  }
+};
+
+screensetsRegistry.registerDomain(screenDomain, screenContainerProvider, undefined, screenCustomActionHandler);
+```
+
+The MFE sends the action via its bridge:
+
+```typescript
+// In ProfileScreen.tsx (MFE code)
+await bridge.executeActionsChain({
+  action: {
+    type: HAI3_ACTION_NOTIFY_USER,
+    target: bridge.domainId,
+    payload: { user: mockUser },
+  },
+});
+```
+
+**Why this is justified and not capability duplication:**
+- Actions chains coordinate MFE lifecycle and cross-runtime routing
+- Custom action handlers dispatch to the host's Redux store or trigger other host-side effects
+- Actions chains CANNOT dispatch Redux actions (they are MFE-runtime coordination, not host state management)
+- This pattern allows domains to define custom non-lifecycle actions without polluting the core lifecycle action set
 
 #### Callback Wiring
 
@@ -295,6 +416,7 @@ All lifecycle actions require a payload; missing payload throws `MfeError` with 
 ### Mounting an Extension via Actions Chain
 
 ```typescript
+// Framework-level (L2) code -- MFE packages (L4) import from '@hai3/react' instead
 import { HAI3_ACTION_MOUNT_EXT, HAI3_POPUP_DOMAIN } from '@hai3/framework';
 
 await registry.executeActionsChain({
@@ -311,6 +433,7 @@ await registry.executeActionsChain({
 ### Screen Navigation (Swap Semantics)
 
 ```typescript
+// Framework-level (L2) code -- MFE packages (L4) import from '@hai3/react' instead
 import { HAI3_ACTION_MOUNT_EXT, HAI3_SCREEN_DOMAIN } from '@hai3/framework';
 
 await registry.executeActionsChain({
@@ -327,6 +450,7 @@ await registry.executeActionsChain({
 ### Preloading an Extension
 
 ```typescript
+// Framework-level (L2) code -- MFE packages (L4) import from '@hai3/react' instead
 import { HAI3_ACTION_LOAD_EXT, HAI3_SIDEBAR_DOMAIN } from '@hai3/framework';
 
 await registry.executeActionsChain({
@@ -343,6 +467,7 @@ await registry.executeActionsChain({
 ### Dismissing a Popup
 
 ```typescript
+// Framework-level (L2) code -- MFE packages (L4) import from '@hai3/react' instead
 import { HAI3_ACTION_UNMOUNT_EXT, HAI3_POPUP_DOMAIN } from '@hai3/framework';
 
 await registry.executeActionsChain({
@@ -381,6 +506,7 @@ const myExtension: Extension = {
 ### Error Case: unmount_ext on Screen Domain
 
 ```typescript
+// Framework-level (L2) code -- MFE packages (L4) import from '@hai3/react' instead
 import { HAI3_ACTION_UNMOUNT_EXT, HAI3_SCREEN_DOMAIN } from '@hai3/framework';
 
 try {
@@ -480,10 +606,15 @@ export abstract class ContainerProvider {
 
 ```typescript
 // On abstract ScreensetsRegistry:
-abstract registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider, onInitError?: (error: Error) => void): void;
+abstract registerDomain(
+  domain: ExtensionDomain,
+  containerProvider: ContainerProvider,
+  onInitError?: (error: Error) => void,
+  customActionHandler?: CustomActionHandler
+): void;
 ```
 
-The `ContainerProvider` is stored alongside the domain state and passed to the `ExtensionLifecycleActionHandler` at construction time.
+The `ContainerProvider` is stored alongside the domain state and passed to the `ExtensionLifecycleActionHandler` at construction time. The optional `customActionHandler` is passed to the action handler to handle non-lifecycle domain actions (e.g., `notify_user`). See "Custom Action Handlers for Non-Lifecycle Domain Actions" section above for details.
 
 ### MountManager Signature
 
@@ -552,7 +683,12 @@ export function mountExtension(extensionId: string): void {
 
 ```typescript
 // packages/framework/src/types.ts
-registerDomain: (domain: ExtensionDomain, containerProvider: ContainerProvider, onInitError?: (error: Error) => void) => void;
+registerDomain: (
+  domain: ExtensionDomain,
+  containerProvider: ContainerProvider,
+  onInitError?: (error: Error) => void,
+  customActionHandler?: CustomActionHandler
+) => void;
 ```
 
 ### ContainerProvider Ownership Model
@@ -568,7 +704,7 @@ registerDomain: (domain: ExtensionDomain, containerProvider: ContainerProvider, 
 
 **Two-step registration pattern for React-rendered domains**:
 
-1. **Domain registration**: Framework-level code calls `registerDomain(domain, containerProvider, onInitError?)` with a `RefContainerProvider` wrapping a React ref. The ref's `.current` may be `null` at this point.
+1. **Domain registration**: Framework-level code calls `registerDomain(domain, containerProvider, onInitError?, customActionHandler?)` with a `RefContainerProvider` wrapping a React ref. The ref's `.current` may be `null` at this point. The optional `customActionHandler` is provided if the domain supports non-lifecycle actions.
 2. **React mount**: When `ExtensionDomainSlot` mounts, the React ref attaches to the DOM element. `RefContainerProvider.getContainer()` reads `ref.current` lazily at call time, so it returns the correct element once React has mounted.
 
 This works because `getContainer()` is only called during `mount_ext` handling, which happens AFTER the React component has rendered and the ref is attached.

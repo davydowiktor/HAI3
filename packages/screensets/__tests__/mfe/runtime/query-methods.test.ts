@@ -75,6 +75,33 @@ describe('ScreensetsRegistry Query Methods', () => {
       const result = registry.getExtension('nonexistent');
       expect(result).toBeUndefined();
     });
+
+    it('should return extension with presentation metadata', async () => {
+      const extensionWithPresentation: Extension = {
+        id: 'gts.hai3.mfes.ext.extension.v1~test.testorg.query.with_presentation.v1',
+        domain: testDomain.id,
+        entry: testEntry.id,
+        presentation: {
+          label: 'Test Screen',
+          icon: 'test',
+          route: '/test',
+          order: 10,
+        },
+      };
+
+      // Register domain and extension
+      registry.registerDomain(testDomain, mockContainerProvider);
+      await registry.registerExtension(extensionWithPresentation);
+
+      const result = registry.getExtension(extensionWithPresentation.id);
+      expect(result).toBeDefined();
+      expect(result?.presentation).toEqual({
+        label: 'Test Screen',
+        icon: 'test',
+        route: '/test',
+        order: 10,
+      });
+    });
   });
 
   describe('getDomain', () => {

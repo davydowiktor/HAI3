@@ -31,6 +31,9 @@ dist-ssr
 
 # Generated files
 src/themes/tailwindColors.ts
+
+# MFE remote packages (independent builds with their own lock files)
+src/mfe_packages/*/package-lock.json
 packages/cli/templates
 packages/cli/template-sources/layout/
 

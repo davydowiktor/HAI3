@@ -18,9 +18,6 @@ import type {
 import type { MatchFunction, PathFunction } from 'path-to-regexp';
 import type { Reducer } from '@reduxjs/toolkit';
 
-// From @hai3/screensets
-import type { ScreensetRegistry } from '@hai3/screensets';
-
 // From @hai3/api
 import type { ApiRegistry } from '@hai3/api';
 
@@ -300,9 +297,6 @@ export interface HAI3AppBuilder {
 // Built App Interface
 // ============================================================================
 
-// Re-export ScreensetRegistry from SDK - do NOT duplicate the interface
-export type { ScreensetRegistry } from '@hai3/screensets';
-
 /**
  * Theme Configuration
  * Configuration for a theme.
@@ -470,9 +464,6 @@ export interface HAI3App {
 
   /** Redux store */
   store: HAI3Store;
-
-  /** Screenset registry */
-  screensetRegistry: ScreensetRegistry;
 
   /** Theme registry */
   themeRegistry: ThemeRegistry;

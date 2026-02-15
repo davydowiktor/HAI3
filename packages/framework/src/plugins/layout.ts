@@ -8,37 +8,20 @@
 
 import type { Dispatch, UnknownAction } from '@reduxjs/toolkit';
 import { eventBus } from '@hai3/state';
-import type { HAI3Plugin, ShowPopupPayload, RegisterableSlice } from '../types';
+import type { HAI3Plugin, ShowPopupPayload } from '../types';
 import {
-  headerSlice as headerSliceImport,
-  footerSlice as footerSliceImport,
-  menuSlice as menuSliceImport,
-  sidebarSlice as sidebarSliceImport,
-  popupSlice as popupSliceImport,
-  overlaySlice as overlaySliceImport,
-  headerActions as headerActionsImport,
-  footerActions as footerActionsImport,
-  menuActions as menuActionsImport,
-  sidebarActions as sidebarActionsImport,
-  popupActions as popupActionsImport,
-  overlayActions as overlayActionsImport,
+  headerSlice,
+  footerSlice,
+  menuSlice,
+  sidebarSlice,
+  popupSlice,
+  overlaySlice,
+  footerActions,
+  menuActions,
+  sidebarActions,
+  popupActions,
+  overlayActions,
 } from '../slices';
-
-// Type assertions for slice imports (needed for plugin system compatibility)
-const headerSlice = headerSliceImport as unknown as RegisterableSlice;
-const footerSlice = footerSliceImport as unknown as RegisterableSlice;
-const menuSlice = menuSliceImport as unknown as RegisterableSlice;
-const sidebarSlice = sidebarSliceImport as unknown as RegisterableSlice;
-const popupSlice = popupSliceImport as unknown as RegisterableSlice;
-const overlaySlice = overlaySliceImport as unknown as RegisterableSlice;
-
-type ActionCreators = Record<string, (payload?: unknown) => UnknownAction>;
-const headerActions = headerActionsImport as unknown as ActionCreators;
-const footerActions = footerActionsImport as unknown as ActionCreators;
-const menuActions = menuActionsImport as unknown as ActionCreators;
-const sidebarActions = sidebarActionsImport as unknown as ActionCreators;
-const popupActions = popupActionsImport as unknown as ActionCreators;
-const overlayActions = overlayActionsImport as unknown as ActionCreators;
 
 // Define layout events for module augmentation
 declare module '@hai3/state' {
@@ -95,6 +78,14 @@ function toggleSidebarCollapsed(payload: { collapsed: boolean }): void {
 }
 
 /**
+ * Wrapper for setHeaderVisible - no-op since HeaderState doesn't have visible field.
+ * Kept for backward compatibility with HAI3Actions interface.
+ */
+function setHeaderVisible(_visible: boolean): void {
+  // No-op: HeaderState doesn't have visible field
+}
+
+/**
  * Layout plugin factory.
  *
  * @returns Layout plugin
@@ -130,10 +121,10 @@ export function layout(): HAI3Plugin {
         toggleMenuCollapsed,
         toggleSidebarCollapsed,
         // Direct slice actions for backward compatibility
-        setHeaderVisible: headerActions.setVisible,
-        setFooterVisible: footerActions.setVisible,
-        setMenuCollapsed: menuActions.setCollapsed,
-        setSidebarCollapsed: sidebarActions.setCollapsed,
+        setHeaderVisible,
+        setFooterVisible: footerActions.setFooterVisible,
+        setMenuCollapsed: menuActions.setMenuCollapsed,
+        setSidebarCollapsed: sidebarActions.setSidebarCollapsed,
       },
     },
 
@@ -142,35 +133,34 @@ export function layout(): HAI3Plugin {
 
       // Popup effects
       eventBus.on('layout/popup/requested', (payload: ShowPopupPayload) => {
-        dispatch(popupActions.open({
+        dispatch(popupActions.openPopup({
           id: payload.id,
-          title: payload.title,
-          content: payload.content,
-          size: payload.size,
+          title: payload.title ?? '',
+          component: '', // Payload doesn't include component - this needs review
         }));
       });
 
       eventBus.on('layout/popup/hidden', () => {
-        dispatch(popupActions.close());
+        dispatch(popupActions.closeAllPopups());
       });
 
       // Overlay effects
-      eventBus.on('layout/overlay/requested', (payload: { id: string }) => {
-        dispatch(overlayActions.show({ id: payload.id }));
+      eventBus.on('layout/overlay/requested', (_payload: { id: string }) => {
+        dispatch(overlayActions.showOverlay());
       });
 
       eventBus.on('layout/overlay/hidden', () => {
-        dispatch(overlayActions.hide());
+        dispatch(overlayActions.hideOverlay());
       });
 
       // Menu effects
       eventBus.on('layout/menu/collapsed', (payload: { collapsed: boolean }) => {
-        dispatch(menuActions.setCollapsed(payload.collapsed));
+        dispatch(menuActions.setMenuCollapsed(payload.collapsed));
       });
 
       // Sidebar effects
       eventBus.on('layout/sidebar/collapsed', (payload: { collapsed: boolean }) => {
-        dispatch(sidebarActions.setCollapsed(payload.collapsed));
+        dispatch(sidebarActions.setSidebarCollapsed(payload.collapsed));
       });
     },
   };

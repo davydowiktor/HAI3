@@ -26,7 +26,7 @@ import type {
   ValidationResult,
   JSONSchema,
 } from '../types';
-import { loadSchemas, loadLifecycleStages, loadBaseActions } from '../../gts/loader';
+import { loadSchemas, loadLifecycleStages, loadBaseActions, loadSharedProperties } from '../../gts/loader';
 
 /**
  * Concrete GTS plugin class implementing TypeSystemPlugin.
@@ -65,11 +65,19 @@ export class GtsPlugin implements TypeSystemPlugin {
       this.gtsStore.register(entity);
     }
 
-    // Load and register base action instances from JSON files (2 instances)
-    // These instances are stored in packages/screensets/src/mfe/gts/hai3.mfe/instances/actions/
+    // Load and register base action instances from JSON files (3 instances)
+    // These instances are stored in packages/screensets/src/mfe/gts/hai3.mfe/instances/ext/
     const baseActions = loadBaseActions();
     for (const action of baseActions) {
       const entity: JsonEntity = createJsonEntity(action);
+      this.gtsStore.register(entity);
+    }
+
+    // Load and register default shared property instances from JSON files (2 instances)
+    // These instances are stored in packages/screensets/src/mfe/gts/hai3.mfe/instances/comm/
+    const sharedProperties = loadSharedProperties();
+    for (const property of sharedProperties) {
+      const entity: JsonEntity = createJsonEntity(property);
       this.gtsStore.register(entity);
     }
   }

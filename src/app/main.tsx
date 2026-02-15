@@ -1,11 +1,10 @@
 /// <reference types="vite/client" />
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HAI3Provider, apiRegistry, createHAI3App, type ThemeApplyFn } from '@hai3/react';
+import { HAI3Provider, apiRegistry, createHAI3App, type ThemeApplyFn, MfeHandlerMF, gtsPlugin } from '@hai3/react';
 import { Toaster, applyTheme } from '@hai3/uikit';
 import { AccountsApiService } from '@/app/api';
 import '@hai3/uikit/styles'; // UI Kit styles
-import '@/screensets/screensetRegistry'; // Auto-registers screensets (includes API services + mocks + i18n loaders)
 import '@/app/events/bootstrapEvents'; // Register app-level events (type augmentation)
 import { registerBootstrapEffects } from '@/app/effects/bootstrapEffects'; // Register app-level effects
 import App from './App';
@@ -24,8 +23,12 @@ apiRegistry.register(AccountsApiService);
 apiRegistry.initialize({});
 
 // Create HAI3 app instance with theme apply function (constructor injection)
+// Register MfeHandlerMF to enable Module Federation MFE loading
 const app = createHAI3App({
   themes: { applyFn: applyTheme as ThemeApplyFn },
+  microfrontends: {
+    mfeHandlers: [new MfeHandlerMF(gtsPlugin)],
+  },
 });
 
 // Register app-level effects (pass store dispatch)
@@ -50,7 +53,7 @@ app.themeRegistry.apply(DEFAULT_THEME_ID);
  * 2. Components show skeleton loaders (translationsReady = false)
  * 3. User fetched → language set → translations loaded
  * 4. Components re-render with actual text (translationsReady = true)
- * 5. HAI3Provider includes AppRouter for URL-based navigation
+ * 5. MFE system loads and mounts extensions via MfeScreenContainer
  *
  * Note: Mock API is controlled via the HAI3 Studio panel.
  * The mock plugin (included in full preset) handles mock plugin lifecycle automatically.

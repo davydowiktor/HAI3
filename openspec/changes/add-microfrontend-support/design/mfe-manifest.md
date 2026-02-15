@@ -52,8 +52,8 @@ interface MfManifest {
 interface SharedDependencyConfig {
   /** Package name (e.g., 'react', 'lodash', '@hai3/screensets') */
   name: string;
-  /** Semver range (e.g., '^19.0.0', '^4.17.0') */
-  requiredVersion: string;
+  /** Semver range (e.g., '^19.0.0', '^4.17.0'). Optional -- not all shared dependencies are semver packages (e.g., Tailwind CSS utilities, UIKit component libraries). */
+  requiredVersion?: string;
   /** false (default): isolated instances per MFE; true: shared instance. */
   singleton?: boolean;
 }

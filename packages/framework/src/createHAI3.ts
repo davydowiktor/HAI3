@@ -18,7 +18,6 @@ import type {
   HAI3Store,
   PluginFactory,
   RegisterableSlice,
-  ScreensetRegistry,
   ThemeRegistry,
   RouteRegistry,
 } from './types';
@@ -130,7 +129,6 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
     const app: HAI3App = {
       config: this.config,
       store: store as HAI3Store,
-      screensetRegistry: aggregated.registries.screensetRegistry as ScreensetRegistry,
       themeRegistry: aggregated.registries.themeRegistry as ThemeRegistry,
       routeRegistry: aggregated.registries.routeRegistry as RouteRegistry,
       apiRegistry: apiRegistry,

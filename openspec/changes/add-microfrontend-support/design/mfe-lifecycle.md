@@ -3,10 +3,9 @@
 This document covers the lifecycle stage system - explicit, type-safe lifecycle hooks for extensions and domains.
 
 **Related Documents:**
-- [MFE Domain](./mfe-domain.md) - ExtensionDomain and Extension types
+- [Schemas](./schemas.md) - ExtensionDomain, Extension schema definitions, JSON Schema definitions
 - [MFE Actions](./mfe-actions.md) - ActionsChain type
 - [Type System](./type-system.md) - GTS type definitions
-- [Schemas](./schemas.md) - JSON Schema definitions
 - [Registry Runtime](./registry-runtime.md) - ScreensetsRegistry lifecycle methods
 
 ---
@@ -157,7 +156,7 @@ interface LifecycleHook {
 
 Both Extension and ExtensionDomain types include an optional `lifecycle` field. Additionally, ExtensionDomain explicitly declares which lifecycle stages it supports.
 
-See [mfe-domain.md](./mfe-domain.md) for the canonical ExtensionDomain and Extension interface definitions. The lifecycle-relevant fields are:
+See [schemas.md - Extension Domain Schema](./schemas.md#extension-domain-schema) and [schemas.md - Extension Schema](./schemas.md#extension-schema) for the canonical schema definitions. The lifecycle-relevant fields are:
 - `Extension.lifecycle?: LifecycleHook[]` - Optional lifecycle hooks
 - `ExtensionDomain.lifecycle?: LifecycleHook[]` - Optional lifecycle hooks
 - `ExtensionDomain.lifecycleStages: string[]` - Supported stages for the domain itself
@@ -201,12 +200,6 @@ When registering extensions or domains, the ScreensetsRegistry validates that al
 - The domain's `extensionsLifecycleStages` defines which stages extensions can use
 - Each hook in `extension.lifecycle` must reference a stage listed in the domain's `extensionsLifecycleStages`
 - Hooks referencing unsupported stages are rejected with `UnsupportedLifecycleStageError`
-
-### Validation Behavior
-
-**Domain lifecycle hooks**: Each hook in `domain.lifecycle` must reference a stage listed in `domain.lifecycleStages`. If a hook references an unsupported stage, validation fails.
-
-**Extension lifecycle hooks**: Each hook in `extension.lifecycle` must reference a stage listed in the domain's `extensionsLifecycleStages`. If a hook references an unsupported stage, validation fails.
 
 ### Error Handling
 

@@ -20,6 +20,7 @@ export default [
   {
     ignores: [
       'packages/**/dist/**',
+      '**/dist/**', // All dist directories are build artifacts
       'packages/**/templates/**', // CLI templates are build artifacts
       'packages/cli/template-sources/**', // CLI template sources (linted separately in standalone)
       'scripts/**', // Monorepo scripts

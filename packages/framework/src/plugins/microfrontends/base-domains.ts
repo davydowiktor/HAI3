@@ -26,6 +26,9 @@ import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
+  HAI3_ACTION_NOTIFY_USER,
+  HAI3_SHARED_PROPERTY_THEME,
+  HAI3_SHARED_PROPERTY_LANGUAGE,
 } from '@hai3/screensets';
 import {
   HAI3_SCREEN_DOMAIN,
@@ -50,13 +53,13 @@ const DEFAULT_LIFECYCLE_STAGES: readonly string[] = [
  *
  * Extension domain for main content area screens.
  * Uses swap semantics: mounting a new screen implicitly unmounts the previous one.
- * Only 2 actions: load_ext and mount_ext (NO unmount_ext).
+ * Actions: load_ext, mount_ext (NO unmount_ext), and notify_user (custom lifecycle notification).
  */
 export const screenDomain: ExtensionDomain = {
   id: HAI3_SCREEN_DOMAIN,
-  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT],
+  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_NOTIFY_USER],
   extensionsActions: [],
-  sharedProperties: [],
+  sharedProperties: [HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE],
   defaultActionTimeout: 30000,
   lifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
   extensionsLifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
@@ -74,7 +77,7 @@ export const sidebarDomain: ExtensionDomain = {
   id: HAI3_SIDEBAR_DOMAIN,
   actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
   extensionsActions: [],
-  sharedProperties: [],
+  sharedProperties: [HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE],
   defaultActionTimeout: 30000,
   lifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
   extensionsLifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
@@ -92,7 +95,7 @@ export const popupDomain: ExtensionDomain = {
   id: HAI3_POPUP_DOMAIN,
   actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
   extensionsActions: [],
-  sharedProperties: [],
+  sharedProperties: [HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE],
   defaultActionTimeout: 30000,
   lifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
   extensionsLifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
@@ -110,7 +113,7 @@ export const overlayDomain: ExtensionDomain = {
   id: HAI3_OVERLAY_DOMAIN,
   actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
   extensionsActions: [],
-  sharedProperties: [],
+  sharedProperties: [HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE],
   defaultActionTimeout: 30000,
   lifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
   extensionsLifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],

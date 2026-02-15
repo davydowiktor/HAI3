@@ -1,5 +1,9 @@
 /**
- * HAI3 Application Component (--uikit none, --no-studio variant)
+ * HAI3 Application Component (Legacy Variant - No UIKit, No Studio)
+ *
+ * NOTE: This is a legacy template variant. The active App.tsx uses MFE system.
+ * This variant still uses the legacy AppRouter pattern and needs migration to
+ * MFE-based screen loading (see App.tsx for the MFE implementation).
  *
  * Minimal shell that renders the AppRouter for screen navigation.
  * No Layout wrapper is included when using --uikit none.

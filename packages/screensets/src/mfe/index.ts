@@ -20,6 +20,13 @@ export {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
+  HAI3_ACTION_NOTIFY_USER,
+} from './constants';
+
+// HAI3 Shared Property Constants
+export {
+  HAI3_SHARED_PROPERTY_THEME,
+  HAI3_SHARED_PROPERTY_LANGUAGE,
 } from './constants';
 
 // TypeScript Interfaces
@@ -28,6 +35,7 @@ export type {
   MfeEntryMF,
   ExtensionDomain,
   Extension,
+  ExtensionPresentation,
   SharedProperty,
   Action,
   ActionsChain,

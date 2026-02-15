@@ -85,10 +85,6 @@ export function mock(config?: MockPluginConfig): HAI3Plugin {
       if (enabledByDefault) {
         // Enable mock mode immediately after initialization
         toggleMockMode(true);
-
-        if (isDev) {
-          console.log('[HAI3] Mock mode enabled by default (dev environment detected)');
-        }
       }
     },
 

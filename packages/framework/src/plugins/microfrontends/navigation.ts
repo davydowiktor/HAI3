@@ -115,7 +115,7 @@ class MfeNavigationManager extends NavigationManager {
 
     // Listen for screen changes
     const unsubScreenChanged = eventBus.on(NavigationEvents.ScreenChanged, async (payload) => {
-      const { screenId, previousScreenId } = payload;
+      const { previousScreenId } = payload;
 
       // Unmount previous screen extension if exists
       if (previousScreenId && this.currentScreenExtensionId) {
@@ -127,9 +127,8 @@ class MfeNavigationManager extends NavigationManager {
         }
       }
 
-      // Log navigation event
+      // Screen navigation complete
       // Applications handle mountExtension explicitly when needed
-      console.log('[MFE Navigation] Screen changed to:', screenId);
     });
     this.unsubscribers.push(unsubScreenChanged);
 

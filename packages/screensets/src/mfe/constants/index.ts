@@ -69,3 +69,25 @@ export const HAI3_ACTION_MOUNT_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext
  * Unmount an extension from a domain (remove from DOM).
  */
 export const HAI3_ACTION_UNMOUNT_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1';
+
+/**
+ * Notify user loaded action instance ID.
+ * Notifies the host application that user data has been loaded by an MFE.
+ */
+export const HAI3_ACTION_NOTIFY_USER = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.lifecycle.notify_user.v1';
+
+// ============================================================================
+// Shared Property Instance IDs (built-in properties for all domains)
+// ============================================================================
+
+/**
+ * Theme shared property instance ID.
+ * Built-in shared property for theme information (light/dark).
+ */
+export const HAI3_SHARED_PROPERTY_THEME = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1';
+
+/**
+ * Language shared property instance ID.
+ * Built-in shared property for language/locale information (en/es/etc).
+ */
+export const HAI3_SHARED_PROPERTY_LANGUAGE = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1';

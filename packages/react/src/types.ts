@@ -13,15 +13,12 @@ import type {
   HAI3App,
   RootState,
   Language,
-  MenuItemConfig,
-  ScreensetDefinition,
-  ScreensetCategory,
   Formatters,
 } from '@hai3/framework';
 import type { MfeContextValue } from './mfe/MfeContext';
 
 // Re-export imported types for convenience
-export type { HAI3Config, HAI3App, MenuItemConfig, ScreensetDefinition, ScreensetCategory };
+export type { HAI3Config, HAI3App };
 
 // ============================================================================
 // Type Aliases

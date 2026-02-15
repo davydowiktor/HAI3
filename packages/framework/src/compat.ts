@@ -17,6 +17,5 @@ export const ACCOUNTS_DOMAIN = 'accounts' as const;
 // Singleton Registries (backward compatibility)
 // ============================================================================
 
-// screensetRegistry is re-exported from @hai3/screensets directly
-// No need for type assertion - SDK type is canonical
-export { screensetRegistry } from '@hai3/screensets';
+// Legacy screensetRegistry has been removed. Use ScreensetsRegistry (MFE architecture) instead.
+// See migration guide in openspec/changes/add-microfrontend-support/

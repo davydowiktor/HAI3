@@ -56,11 +56,11 @@ The MFE system's scope is **registration and lifecycle**, NOT fetching. How MFE 
 
 | Type | What it is | Analogy |
 |------|-----------|---------|
-| [**Domain**](./mfe-domain.md) | A slot where MFE instances can mount (can exist at any level - host or nested MFE) | A power outlet |
+| [**Domain**](./schemas.md#extension-domain-schema) | A slot where MFE instances can mount (can exist at any level - host or nested MFE) | A power outlet |
 | [**Entry**](./mfe-entry-mf.md) | The MFE's contract (what it needs and provides) | A plug specification |
-| [**Extension**](./mfe-domain.md#extension) | The actual MFE instance mounted in a domain (isolated by default; custom handlers can allow sharing) | A plugged-in device |
-| [**LifecycleStage**](./mfe-lifecycle.md) | A lifecycle event type that triggers actions chains | A lifecycle hook trigger |
-| [**LifecycleHook**](./mfe-lifecycle.md) | Binds a lifecycle stage to an actions chain | A declared lifecycle behavior |
+| [**Extension**](./schemas.md#extension-schema) | The actual MFE instance mounted in a domain (isolated by default; custom handlers can allow sharing) | A plugged-in device |
+| [**LifecycleStage**](./schemas.md#lifecycle-stage-schema) | A lifecycle event type that triggers actions chains | A lifecycle hook trigger |
+| [**LifecycleHook**](./schemas.md#lifecycle-hook-schema) | Binds a lifecycle stage to an actions chain | A declared lifecycle behavior |
 
 ---
 
@@ -84,9 +84,12 @@ ChildMfeBridge A                        ChildMfeBridge B
 
 ### Two Communication Mechanisms
 
-1. **[Shared Properties](./mfe-shared-property.md)** - One-way: parent → MFEs
-   - User context, theme, selected items
-   - MFEs subscribe and react to changes
+1. **[Shared Properties](./mfe-api.md#domain-level-property-updates)** - One-way: parent → MFEs
+   - **Theme** (`HAI3_SHARED_PROPERTY_THEME`): Type ID for the theme shared property contract. The runtime value (e.g., `"dark"`) is set by the host via `updateDomainProperty()`. MFEs apply their own CSS variables based on the received value.
+   - **Language** (`HAI3_SHARED_PROPERTY_LANGUAGE`): Type ID for the language shared property contract. The runtime value (e.g., `"de"`) is set by the host via `updateDomainProperty()`. MFEs load their own i18n translations based on the received value.
+   - All 4 base extension domains declare theme and language as shared properties.
+   - MFE entries declare theme and language in `requiredProperties` to ensure the contract is validated at registration.
+   - MFEs subscribe and react to changes via `bridge.subscribeToProperty()`.
 
 2. **[Actions Chains](./mfe-actions.md)** - Executed via registry
    - `registry.executeActionsChain(chain)` is the ONLY public API for triggering actions chains
@@ -98,6 +101,26 @@ ChildMfeBridge A                        ChildMfeBridge B
 ### Action Chain Execution
 
 The public API is `registry.executeActionsChain(chain)` -- the single entry point for all runtimes. Child MFEs access this via `childBridge.executeActionsChain()` (pass-through to registry). For hierarchical composition, bridge-to-bridge transport between mediator instances uses private concrete-only methods. See [MFE API - Action Chain Execution Model](./mfe-api.md#action-chain-execution-model) for the complete design including cross-runtime routing via `ChildDomainForwardingHandler`.
+
+---
+
+## Navigation Menu Auto-Population
+
+The navigation menu is driven entirely by registered screen extensions. Each extension carries optional `presentation` metadata (label, icon, route, order) that the host uses to build the nav menu dynamically.
+
+```
+Screen Extension Registration Flow:
+  1. registerExtension({ id, domain: screenDomain, entry, presentation: { label, icon, route, order } })
+  2. Host queries: runtime.getExtensionsForDomain(HAI3_SCREEN_DOMAIN)
+  3. Host builds menu items from each extension's presentation metadata
+  4. Menu items are sorted by presentation.order
+  5. Clicking a menu item triggers mount_ext for that extension
+
+  No hardcoded menu items. No legacy screenset registry. No AppRouter.
+  The menu reflects exactly what is registered.
+```
+
+See [Extension Schema](./schemas.md#extension-schema) for the `presentation` field definition and [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md#extension-domains-vs-configuration-domains) for the menu configuration domain.
 
 ---
 
@@ -121,51 +144,16 @@ MFEs are loaded on-demand using [Module Federation](./mfe-loading.md). The paren
 └─────────────────┘         └─────────────────┘
 ```
 
-The [MfManifest](./mfe-manifest.md) tells the handler where to find the MFE bundle and what dependencies it shares with the parent.
+MfManifest is an internal detail of the MF handler (see [mfe-loading.md Decision 12](./mfe-loading.md#decision-12-manifest-as-internal-implementation-detail-of-mfehandlermf)) -- it provides bundle location and shared dependency configuration to the handler's resolution logic.
 
 ---
 
 <a name="runtime-isolation-default-behavior"></a>
 ## Runtime Isolation (Default Behavior)
 
-HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation. Custom handlers can implement different isolation strategies based on their requirements.
+HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation: separate state, styles (Shadow DOM), and errors per instance. Custom handlers can implement different strategies.
 
-**With the default handler, each MFE instance runs in complete isolation:**
-
-- **Separate state** - Instance A cannot access Instance B's React state (even if they're the same MFE entry)
-- **Separate styles** - CSS from one instance doesn't leak to another (Shadow DOM)
-- **Separate errors** - If Instance A crashes, Instance B keeps working
-- **Instance-level isolation** - mounting the same MFE entry twice creates two completely independent runtime instances
-
-```
-┌───────────────────────────────────────────────────────────────────┐
-│                           PARENT                                  │
-│                                                                   │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐ │
-│  │ Shadow DOM       │  │ Shadow DOM       │  │ Shadow DOM       │ │
-│  │ ┌──────────────┐ │  │ ┌──────────────┐ │  │ ┌──────────────┐ │ │
-│  │ │ INSTANCE A   │ │  │ │ INSTANCE B   │ │  │ │ INSTANCE C   │ │ │
-│  │ │ (ChartMFE)   │ │  │ │ (ChartMFE)   │ │  │ │ (TableMFE)   │ │ │
-│  │ │              │ │  │ │              │ │  │ │              │ │ │
-│  │ │ Own React    │ │  │ │ Own React    │ │  │ │ Own Vue      │ │ │
-│  │ │ Own styles   │ │  │ │ Own styles   │ │  │ │ Own styles   │ │ │
-│  │ │ Own state    │ │  │ │ Own state    │ │  │ │ Own state    │ │ │
-│  │ └──────────────┘ │  │ └──────────────┘ │  │ └──────────────┘ │ │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘ │
-│                                                                   │
-│  Note: With default handler, Instances A and B (same MFE entry)   │
-│  are completely isolated. Custom handlers can allow sharing.      │
-└───────────────────────────────────────────────────────────────────┘
-```
-
-**Isolation Recommendations:**
-
-| MFE Source | Recommended Strategy | Reason |
-|------------|---------------------|--------|
-| 3rd-party/vendor MFEs | Always isolate | Security - untrusted code must not access other instances |
-| Internal MFEs | Handler can allow sharing | Coordination, efficiency - trusted code can share state if beneficial |
-
-Custom handlers (e.g., `MfeHandlerAcme`) can choose to allow internal MFE instances to share state, bridges, or other resources when isolation is not required.
+See [Principles - Shadow DOM Style Isolation](./principles.md#shadow-dom-style-isolation-default-handler) for the full Shadow DOM isolation model, CSS variable behavior, and custom handler options.
 
 ---
 
@@ -208,11 +196,11 @@ Custom handlers (e.g., `MfeHandlerAcme`) can choose to allow internal MFE instan
     └─────────┘    [destroyed] lifecycle stage triggered
 ```
 
-**Lifecycle stages** allow extensions and domains to declare explicit actions chains that execute at each stage. See [MFE Lifecycle](./mfe-lifecycle.md) for details.
+**Lifecycle stages** allow extensions and domains to declare explicit actions chains that execute at each stage. See [schemas.md - Lifecycle Stage Schema](./schemas.md#lifecycle-stage-schema) for the type definition and [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md) for how lifecycle actions integrate with the domain system.
 
 **Extension lifecycle actions** (`load_ext`, `mount_ext`, `unmount_ext`) are the consumer-facing API for triggering load, mount, and unmount operations via `executeActionsChain()`. See [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md) for the complete design.
 
-**Preloading**: `MountManager` exposes a `preloadExtension(extensionId)` method that fetches the JS bundle without mounting. This method is **internal only** (not on the public `ScreensetsRegistry` abstract class). It is triggered by the `load_ext` action via `ExtensionLifecycleActionHandler`. Consumers preload via `executeActionsChain()` with `HAI3_ACTION_LOAD_EXT`, not by calling `preloadExtension` directly.
+**Preloading**: `MountManager` exposes a `loadExtension(extensionId)` method that fetches the JS bundle without mounting. This method is **internal only** (not on the public `ScreensetsRegistry` abstract class). It is triggered by the `load_ext` action via `ExtensionLifecycleActionHandler`. Consumers preload via `executeActionsChain()` with `HAI3_ACTION_LOAD_EXT`, not by calling `loadExtension` directly.
 
 See [MFE API](./mfe-api.md) for the mount/unmount interface that MFEs must implement.
 
@@ -231,17 +219,14 @@ For detailed specifications, see:
 | Document | Description |
 |----------|-------------|
 | [glossary.md](./glossary.md) | Key terms and definitions |
-| [mfe-domain.md](./mfe-domain.md) | Extension domains and extensions |
 | [mfe-entry-mf.md](./mfe-entry-mf.md) | MFE entry contracts |
 | [mfe-manifest.md](./mfe-manifest.md) | Module Federation configuration |
 | [mfe-loading.md](./mfe-loading.md) | Handler architecture and bundle loading |
 | [mfe-actions.md](./mfe-actions.md) | Action types and actions chains |
 | [mfe-ext-lifecycle-actions.md](./mfe-ext-lifecycle-actions.md) | Extension lifecycle actions (load, mount, unmount) |
-| [mfe-shared-property.md](./mfe-shared-property.md) | Shared properties |
-| [mfe-lifecycle.md](./mfe-lifecycle.md) | Lifecycle stages and hooks |
-| [mfe-api.md](./mfe-api.md) | MFE lifecycle and bridge interfaces |
+| [mfe-api.md](./mfe-api.md) | MFE lifecycle, bridge interfaces, shared properties |
 | [mfe-errors.md](./mfe-errors.md) | Error class hierarchy |
 | [type-system.md](./type-system.md) | Type system plugin and contract validation |
-| [schemas.md](./schemas.md) | GTS JSON Schema definitions |
+| [schemas.md](./schemas.md) | GTS JSON Schema definitions (all core types including Domain, Extension, SharedProperty, LifecycleStage, LifecycleHook) |
 | [registry-runtime.md](./registry-runtime.md) | Runtime isolation and registration |
 | [principles.md](./principles.md) | Design principles |

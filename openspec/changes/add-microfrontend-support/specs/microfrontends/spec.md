@@ -18,7 +18,7 @@ The system SHALL provide a `microfrontends()` plugin in `@hai3/framework` that e
 **Implementation note**: This scenario describes the target state after Phase 34 implementation. The `microfrontends({ mfeHandlers })` configuration and dynamic registration capabilities are implemented across Phases 32-34.
 
 ```typescript
-import { createHAI3, microfrontends } from '@hai3/framework';
+import { createHAI3, microfrontends } from '@hai3/react';
 import { MfeHandlerMF } from '@hai3/screensets/mfe/handler'; // Note: The ./mfe/handler subpath export is added in Phase 34.2.2
 import { gtsPlugin } from '@hai3/screensets/plugins/gts';
 
@@ -62,14 +62,8 @@ The system SHALL provide MFE lifecycle actions that call `screensetsRegistry.exe
 #### Scenario: Load MFE bundle action
 
 ```typescript
-import { mfeActions } from '@hai3/framework';
-
-// Extension type ID (plain string - runtime validation via gts-ts)
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
-
-// Action calls executeActionsChain fire-and-forget, returns void
-mfeActions.loadExtension(ANALYTICS_EXTENSION_ID);
-// Resolves domain, calls screensetsRegistry.executeActionsChain() with HAI3_ACTION_LOAD_EXT
+mfeActions.loadExtension(extensionId);
+// Fire-and-forget: resolves domain, calls executeActionsChain with HAI3_ACTION_LOAD_EXT
 ```
 
 - **WHEN** calling `loadExtension` action
@@ -81,13 +75,8 @@ mfeActions.loadExtension(ANALYTICS_EXTENSION_ID);
 #### Scenario: Mount MFE action
 
 ```typescript
-import { mfeActions } from '@hai3/framework';
-
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
-
-// Action calls executeActionsChain fire-and-forget
-mfeActions.mountExtension(ANALYTICS_EXTENSION_ID);
-// Resolves domain, calls screensetsRegistry.executeActionsChain() with HAI3_ACTION_MOUNT_EXT
+mfeActions.mountExtension(extensionId);
+// Fire-and-forget: resolves domain, calls executeActionsChain with HAI3_ACTION_MOUNT_EXT
 ```
 
 - **WHEN** calling `mountExtension` action
@@ -103,14 +92,12 @@ The system SHALL provide MFE effects for extension registration operations only.
 #### Scenario: Register extension effect
 
 ```typescript
+// eventBus is the HAI3 framework Flux event bus (not the removed screensets EventEmitter)
 eventBus.on('mfe/registerExtensionRequested', async ({ extension }) => {
-  dispatch(mfeSlice.actions.setExtensionRegistering({ extensionId: extension.id }));
-  try {
-    await screensetsRegistry.registerExtension(extension);
-    dispatch(mfeSlice.actions.setExtensionRegistered({ extensionId: extension.id }));
-  } catch (error) {
-    dispatch(mfeSlice.actions.setExtensionError({ extensionId: extension.id, error: error.message }));
-  }
+  dispatch(setExtensionRegistering({ extensionId: extension.id }));
+  await screensetsRegistry.registerExtension(extension);
+  dispatch(setExtensionRegistered({ extensionId: extension.id }));
+  // On failure: dispatch setExtensionError
 });
 ```
 
@@ -134,17 +121,9 @@ The system SHALL track MFE registration states via a store slice using extension
 #### Scenario: Query extension registration state
 
 ```typescript
-import { selectExtensionState, selectRegisteredExtensions } from '@hai3/framework';
-
-const extensionId = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
-
-// Registration state tracks extension registration lifecycle
 const state = useAppSelector((s) => selectExtensionState(s, extensionId));
 // 'unregistered' | 'registering' | 'registered' | 'error'
-
-// Get all registered extensions
 const registeredExtensions = useAppSelector(selectRegisteredExtensions);
-// string[]
 ```
 
 - **WHEN** querying MFE registration state
@@ -184,16 +163,8 @@ The system SHALL integrate MFE loading with the navigation plugin using actions/
 #### Scenario: Navigate to MFE screenset via screen domain
 
 ```typescript
-import { mfeActions } from '@hai3/framework';
-
-// Navigate by mounting the extension on the screen domain
-// Screen domain interprets mount as "navigate to this screen"
-mfeActions.mountExtension(
-  'gts.hai3.mfes.ext.extension.v1~acme.analytics.screens.dashboard.v1',
-);
-// Note: Instance IDs do NOT end with ~ (only schema/type IDs do)
-// Action resolves domain and calls screensetsRegistry.executeActionsChain() with HAI3_ACTION_MOUNT_EXT
-// Screen domain replaces current screen with the extension
+mfeActions.mountExtension(extensionId);
+// Screen domain replaces current screen with the extension (swap semantics)
 ```
 
 - **WHEN** mounting an extension on a screen domain
@@ -220,107 +191,40 @@ The system SHALL support managing MFE extension lifecycle in any domain using th
 #### Scenario: MFE requests extension mount into popup domain
 
 ```typescript
-import { HAI3_ACTION_MOUNT_EXT } from '@hai3/screensets';
-import { HAI3_POPUP_DOMAIN } from '@hai3/framework';
+import { HAI3_ACTION_MOUNT_EXT, HAI3_POPUP_DOMAIN } from '@hai3/react';
 
-// Inside MFE component - bridge executes action chain via registry pass-through
-// HAI3_ACTION_MOUNT_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1
+// bridge.executeActionsChain() delegates to registry.executeActionsChain() (pass-through)
+// The domain's ContainerProvider supplies the DOM container -- callers do not pass it.
 await bridge.executeActionsChain({
   action: {
     type: HAI3_ACTION_MOUNT_EXT,
-    target: HAI3_POPUP_DOMAIN,  // Target domain handles layout behavior
-    // The domain's ContainerProvider supplies the DOM container — callers do not pass it.
-    payload: {
-      extensionId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.popups.export.v1',
-    },
+    target: HAI3_POPUP_DOMAIN,
+    payload: { extensionId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.popups.export.v1' },
   },
 });
-
-// Flow:
-// 1. bridge.executeActionsChain() delegates to registry.executeActionsChain() via injected callback
-// 2. Registry validates action chain against GTS schema
-// 3. ActionsChainsMediator routes chain to target domain
-// 4. ExtensionLifecycleActionHandler calls mountExtension callback (OperationSerializer -> MountManager)
-// 5. Popup domain handles by showing modal with the extension
 ```
 
 - **WHEN** an MFE requests mount_ext with popup domain
-- **THEN** the bridge (from @hai3/screensets) SHALL validate the action chain
-- **AND** the bridge SHALL delegate to `registry.executeActionsChain()` via the injected callback (the bridge is a pass-through, not a router)
+- **THEN** the bridge SHALL delegate to `registry.executeActionsChain()` via the injected callback (pass-through)
 - **AND** the domain's `ExtensionLifecycleActionHandler` SHALL call its `mountExtension` callback (OperationSerializer -> MountManager)
 - **AND** the popup domain SHALL render the extension as a modal
 
 #### Scenario: MFE requests extension unmount from popup domain
 
-```typescript
-import { HAI3_ACTION_UNMOUNT_EXT } from '@hai3/screensets';
-import { HAI3_POPUP_DOMAIN } from '@hai3/framework';
-
-// Inside MFE popup -- dismiss/close the popup
-// HAI3_ACTION_UNMOUNT_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1
-await bridge.executeActionsChain({
-  action: {
-    type: HAI3_ACTION_UNMOUNT_EXT,
-    target: HAI3_POPUP_DOMAIN,
-    payload: {
-      extensionId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.popups.export.v1',
-    },
-  },
-});
-```
-
-- **WHEN** an MFE requests unmount_ext from popup domain
+- **WHEN** an MFE requests unmount_ext from popup domain (same pattern as mount, using `HAI3_ACTION_UNMOUNT_EXT`)
 - **THEN** the parent SHALL unmount the extension from the popup domain
 - **AND** the extension's bridge SHALL be disposed
 
-#### Scenario: MFE requests extension preload into sidebar domain
+#### Scenario: MFE requests extension preload and mount into sidebar domain
 
-```typescript
-import { HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
-import { HAI3_SIDEBAR_DOMAIN } from '@hai3/framework';
-
-// HAI3_ACTION_LOAD_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1
-await bridge.executeActionsChain({
-  action: {
-    type: HAI3_ACTION_LOAD_EXT,
-    target: HAI3_SIDEBAR_DOMAIN,  // Target domain handles layout behavior
-    payload: {
-      extensionId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.sidebars.quick_stats.v1',
-    },
-  },
-});
-```
+The same three lifecycle actions (`load_ext`, `mount_ext`, `unmount_ext`) work for ANY domain. The pattern is identical to the popup example above -- only the target domain constant changes (e.g., `HAI3_SIDEBAR_DOMAIN`).
 
 - **WHEN** an MFE requests load_ext with sidebar domain
-- **THEN** the parent SHALL validate the action chain against the action schema
-- **AND** the domain's `ExtensionLifecycleActionHandler` SHALL call its `loadExtension` callback (OperationSerializer -> MountManager)
+- **THEN** the domain's `ExtensionLifecycleActionHandler` SHALL call its `loadExtension` callback (OperationSerializer -> MountManager)
 - **AND** the extension's JS bundle SHALL be fetched and cached (no DOM rendering)
 - **AND** subsequent mount SHALL be instant
-
-#### Scenario: MFE requests extension mount into sidebar domain
-
-```typescript
-import { HAI3_ACTION_MOUNT_EXT } from '@hai3/screensets';
-import { HAI3_SIDEBAR_DOMAIN } from '@hai3/framework';
-
-// HAI3_ACTION_MOUNT_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1
-await bridge.executeActionsChain({
-  action: {
-    type: HAI3_ACTION_MOUNT_EXT,
-    target: HAI3_SIDEBAR_DOMAIN,
-    // The domain's ContainerProvider supplies the DOM container — callers do not pass it.
-    payload: {
-      extensionId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.sidebars.quick_stats.v1',
-    },
-  },
-});
-```
-
 - **WHEN** an MFE requests mount_ext with sidebar domain
-- **THEN** the parent SHALL validate the action chain against the action schema
-- **AND** the domain's `ExtensionLifecycleActionHandler` SHALL call its `mountExtension` callback (OperationSerializer -> MountManager)
-- **AND** the sidebar domain SHALL render the extension as a side panel
-- **AND** the extension SHALL render in Shadow DOM
+- **THEN** the sidebar domain SHALL render the extension as a side panel in Shadow DOM
 
 Domain-specific action support validation, domain action support matrix (screen, sidebar, popup, overlay), and `UnsupportedDomainActionError` semantics are defined in the [screensets spec - Domain-Specific Action Support](../screensets/spec.md#requirement-domain-specific-action-support). The three lifecycle action types work for ANY extension domain -- no domain-specific action constants are needed.
 
@@ -445,24 +349,13 @@ The system SHALL validate that MFE type IDs conform to HAI3 base types.
 
 The framework SHALL support dynamic registration of extensions and MFEs at any time during runtime, not just at initialization. This integrates with the ScreensetsRegistry dynamic API.
 
+> The core registration API (`registerExtension`, `unregisterExtension`, `registerDomain`, `unregisterDomain`) is defined in the [screensets spec - Dynamic Registration Model](../screensets/spec.md#requirement-dynamic-registration-model). This section covers the Flux integration layer that wraps the core API with actions, effects, and store state tracking.
+
 #### Scenario: Register extension via action
 
 ```typescript
-import { mfeActions } from '@hai3/framework';
-import { type Extension } from '@hai3/screensets';
-
-// Extension can be registered at any time - NOT just initialization
-// Extension uses derived type that includes domain-specific fields
-mfeActions.registerExtension({
-  id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1',
-  domain: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
-  entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
-  // Domain-specific fields from derived Extension type (no uiMeta wrapper)
-  title: 'Analytics',
-  size: 'medium',
-});
-// Emits: 'mfe/registerExtensionRequested' with { extension }
-// Effect calls: runtime.registerExtension(extension)
+mfeActions.registerExtension({ id, domain, entry, ...domainFields });
+// Emits 'mfe/registerExtensionRequested'; effect calls runtime.registerExtension()
 ```
 
 - **WHEN** calling `mfeActions.registerExtension(extension)`
@@ -474,12 +367,8 @@ mfeActions.registerExtension({
 #### Scenario: Unregister extension via action
 
 ```typescript
-import { mfeActions } from '@hai3/framework';
-
-// Unregister at any time - also unmounts if currently mounted
-mfeActions.unregisterExtension('gts.hai3.mfes.ext.extension.v1~acme.user.widgets.analytics_widget.v1');
-// Emits: 'mfe/unregisterExtensionRequested' with { extensionId }
-// Effect calls: runtime.unregisterExtension(extensionId)
+mfeActions.unregisterExtension(extensionId);
+// Emits 'mfe/unregisterExtensionRequested'; effect calls runtime.unregisterExtension()
 ```
 
 - **WHEN** calling `mfeActions.unregisterExtension(extensionId)`
@@ -490,17 +379,8 @@ mfeActions.unregisterExtension('gts.hai3.mfes.ext.extension.v1~acme.user.widgets
 #### Scenario: Track extension registration state in slice
 
 ```typescript
-import { selectExtensionState, selectRegisteredExtensions } from '@hai3/framework';
-
-const extensionId = 'gts.hai3.mfes.ext.extension.v1~acme.user.widgets.analytics_widget.v1';
-
-// Query registration state
 const state = useAppSelector((s) => selectExtensionState(s, extensionId));
-// 'unregistered' | 'registering' | 'registered' | 'error'
-
-// Get all registered extensions
 const registeredExtensions = useAppSelector(selectRegisteredExtensions);
-// string[]
 ```
 
 - **WHEN** querying extension registration state
@@ -510,32 +390,12 @@ const registeredExtensions = useAppSelector(selectRegisteredExtensions);
 #### Scenario: Register extensions from backend (application responsibility)
 
 ```typescript
-import { mfeActions } from '@hai3/framework';
-
-// App is created with handler configuration only; domain/extension registration is dynamic
-const app = createHAI3()
-  .use(microfrontends({ mfeHandlers: [new MfeHandlerMF(gtsPlugin)] }))
-  .build();
-
-// Entity fetching is OUTSIDE MFE system scope - application handles this
-eventBus.on('auth/loginSuccess', async ({ token }) => {
-  // Application code fetches entities from backend
-  const response = await fetch('/api/extensions', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  const { domains, extensions } = await response.json();
-
-  // MFE system only handles registration of already-fetched entities
-  // Domain registration is direct on the registry (synchronous, no Flux action)
-  // Each domain requires a ContainerProvider (see mfe-ext-lifecycle-actions.md)
-  for (const domain of domains) {
-    runtime.registerDomain(domain, containerProviderForDomain(domain.id));
-  }
-  // Extension registration via Flux actions (with store state tracking)
-  for (const extension of extensions) {
-    mfeActions.registerExtension(extension);
-  }
-});
+// Entity fetching is OUTSIDE MFE system scope -- application handles this
+const { domains, extensions } = await fetchFromBackend();
+// Domain registration: direct on registry (synchronous)
+for (const domain of domains) runtime.registerDomain(domain, containerProvider);
+// Extension registration: via Flux actions (with store state tracking)
+for (const ext of extensions) mfeActions.registerExtension(ext);
 ```
 
 - **WHEN** entities need to be loaded from backend
@@ -546,20 +406,8 @@ eventBus.on('auth/loginSuccess', async ({ token }) => {
 #### Scenario: Observe domain extensions via store slice
 
 ```typescript
-import { useDomainExtensions } from '@hai3/react';
-
-function WidgetSlot() {
-  // Re-render when extensions are registered/unregistered for this domain
-  const extensions = useDomainExtensions('gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1');
-
-  return (
-    <div>
-      {extensions.map(ext => (
-        <ExtensionDomainSlot key={ext.id} domainId={domainId} extensionId={ext.id} />
-      ))}
-    </div>
-  );
-}
+const extensions = useDomainExtensions(domainId);
+// Re-renders when extensions are registered/unregistered for this domain
 ```
 
 - **WHEN** using `useDomainExtensions(domainId)` hook
@@ -567,6 +415,167 @@ function WidgetSlot() {
 - **AND** it SHALL call `runtime.getExtensionsForDomain(domainId)` to resolve the current extension list
 - **AND** it SHALL trigger re-render when the extension list for the domain changes
 - **AND** it SHALL return the current list of extensions for the domain
+
+### Requirement: No Monorepo Tooling Exclusions for MFE Packages
+
+MFE packages under `src/mfe_packages/` are app-level (L4) code and MUST follow ALL monorepo rules. No tooling exclusions are permitted.
+
+#### Scenario: ESLint applies to MFE packages
+
+- **WHEN** linting MFE packages under `src/mfe_packages/`
+- **THEN** all monorepo ESLint rules SHALL apply, including `no-inline-styles`
+- **AND** `src/mfe_packages/**` SHALL NOT be added to any ESLint ignore pattern
+- **AND** ESLint layer enforcement rules SHALL apply (MFE packages are L4)
+
+#### Scenario: dependency-cruiser applies to MFE packages
+
+- **WHEN** running dependency-cruiser on the codebase
+- **THEN** `src/mfe_packages` SHALL NOT be excluded from dependency analysis
+- **AND** layer enforcement SHALL catch violations (e.g., importing `@hai3/screensets` instead of `@hai3/react`)
+
+#### Scenario: knip applies to MFE packages
+
+- **WHEN** running knip for dead code detection
+- **THEN** `src/mfe_packages/**` SHALL NOT be added to any knip ignore pattern
+- **AND** `@originjs/vite-plugin-federation` SHALL NOT be added to `ignoreDependencies`
+- **AND** MFE package dependencies SHALL be tracked normally
+
+#### Scenario: tsconfig includes MFE packages
+
+- **WHEN** compiling TypeScript
+- **THEN** `src/mfe_packages` SHALL NOT be excluded from the tsconfig `exclude` array
+- **AND** MFE package code SHALL be type-checked alongside all other app-level code
+
+### Requirement: MFE Layer Enforcement
+
+MFE packages SHALL be L4 (app-level) and MUST ONLY import from `@hai3/react` (L3). They SHALL NOT import from `@hai3/screensets` (L1) or `@hai3/framework` (L2) directly.
+
+#### Scenario: MFE imports from @hai3/react only
+
+- **WHEN** an MFE package imports HAI3 types or utilities
+- **THEN** the import SHALL come from `@hai3/react` (L3)
+- **AND** the import SHALL NOT come from `@hai3/screensets` (L1)
+- **AND** the import SHALL NOT come from `@hai3/framework` (L2)
+
+#### Scenario: ESLint catches L1/L2 imports from MFE packages
+
+- **WHEN** an MFE package under `src/mfe_packages/` imports from `@hai3/screensets` or `@hai3/framework`
+- **THEN** ESLint layer rules SHALL report a violation
+- **AND** the violation message SHALL indicate that MFE packages (L4) can only import from `@hai3/react` (L3)
+
+#### Scenario: All public symbols available via @hai3/react
+
+- **WHEN** an MFE package needs to use `MfeEntryLifecycle`, `ChildMfeBridge`, Shadow DOM utilities, or any other MFE symbol
+- **THEN** these symbols SHALL be available as re-exports from `@hai3/react`
+- **AND** no direct import from `@hai3/screensets` or `@hai3/framework` SHALL be necessary
+
+### Requirement: hello-world-mfe Uses Tailwind, UIKit, Domain Properties, and Presentation Metadata
+
+The hello-world-mfe package SHALL use Tailwind CSS classes, UIKit components, bridge domain properties for theme/language, and extension presentation metadata for menu integration.
+
+#### Scenario: hello-world-mfe uses Tailwind classes
+
+- **WHEN** rendering the HelloWorld MFE component
+- **THEN** the component SHALL use Tailwind CSS utility classes for all styling
+- **AND** the component SHALL NOT use inline styles (no `style` prop or `style` attribute)
+
+#### Scenario: hello-world-mfe uses UIKit components
+
+- **WHEN** rendering UI elements in the HelloWorld MFE
+- **THEN** the component SHALL use `@hai3/uikit` components where applicable
+- **AND** the UIKit styles SHALL be initialized inside the MFE's Shadow DOM at mount time
+
+#### Scenario: hello-world-mfe includes Tailwind and UIKit in shared config
+
+- **WHEN** configuring the hello-world-mfe Module Federation remote
+- **THEN** the `shared` config in `vite.config.ts` SHALL include `tailwindcss` with `singleton: false`
+- **AND** the `shared` config SHALL include `@hai3/uikit` with `singleton: false`
+
+#### Scenario: hello-world-mfe entry declares required properties
+
+- **WHEN** defining the hello-world-mfe entry in `mfe.json`
+- **THEN** the entry's `requiredProperties` SHALL include `gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1`
+- **AND** the entry's `requiredProperties` SHALL include `gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1`
+
+#### Scenario: hello-world-mfe extension declares presentation metadata
+
+- **WHEN** defining the hello-world-mfe extension in `mfe.json`
+- **THEN** the extension SHALL include a `presentation` field with `label`, `route`, and optionally `icon` and `order`
+- **AND** the presentation metadata SHALL drive the nav menu item for this screen
+
+#### Scenario: hello-world-mfe consumes theme from bridge
+
+- **WHEN** the hello-world-mfe is mounted
+- **THEN** the lifecycle implementation SHALL subscribe to the theme domain property via `bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_THEME, callback)`
+- **AND** the component SHALL apply CSS variables inside its Shadow DOM based on the theme value
+- **AND** theme changes SHALL be reflected immediately without remounting
+
+#### Scenario: hello-world-mfe consumes language from bridge
+
+- **WHEN** the hello-world-mfe is mounted
+- **THEN** the lifecycle implementation SHALL subscribe to the language domain property via `bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, callback)`
+- **AND** the component SHALL apply text direction and localization based on the language value
+
+#### Scenario: hello-world-mfe works inside Shadow DOM
+
+- **WHEN** the hello-world-mfe is mounted by `MfeHandlerMF`
+- **THEN** the MFE SHALL render correctly inside the Shadow DOM container
+- **AND** all styles SHALL be scoped to the shadow root
+- **AND** no styles SHALL leak to or from the host application
+
+#### Scenario: hello-world-mfe imports from @hai3/react only
+
+- **WHEN** the hello-world-mfe imports HAI3 types or utilities
+- **THEN** all imports SHALL come from `@hai3/react` (L3)
+- **AND** no imports SHALL come from `@hai3/screensets` (L1) or `@hai3/framework` (L2)
+
+### Requirement: Full Demo Screenset Conversion to MFE Package
+
+The legacy demo screenset (4 screens: HelloWorld, Profile, CurrentTheme, UIKitElements) SHALL be fully converted into a single `demo-mfe` package following the ONE SCREENSET = ONE MFE principle. Each screen becomes an entry within the consolidated package.
+
+#### Scenario: Demo screenset becomes one MFE package with 4 entries
+
+- **WHEN** converting the legacy demo screenset
+- **THEN** a single `src/mfe_packages/demo-mfe/` package SHALL be created
+- **AND** the package SHALL have 1 manifest (single Module Federation remote, single `remoteEntry.js`)
+- **AND** the package SHALL have 4 entries, each with its own `exposedModule` (`./lifecycle-helloworld`, `./lifecycle-profile`, `./lifecycle-theme`, `./lifecycle-uikit`)
+- **AND** the package SHALL have 4 extensions, each targeting the screen domain and pointing to its respective entry
+- **AND** shared internals (i18n helpers, common hooks, shared styles) SHALL live in `demo-mfe/src/shared/`
+- **AND** navigation between screens SHALL be host-controlled via `mount_ext` actions (no internal routing)
+- **AND** the package SHALL have a single `vite.config.ts`, `mfe.json`, `package.json`, `tsconfig.json`
+
+#### Scenario: Each MFE carries its own i18n files
+
+- **WHEN** an MFE package requires localization
+- **THEN** the MFE SHALL bundle its own i18n translation files (e.g., `src/i18n/en.json`, `src/i18n/de.json`, etc.)
+- **AND** the MFE SHALL subscribe to the language domain property and load the appropriate translations
+- **AND** the MFE SHALL NOT rely on the host's i18n registry
+
+#### Scenario: Each MFE entry declares required properties
+
+- **WHEN** defining an MFE entry in `mfe.json`
+- **THEN** the entry's `requiredProperties` SHALL include `HAI3_SHARED_PROPERTY_THEME` and `HAI3_SHARED_PROPERTY_LANGUAGE`
+- **AND** the contract validation SHALL pass because the base extension domains declare both properties
+
+#### Scenario: Each extension carries presentation metadata
+
+- **WHEN** defining an extension in `mfe.json`
+- **THEN** the extension SHALL include `presentation` with `label`, `icon`, `route`, and `order`
+- **AND** the host nav menu SHALL auto-populate from these fields
+
+#### Scenario: Host app registers all MFE extensions
+
+- **WHEN** the host app initializes
+- **THEN** it SHALL register all MFE extensions from their `mfe.json` files
+- **AND** the nav menu SHALL display items for all registered screen extensions, sorted by `presentation.order`
+- **AND** clicking a menu item SHALL trigger `mount_ext` for the corresponding extension
+- **AND** the screen domain swap semantics SHALL handle transitions between screens
+
+#### Scenario: All MFE packages follow L4 rules
+
+- **WHEN** any MFE package under `src/mfe_packages/` is built or linted
+- **THEN** the MFE SHALL import only from `@hai3/react` (L3)
+- **AND** all monorepo tooling rules SHALL apply (ESLint, dependency-cruiser, knip, tsconfig)
 
 ### Requirement: ESLint Flux Protection for Effects
 

@@ -59,13 +59,10 @@ describe('microfrontends plugin - Phase 7.9', () => {
       }).not.toThrow();
     });
 
-    it('should throw error if any configuration is passed', () => {
+    it('should accept optional MicrofrontendsConfig with mfeHandlers', () => {
       expect(() => {
-        // Testing runtime error when config is passed
-        // We need to bypass TypeScript checking to test runtime behavior
-        const pluginFactory = microfrontends as unknown as (config: Record<string, unknown>) => unknown;
-        pluginFactory({ anything: true });
-      }).toThrow(/accepts NO configuration parameters/);
+        microfrontends({ mfeHandlers: [] });
+      }).not.toThrow();
     });
 
     it('should return a valid plugin object', () => {
@@ -365,7 +362,10 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
       expect(domain).toMatchObject({
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
-        sharedProperties: [],
+        sharedProperties: [
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1',
+        ],
         actions: [
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
@@ -383,7 +383,10 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
       expect(domain).toMatchObject({
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1',
-        sharedProperties: [],
+        sharedProperties: [
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1',
+        ],
         actions: [
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
@@ -401,7 +404,10 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
       expect(domain).toMatchObject({
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1',
-        sharedProperties: [],
+        sharedProperties: [
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1',
+        ],
         actions: [
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
@@ -419,7 +425,10 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
       expect(domain).toMatchObject({
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1',
-        sharedProperties: [],
+        sharedProperties: [
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1',
+        ],
         actions: [
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',

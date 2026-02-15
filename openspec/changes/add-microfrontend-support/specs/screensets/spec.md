@@ -182,7 +182,7 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **AND** the manifest SHALL include remoteEntry (URL to remoteEntry.js)
 - **AND** the manifest SHALL include remoteName (federation container name)
 - **AND** the manifest MAY include sharedDependencies (array of SharedDependencyConfig)
-- **AND** SharedDependencyConfig SHALL include name (package name) and requiredVersion (semver)
+- **AND** SharedDependencyConfig SHALL include name (package name) and MAY include requiredVersion (semver)
 - **AND** SharedDependencyConfig MAY include singleton (boolean, default: false)
 - **AND** the manifest MAY include entries (convenience field for discovery)
 - **AND** multiple MfeEntryMF instances MAY reference the same manifest
@@ -198,6 +198,8 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **AND** sharedProperties SHALL reference SharedProperty type IDs
 - **AND** `actions` SHALL list Action type IDs the domain can send TO extensions (e.g., `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`, plus any domain-specific actions)
 - **AND** `extensionsActions` SHALL list Action type IDs extensions can send TO this domain
+- **AND** the domain SHALL specify `lifecycleStages` (REQUIRED, array of lifecycle stage type IDs the domain itself recognizes)
+- **AND** the domain SHALL specify `extensionsLifecycleStages` (REQUIRED, array of lifecycle stage type IDs that extensions in this domain can use)
 - **AND** if `extensionsTypeId` is specified, extensions must use types that derive from that type
 - **AND** derived domains MAY specify their own `extensionsTypeId` to override or narrow the validation
 
@@ -209,6 +211,7 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **AND** the binding SHALL reference valid domain and entry type IDs
 - **AND** domain SHALL reference an ExtensionDomain type ID
 - **AND** entry SHALL reference an MfeEntry type ID (base or derived)
+- **AND** the binding MAY have a `presentation` field (optional `ExtensionPresentation` object with `label`, `route`, and optional `icon`, `order`)
 - **AND** if the domain has extensionsTypeId, the extension's type SHALL derive from that type
 - **AND** domain-specific fields SHALL be defined in derived Extension schemas, NOT in a separate uiMeta field
 
@@ -217,7 +220,8 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **WHEN** defining a shared property instance
 - **THEN** the property SHALL conform to `SharedProperty` TypeScript interface
 - **AND** the property SHALL have an `id` field (string) - the type ID for this shared property
-- **AND** the property SHALL have a `value` field - the shared property value
+- **AND** the property SHALL have a `supportedValues` field (array of strings) defining the contract of values that consumers must support
+- **AND** the property SHALL NOT have a `value` field (runtime values are set via `updateDomainProperty()`, not stored in GTS instances)
 
 #### Scenario: Action type definition
 
@@ -409,13 +413,14 @@ The system SHALL load MFE bundles using the MfeEntryMF derived type which refere
 - **AND** the loader SHALL validate manifest against MfManifest schema
 - **AND** multiple MfeEntryMF referencing same manifest SHALL reuse cached container
 
-#### Scenario: Module Federation container loading
+#### Scenario: Module Federation container loading via ESM import
 
 - **WHEN** loading a Module Federation container
-- **THEN** the loader SHALL load remoteEntry.js script
-- **AND** the loader SHALL get container from window[manifest.remoteName]
-- **AND** the loader SHALL initialize sharing scope
-- **AND** the loader SHALL cache containers per remoteName
+- **THEN** the loader SHALL dynamically import the remote entry via `import(manifest.remoteEntry)` (ESM dynamic import)
+- **AND** the imported ESM module SHALL be the container (it exports `get` and `init`)
+- **AND** the loader SHALL call `container.init(sharedScope)` to initialize shared dependencies
+- **AND** the loader SHALL call `container.get(exposedModule)` to retrieve the module factory
+- **AND** the loader SHALL cache imported modules per remoteEntry URL to avoid redundant imports
 
 ### Requirement: Hierarchical Extension Domains
 
@@ -506,8 +511,8 @@ The system SHALL provide bridge interfaces for communication between parent and 
 - **AND** `ChildMfeBridge` SHALL provide `executeActionsChain(chain): Promise<void>` method as a capability pass-through to the registry's `executeActionsChain()`
 - **AND** `ChildMfeBridge` SHALL NOT provide `sendActionsChain()` on the public interface (internal transport, concrete-only)
 - **AND** `ChildMfeBridge` SHALL NOT provide `onActionsChain()` on the public interface (internal transport wiring, concrete-only)
-- **AND** `ChildMfeBridge` SHALL provide `subscribeToProperty(propertyTypeId, callback)` method
-- **AND** `ChildMfeBridge` SHALL provide `getProperty(propertyTypeId)` method
+- **AND** `ChildMfeBridge` SHALL provide `subscribeToProperty(propertyTypeId: string, callback: (value: unknown) => void): () => void` method. The callback receives the runtime property value (set by `updateDomainProperty`), not the GTS SharedProperty type definition.
+- **AND** `ChildMfeBridge` SHALL provide `getProperty(propertyTypeId: string): unknown` method. Returns the runtime property value, not the GTS SharedProperty type definition.
 
 #### Scenario: ParentMfeBridge interface
 
@@ -547,24 +552,9 @@ The system SHALL define a framework-agnostic `MfeEntryLifecycle` interface that 
 - **AND** the MFE SHALL export an `unmount` function that calls `root.unmount()`
 - **AND** the MFE SHALL NOT export a React component directly
 
-#### Scenario: Vue 3 MFE implementation
+#### Scenario: Non-React MFE implementation
 
-- **WHEN** implementing an MFE in Vue 3
-- **THEN** the MFE SHALL export a `mount` function that uses `createApp(App, { bridge }).mount(container)`
-- **AND** the MFE SHALL export an `unmount` function that calls `app.unmount()`
-
-#### Scenario: Svelte MFE implementation
-
-- **WHEN** implementing an MFE in Svelte
-- **THEN** the MFE SHALL export a `mount` function that creates a Svelte component with `{ target: container, props: { bridge } }`
-- **AND** the MFE SHALL export an `unmount` function that calls `component.$destroy()`
-
-#### Scenario: Vanilla JS MFE implementation
-
-- **WHEN** implementing an MFE in Vanilla JavaScript
-- **THEN** the MFE SHALL export a `mount` function that directly manipulates the container DOM
-- **AND** the MFE SHALL export an `unmount` function that cleans up the container
-- **AND** the MFE SHALL use the bridge for property subscriptions and executing actions chains
+MFE packages MAY be implemented in any UI framework. The contract is framework-agnostic: export an object conforming to the `MfeEntryLifecycle` interface (`mount` and `unmount` methods).
 
 #### Scenario: MFE mount receives bridge
 
@@ -688,6 +678,50 @@ The system SHALL define constants for HAI3 MFE base types. Type ID constants (`H
   - `HAI3_EXT_EXTENSION`: `gts.hai3.mfes.ext.extension.v1~`
   - `HAI3_EXT_ACTION`: `gts.hai3.mfes.comm.action.v1~`
 
+### Requirement: HAI3 Shared Property Constants
+
+The system SHALL export constants for the built-in shared property type IDs. These are the standard properties that all base extension domains provide.
+
+#### Scenario: Shared property type ID constants
+
+- **WHEN** importing `@hai3/screensets`
+- **THEN** the package SHALL export shared property type ID constants:
+  - `HAI3_SHARED_PROPERTY_THEME`: `gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1`
+  - `HAI3_SHARED_PROPERTY_LANGUAGE`: `gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1`
+
+#### Scenario: Theme and language GTS instances are built-in
+
+- **WHEN** the GTS plugin is constructed
+- **THEN** the theme shared property instance (`gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1`) SHALL be registered
+- **AND** the language shared property instance (`gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1`) SHALL be registered
+- **AND** both instances SHALL be stored as JSON files under `hai3.mfes/instances/comm/`
+
+### Requirement: Extension Presentation Metadata
+
+The system SHALL support optional presentation metadata on Extension instances for host UI integration (e.g., navigation menu items).
+
+#### Scenario: Extension with presentation metadata
+
+- **WHEN** registering an extension with a `presentation` field
+- **THEN** the extension's `presentation.label` SHALL be a string (display label)
+- **AND** the extension's `presentation.route` SHALL be a string (route path)
+- **AND** the extension's `presentation.icon` MAY be a string (icon identifier)
+- **AND** the extension's `presentation.order` MAY be a number (sort order)
+- **AND** the presentation metadata SHALL be accessible via `runtime.getExtension(extensionId).presentation`
+
+#### Scenario: Extension without presentation metadata
+
+- **WHEN** registering an extension without a `presentation` field
+- **THEN** the extension SHALL be registered successfully
+- **AND** `runtime.getExtension(extensionId).presentation` SHALL be `undefined`
+
+#### Scenario: Host derives menu from screen extensions
+
+- **WHEN** querying screen extensions via `runtime.getExtensionsForDomain(HAI3_SCREEN_DOMAIN)`
+- **THEN** each returned extension MAY have a `presentation` field
+- **AND** the host SHALL build navigation menu items from extensions that have presentation metadata
+- **AND** menu items SHALL be sorted by `presentation.order` (ascending, lower = higher priority)
+
 ### Requirement: Shadow DOM Utilities
 
 The system SHALL provide Shadow DOM utilities for style isolation in `@hai3/screensets`.
@@ -705,6 +739,82 @@ The system SHALL provide Shadow DOM utilities for style isolation in `@hai3/scre
 - **THEN** the function SHALL inject CSS custom properties into the shadow root
 - **AND** the variables SHALL be available to all children within the shadow DOM
 - **AND** the function SHALL update existing variables if called multiple times
+
+### Requirement: Shadow DOM Style Isolation (Default Handler)
+
+The default handler (`MfeHandlerMF`) SHALL enforce CSS isolation via Shadow DOM boundaries. The abstract `MfeHandler` class does NOT mandate Shadow DOM -- this is a property of the `MfeHandlerMF` concrete implementation only. Custom `MfeHandler` implementations may choose different isolation strategies.
+
+#### Scenario: Default handler creates Shadow DOM boundary on mount
+
+- **WHEN** `DefaultMountManager` mounts an MFE using the default handler (`MfeHandlerMF`)
+- **THEN** the mount manager SHALL create a Shadow DOM boundary on the container element via `container.attachShadow({ mode: 'open' })`
+- **AND** the MFE's `mount(container, bridge)` SHALL receive the shadow root, NOT the host element
+- **AND** the MFE SHALL render all its content inside the shadow root
+
+#### Scenario: CSS variable isolation via Shadow DOM
+
+- **WHEN** an MFE is mounted inside a Shadow DOM boundary
+- **THEN** CSS variables defined on the host application SHALL NOT penetrate into the MFE's shadow root
+- **AND** global stylesheets from the host SHALL NOT affect MFE content
+- **AND** each MFE instance SHALL be fully responsible for its own styles
+
+#### Scenario: Custom handler may use different isolation
+
+- **WHEN** a custom `MfeHandler` implementation mounts an MFE
+- **THEN** the handler MAY choose to skip Shadow DOM creation
+- **AND** the handler MAY use iframe isolation, CSS Modules, or any other strategy
+- **AND** the abstract `MfeHandler` class SHALL NOT mandate any specific isolation mechanism
+
+### Requirement: Theme and Language as Domain Properties
+
+Theme and language SHALL be communicated to MFEs through domain properties on the bridge. CSS variables do NOT propagate from host to MFE -- the MFE sets its own CSS variables based on domain property values.
+
+#### Scenario: Domain carries theme and language properties
+
+- **WHEN** any of the 4 base extension domains (screen, sidebar, popup, overlay) is defined
+- **THEN** the domain's `sharedProperties` SHALL include `HAI3_SHARED_PROPERTY_THEME` (`gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1`)
+- **AND** the domain's `sharedProperties` SHALL include `HAI3_SHARED_PROPERTY_LANGUAGE` (`gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1`)
+- **AND** when the host changes theme/language, the host SHALL call `registry.updateDomainProperty()` to update these properties
+- **AND** all subscribed MFE instances in the domain SHALL receive the update via their bridge
+
+#### Scenario: MFE reads theme from bridge and applies CSS variables
+
+- **WHEN** an MFE instance is mounted and subscribes to the `theme` domain property
+- **THEN** the MFE SHALL read the theme value via `bridge.subscribeToProperty(themePropertyId, callback)` or `bridge.getProperty(themePropertyId)`
+- **AND** the MFE SHALL apply its own CSS variables inside its Shadow DOM based on the theme value (e.g., `theme: 'dark'` triggers dark mode CSS variables)
+- **AND** the MFE SHALL NOT rely on host CSS variables for theming
+
+#### Scenario: MFE reads language from bridge and applies localization
+
+- **WHEN** an MFE instance is mounted and subscribes to the `language` domain property
+- **THEN** the MFE SHALL read the language value via `bridge.subscribeToProperty(languagePropertyId, callback)` or `bridge.getProperty(languagePropertyId)`
+- **AND** the MFE SHALL apply localization and text direction (RTL/LTR) inside its Shadow DOM based on the language value
+- **AND** the MFE SHALL NOT rely on host `html[lang]` or `html[dir]` attributes
+
+### Requirement: Shared Dependencies for MFEs (Tailwind + UIKit)
+
+Each MFE MUST use Tailwind CSS and `@hai3/uikit` for styling. These are added to the Module Federation `shared` config. No inline styles are permitted.
+
+#### Scenario: MFE includes Tailwind and UIKit in shared config
+
+- **WHEN** configuring a Module Federation MFE remote
+- **THEN** the `shared` config SHALL include `tailwindcss` with `singleton: false`
+- **AND** the `shared` config SHALL include `@hai3/uikit` with `singleton: false`
+- **AND** these SHALL be in addition to `react` and `react-dom`
+
+#### Scenario: MFE initializes styles inside Shadow DOM
+
+- **WHEN** an MFE is mounted and receives the shadow root as its container
+- **THEN** the MFE SHALL initialize its own Tailwind CSS styles inside the shadow root
+- **AND** the MFE SHALL initialize its own UIKit component styles inside the shadow root
+- **AND** host Tailwind/UIKit styles SHALL NOT penetrate into the MFE's shadow root
+
+#### Scenario: No inline styles in MFE packages
+
+- **WHEN** writing MFE component code under `src/mfe_packages/`
+- **THEN** the MFE SHALL use Tailwind utility classes and UIKit components for styling
+- **AND** the MFE SHALL NOT use inline styles (`style` attribute or `style` prop)
+- **AND** the monorepo ESLint `no-inline-styles` rule SHALL apply to MFE packages with zero exclusions
 
 ### Requirement: MFE Error Classes
 
@@ -784,41 +894,16 @@ The system SHALL provide PRIVATE coordination mechanisms between parent and MFE 
 #### Scenario: RuntimeCoordinator uses WeakMap
 
 - **WHEN** the parent runtime and MFE runtime need to coordinate
-- **THEN** coordination SHALL use a `RuntimeCoordinator` abstract class with a `WeakMapRuntimeCoordinator` concrete implementation that encapsulates a private `WeakMap<Element, RuntimeConnection>`
-- **AND** the WeakMap SHALL store RuntimeConnection objects with parentRuntime and bridges
-- **AND** RuntimeCoordinator SHALL NOT use window globals (no `window.__hai3_*` properties)
-- **AND** the concrete `WeakMapRuntimeCoordinator` SHALL NOT be exported from `@hai3/screensets` (internal implementation detail)
-- **AND** the `RuntimeCoordinator` abstract class SHALL be internal (NOT exported from `@hai3/screensets` public barrel)
-- **AND** RuntimeCoordinator SHALL NOT be exposed to MFE component code
+- **THEN** coordination SHALL use a `RuntimeCoordinator` abstract class with a `WeakMapRuntimeCoordinator` concrete implementation
+- **AND** RuntimeCoordinator SHALL NOT use window globals
+- **AND** both abstract and concrete classes SHALL be internal (NOT exported from public barrel)
 - **AND** MFE code SHALL only see the ChildMfeBridge interface
 
-#### Scenario: RuntimeConnection registration
+#### Scenario: RuntimeConnection lifecycle
 
-- **WHEN** an MFE is mounted to a container element
-- **THEN** the system SHALL call `coordinator.register(container, connection)` internally via ScreensetsRegistry
-- **AND** the RuntimeConnection SHALL include the parentRuntime reference
-- **AND** the RuntimeConnection SHALL include a Map of entryTypeId to ParentMfeBridge
-
-#### Scenario: RuntimeConnection lookup
-
-- **WHEN** the system needs to find a runtime for communication
-- **THEN** the system SHALL call `coordinator.get(container)` to lookup by element
-- **AND** the lookup SHALL return RuntimeConnection or undefined
-- **AND** the lookup SHALL be O(1) complexity via WeakMap
-
-#### Scenario: RuntimeConnection cleanup
-
-- **WHEN** an MFE is unmounted from a container element
-- **THEN** the system SHALL call `coordinator.unregister(container)` internally via ScreensetsRegistry
-- **AND** the WeakMap entry SHALL be removed
-- **AND** when the container element is garbage collected, any remaining reference SHALL be automatically cleaned up
-
-#### Scenario: WeakMap benefits
-
-- **WHEN** using WeakMap-based coordination instead of window globals
-- **THEN** there SHALL be no window pollution (not accessible via devtools window object)
-- **AND** garbage collection SHALL be automatic when container element is removed
-- **AND** encapsulation SHALL be better (WeakMap is private within `WeakMapRuntimeCoordinator` class, not globally accessible)
+- **WHEN** an MFE is mounted, the system SHALL call `coordinator.register(container, connection)` internally
+- **AND** when unmounted, `coordinator.unregister(container)` SHALL remove the entry
+- **AND** garbage collection SHALL be automatic when the container element is removed (WeakMap semantics)
 
 #### Scenario: ChildMfeBridge is the only exposed interface
 
@@ -849,48 +934,24 @@ The system SHALL configure Module Federation to support framework-agnostic MFEs 
 
 - **WHEN** defining a shared dependency in MfManifest
 - **THEN** SharedDependencyConfig SHALL include `name` (package name, required)
-- **AND** SharedDependencyConfig SHALL include `requiredVersion` (semver range, required)
+- **AND** SharedDependencyConfig MAY include `requiredVersion` (semver range, optional)
 - **AND** SharedDependencyConfig MAY include `singleton` (boolean, optional, default: false)
 - **AND** `singleton: false` SHALL mean code is shared but each MFE instance gets its own runtime instance
 - **AND** `singleton: true` SHALL mean code is shared AND the same instance is used everywhere
 
-#### Scenario: Code sharing vs instance sharing
+#### Scenario: Default handler uses singleton false for isolation
 
-- **WHEN** a dependency is listed in sharedDependencies
-- **THEN** the code/bundle SHALL be downloaded once and cached (code sharing)
-- **AND** the `singleton` flag SHALL control whether instances are shared or isolated
-- **AND** these two benefits SHALL be independent (both can be achieved with singleton: false)
+- **GIVEN** the default MF handler (`MfeHandlerMF`)
+- **THEN** shared dependencies SHALL use `singleton: false` (the default)
+- **AND** each MFE instance SHALL receive its own runtime instance from the shared code (code sharing + instance isolation)
+- **AND** each MFE instance SHALL have its own `TypeSystemPlugin`, React context, hooks state, and reconciler
 
-#### Scenario: Default singleton behavior
+#### Scenario: Custom handler may use singleton true
 
-- **WHEN** `singleton` is not specified in SharedDependencyConfig
-- **THEN** the default SHALL be `false` (isolated instances)
-- **AND** each MFE instance SHALL receive its own runtime instance from the shared code
-- **AND** this provides both code sharing (performance) and instance isolation (safety)
-
-#### Scenario: Stateful library sharing with isolation
-
-- **WHEN** sharing React, ReactDOM, @hai3/*, or GTS via sharedDependencies
-- **THEN** `singleton` SHOULD be `false` to preserve runtime isolation
-- **AND** each MFE instance SHALL have its own React context, hooks state, and reconciler
-- **AND** each MFE instance SHALL have its own TypeSystemPlugin and schema registry
-- **AND** bundle size optimization SHALL still be achieved through code sharing
-
-#### Scenario: Stateless utility sharing
-
-- **WHEN** sharing truly stateless libraries (lodash, date-fns, uuid)
-- **THEN** `singleton` MAY be `true` safely
-- **AND** all consumers SHALL share the same instance
-- **AND** this provides both code sharing AND memory optimization
-
-#### Scenario: Isolation requirement enforcement (default handler)
-
-- **WHEN** an MFE instance is loaded using the default handler (MfeHandlerMF) with `singleton: false` on @hai3/screensets and GTS
-- **THEN** each MFE instance SHALL have its own separate `TypeSystemPlugin` instance and schema registry
-- **AND** the MFE instance SHALL NOT be able to access the parent's registered types or schemas
-- **AND** the MFE instance SHALL NOT be able to access other MFE instances' registered types (including other instances of the same MFE entry)
-- **AND** this isolation SHALL be guaranteed by `singleton: false` on @hai3/screensets and GTS (separate plugin instances per runtime)
-- **AND** custom handlers for internal MFEs MAY configure different isolation levels when appropriate
+- **GIVEN** a custom `MfeHandler` implementation for internal MFEs
+- **THEN** shared dependencies MAY use `singleton: true` if the handler guarantees version alignment
+- **AND** all consumers SHALL share the same instance when `singleton: true`
+- **AND** this is appropriate for truly stateless libraries (lodash, date-fns, uuid) or when the handler enforces compatible versions
 
 ### Requirement: Explicit Timeout Configuration
 
@@ -1073,40 +1134,29 @@ The system SHALL provide a `ContainerProvider` abstract class that shifts DOM co
 #### Scenario: mount_ext uses ContainerProvider
 
 - **WHEN** the `ExtensionLifecycleActionHandler` handles a `mount_ext` action
-- **THEN** the handler SHALL call `this.containerProvider.getContainer(extensionId)` to obtain the DOM container
-- **AND** the handler SHALL pass the obtained container to `this.callbacks.mountExtension(extensionId, container)`
-- **AND** the callback SHALL route through `OperationSerializer` to `MountManager.mountExtension(id, container)`
+- **THEN** the handler SHALL call `containerProvider.getContainer(extensionId)` to obtain the DOM container
 - **AND** the `mount_ext` payload SHALL NOT contain a `container` field
-- **AND** the handler SHALL be the single owner of all `ContainerProvider` interactions (both `getContainer` and `releaseContainer`)
+- **AND** the handler SHALL be the single owner of all `ContainerProvider` interactions
 
 #### Scenario: unmount_ext releases container
 
 - **WHEN** the `ExtensionLifecycleActionHandler` handles an `unmount_ext` action
-- **THEN** after `MountManager.unmountExtension()` completes, the handler SHALL call `containerProvider.releaseContainer(extensionId)`
+- **THEN** after unmount completes, the handler SHALL call `containerProvider.releaseContainer(extensionId)`
 
-#### Scenario: swap-semantics domain mount_ext with currently mounted extension
+#### Scenario: swap-semantics domain mount_ext
 
-- **WHEN** `mount_ext` is dispatched on a swap-semantics domain (screen domain)
-- **AND** there is a currently mounted extension in that domain
-- **THEN** the handler SHALL call `unmountExtension` for the current extension
-- **AND** the handler SHALL call `releaseContainer(currentExtensionId)` for the current extension
-- **THEN** the handler SHALL call `getContainer(newExtensionId)` for the new extension
-- **AND** the handler SHALL call `mountExtension` for the new extension with the obtained container
+- **WHEN** `mount_ext` is dispatched on a swap-semantics domain (screen domain) with a currently mounted extension
+- **THEN** the handler SHALL unmount the current extension, release its container, obtain a new container, and mount the new extension
 - **AND** the transition SHALL be seamless (no visible empty state)
 
 #### Scenario: getContainer failure
 
-- **WHEN** `containerProvider.getContainer(extensionId)` throws an error
-- **THEN** the mount operation SHALL fail
-- **AND** the error SHALL propagate as the mount_ext action failure
-- **AND** the fallback chain SHALL be executed if defined
+- **WHEN** `containerProvider.getContainer(extensionId)` throws
+- **THEN** the mount operation SHALL fail and the fallback chain SHALL be executed if defined
 
-#### Scenario: ExtensionDomainSlot and RefContainerProvider (React layer)
+#### Scenario: RefContainerProvider (React layer)
 
 - **WHEN** a React-rendered extension domain is registered
-- **THEN** the registration code SHALL use a concrete `RefContainerProvider` (from `@hai3/react`) wrapping the `ExtensionDomainSlot` component's React ref
-- **AND** `RefContainerProvider` and `ExtensionDomainSlot` SHALL live in `@hai3/react`, NOT in `@hai3/screensets` (`@hai3/screensets` is SDK Layer L1 with zero dependencies -- it must not import React)
-- **AND** the `RefContainerProvider` SHALL be passed to `registerDomain()` as the `containerProvider` parameter
-- **AND** the `ExtensionDomainSlot` component itself SHALL NOT call `registerDomain()` (it only dispatches mount/unmount actions)
-- **AND** `getContainer()` SHALL read `ref.current` lazily at call time and return the ref's current element
-- **AND** `releaseContainer()` SHALL be a no-op (React manages ref lifecycle)
+- **THEN** `RefContainerProvider` (from `@hai3/react`) SHALL wrap the `ExtensionDomainSlot` ref
+- **AND** `RefContainerProvider` and `ExtensionDomainSlot` SHALL live in `@hai3/react`, NOT in `@hai3/screensets`
+- **AND** the `ExtensionDomainSlot` SHALL NOT call `registerDomain()` (domain registration is framework-level code)

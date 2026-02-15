@@ -4,13 +4,35 @@
  * Framework Layer: L2
  */
 
-import type { MenuScreenItem, ScreenLoader, ScreensetDefinition } from '@hai3/screensets';
-import type { RouteRegistry, RouteMatchResult, CompiledRoute, ScreensetRegistry } from '../types';
+import type { RouteRegistry, RouteMatchResult, CompiledRoute } from '../types';
 import {
   compileRoute,
   matchPath,
   generatePath as generatePathFromRoute,
 } from '../utils/routeMatcher';
+
+// Legacy types (inline definitions for deprecated route registry)
+type ScreenLoader = () => Promise<{ default: React.ComponentType }>;
+
+interface MenuScreenItem {
+  menuItem: {
+    id: string;
+    label: string;
+    icon?: string;
+    path?: string;
+  };
+  screen: ScreenLoader;
+}
+
+interface ScreensetDefinition {
+  id: string;
+  menu: MenuScreenItem[];
+}
+
+interface ScreensetRegistry {
+  get(id: string): ScreensetDefinition | undefined;
+  getAll(): ScreensetDefinition[];
+}
 
 /**
  * Route entry type
@@ -47,8 +69,7 @@ export function createRouteRegistry(
 
     screensets.forEach((screenset: ScreensetDefinition) => {
       screenset.menu.forEach((menuScreenItem: MenuScreenItem) => {
-        // Use screenId if provided, otherwise fallback to id
-        const screenId = menuScreenItem.menuItem.screenId ?? menuScreenItem.menuItem.id;
+        const screenId = menuScreenItem.menuItem.id;
         if (screenId && menuScreenItem.screen) {
           // Use custom path if provided, otherwise default to /{screenId}
           const pattern = menuScreenItem.menuItem.path ?? `/${screenId}`;

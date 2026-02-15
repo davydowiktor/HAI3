@@ -60,6 +60,13 @@ export {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
+  HAI3_ACTION_NOTIFY_USER,
+} from '@hai3/screensets';
+
+// MFE Shared Property Constants (re-exported from @hai3/screensets for convenience)
+export {
+  HAI3_SHARED_PROPERTY_THEME,
+  HAI3_SHARED_PROPERTY_LANGUAGE,
 } from '@hai3/screensets';
 
 // MFE Types (re-exported from @hai3/screensets for convenience)
@@ -67,6 +74,7 @@ export type {
   ChildMfeBridge,
   ParentMfeBridge,
   Extension,
+  ExtensionPresentation,
   ExtensionDomain,
   ActionsChain,
   Action,
@@ -96,6 +104,10 @@ export {
   ContainerProvider,
 } from '@hai3/screensets';
 
+// MFE Concrete Implementations (re-exported from @hai3/screensets subpath exports)
+export { MfeHandlerMF } from '@hai3/screensets/mfe/handler';
+export { gtsPlugin } from '@hai3/screensets/plugins/gts';
+
 // MFE Utilities (re-exported from @hai3/screensets for convenience)
 export {
   createShadowRoot,
@@ -121,7 +133,6 @@ export { presets, full, minimal, headless, type FullPresetConfig } from './prese
 // ============================================================================
 
 export {
-  createScreensetRegistry,
   createThemeRegistry,
   createRouteRegistry,
 } from './registries';
@@ -138,7 +149,6 @@ export type {
   PluginFactory,
   PluginProvides,
   PluginLifecycle,
-  ScreensetRegistry,
   ThemeRegistry,
   ThemeConfig,
   ThemeApplyFn,
@@ -181,26 +191,7 @@ export type {
 export type { HAI3Store } from './types';
 
 // From @hai3/screensets (contracts only - SDK Layer L1)
-export {
-  LayoutDomain,
-  ScreensetCategory,
-  // Note: createScreensetRegistry is exported from ./registries (framework version)
-  // SDK version is available via: import { createScreensetRegistry } from '@hai3/screensets'
-} from '@hai3/screensets';
-
-// Re-export screensetRegistry from compat (wraps SDK registry with framework interface)
-// Note: screensetRegistry is also exported from ./compat further down
-
-export type {
-  ScreensetId,
-  ScreenId,
-  MenuItemConfig,
-  ScreenLoader,
-  ScreenConfig,
-  MenuScreenItem,
-  ScreensetDefinition,
-  ScreensetRegistry as ScreensetRegistryContract,
-} from '@hai3/screensets';
+export { LayoutDomain } from '@hai3/screensets';
 
 // Layout slices (owned by @hai3/framework)
 export {
@@ -409,13 +400,8 @@ export type { Formatters } from '@hai3/i18n';
 // I18nRegistry type (capital I) - alias for consistency with old @hai3/uicore API
 export { I18nRegistryImpl as I18nRegistry } from '@hai3/i18n';
 
-// ScreensetConfig type alias - maps to ScreensetDefinition in new architecture
-export type { ScreensetDefinition as ScreensetConfig } from '@hai3/screensets';
-
-// Singleton registries for backward compatibility
+// Backward compatibility constants
 export {
-  screensetRegistry,
-  // Backward compatibility constants
   ACCOUNTS_DOMAIN,
 } from './compat';
 

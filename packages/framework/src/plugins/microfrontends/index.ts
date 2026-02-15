@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 
-import { screensetsRegistryFactory } from '@hai3/screensets';
+import { screensetsRegistryFactory, type MfeHandler } from '@hai3/screensets';
 import { gtsPlugin } from '@hai3/screensets/plugins/gts';
 import type { HAI3Plugin } from '../../types';
 import { mfeSlice } from './slice';
@@ -24,27 +24,42 @@ import {
 } from './actions';
 
 /**
+ * Configuration for the microfrontends plugin.
+ */
+export interface MicrofrontendsConfig {
+  /**
+   * Optional MFE handlers to register with the screensets registry.
+   * Handlers enable loading of specific MFE entry types (e.g., MfeEntryMF).
+   *
+   * If not provided, no handlers are registered. Applications must register
+   * handlers manually via screensetsRegistry API.
+   */
+  mfeHandlers?: MfeHandler[];
+}
+
+/**
  * Microfrontends plugin factory.
  *
- * Enables MFE capabilities in HAI3 applications with NO static configuration.
- * All MFE registration (domains, extensions, entries) happens dynamically at
- * runtime via actions or direct API calls.
+ * Enables MFE capabilities in HAI3 applications. Optionally accepts MFE handlers
+ * for registration at plugin initialization.
  *
  * **Key Principles:**
- * - NO configuration parameters - plugin accepts nothing
+ * - Optional mfeHandlers config for handler registration
  * - NO static domain registration - domains are registered at runtime
  * - Builds screensetsRegistry with GTS plugin at plugin initialization
  * - Same TypeSystemPlugin instance is propagated throughout
  * - Integrates MFE lifecycle with Flux data flow (actions, effects, slice)
  *
- * @throws Error if any configuration is passed
+ * @param config - Optional configuration with mfeHandlers array
  *
  * @example
  * ```typescript
  * import { createHAI3, microfrontends } from '@hai3/framework';
+ * import { MfeHandlerMF } from '@hai3/screensets/mfe/handler';
+ * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
  *
  * const app = createHAI3()
- *   .use(microfrontends())  // No config - just enables MFE capabilities
+ *   .use(microfrontends({ mfeHandlers: [new MfeHandlerMF(gtsPlugin)] }))
  *   .build();
  *
  * // Register domains dynamically at runtime:
@@ -55,22 +70,14 @@ import {
  * app.actions.mountExtension('my.extension.v1');
  * ```
  */
-export function microfrontends(): HAI3Plugin {
-  // Validate no config was passed
-  // Function signature accepts no parameters, but TypeScript can't prevent
-  // runtime calls like microfrontends({ anything: true })
-  if (arguments.length > 0) {
-    throw new Error(
-      'microfrontends() plugin accepts NO configuration parameters. ' +
-      'All MFE registration happens dynamically at runtime. ' +
-      'Remove any configuration and call microfrontends() with no arguments.'
-    );
-  }
-
-  // Build the ScreensetsRegistry instance with GTS plugin
+export function microfrontends(config: MicrofrontendsConfig = {}): HAI3Plugin {
+  // Build the ScreensetsRegistry instance with GTS plugin and optional handlers
   // This registry handles all MFE lifecycle: domains, extensions, actions, etc.
   // TypeSystemPlugin binding happens here at application wiring level.
-  const screensetsRegistry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+  const screensetsRegistry = screensetsRegistryFactory.build({
+    typeSystem: gtsPlugin,
+    mfeHandlers: config.mfeHandlers,
+  });
 
   // Store cleanup functions in closure (encapsulated per plugin instance)
   let effectsCleanup: (() => void) | null = null;
@@ -100,7 +107,7 @@ export function microfrontends(): HAI3Plugin {
       },
     },
 
-    onInit(app): void {
+    onInit(): void {
       // Wire the registry reference into actions module
       setMfeRegistry(screensetsRegistry);
 
@@ -108,14 +115,11 @@ export function microfrontends(): HAI3Plugin {
       effectsCleanup = initMfeEffects(screensetsRegistry);
       navigationCleanup = initMfeNavigation();
 
-      // Update debug mode based on app config
-      if (app.config.devMode) {
-        console.log('[microfrontends] Plugin initialized');
-        console.log('[microfrontends] TypeSystemPlugin:', screensetsRegistry.typeSystem.name, screensetsRegistry.typeSystem.version);
-        console.log('[microfrontends] Base domains are NOT pre-registered');
-        console.log('[microfrontends] Register domains at runtime via app.screensetsRegistry.registerDomain()');
-        console.log('[microfrontends] MFE actions available: loadExtension, mountExtension, unmountExtension');
-      }
+      // Plugin is now initialized
+      // TypeSystemPlugin: bound to screensetsRegistry
+      // MFE handlers: registered via config.mfeHandlers
+      // Base domains: NOT pre-registered - registered dynamically at runtime
+      // MFE actions: loadExtension, mountExtension, unmountExtension available
 
       // Plugin is now ready
       // Base domains are NOT registered here - they are registered dynamically

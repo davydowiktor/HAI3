@@ -1,0 +1,25 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import federation from '@originjs/vite-plugin-federation';
+
+export default defineConfig({
+  plugins: [
+    react(),
+    federation({
+      name: 'demoMfe',
+      filename: 'remoteEntry.js',
+      exposes: {
+        './lifecycle-helloworld': './src/lifecycle-helloworld.tsx',
+        './lifecycle-profile': './src/lifecycle-profile.tsx',
+        './lifecycle-theme': './src/lifecycle-theme.tsx',
+        './lifecycle-uikit': './src/lifecycle-uikit.tsx',
+      },
+      shared: ['react', 'react-dom', 'tailwindcss', '@hai3/uikit'],
+    }),
+  ],
+  build: {
+    target: 'esnext',
+    minify: false,
+    cssCodeSplit: false,
+  },
+});

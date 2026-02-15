@@ -5,8 +5,8 @@ This document covers the ExtensionDomain and Extension types and their usage in 
 **Related Documents:**
 - [MFE Entry](./mfe-entry-mf.md) - MfeEntry contract definition
 - [MFE Actions](./mfe-actions.md) - Action types and mediation
-- [MFE Shared Property](./mfe-shared-property.md) - Property definitions
-- [MFE Lifecycle](./mfe-lifecycle.md) - Lifecycle stages and hooks
+- [Schemas](./schemas.md) - SharedProperty, LifecycleStage, LifecycleHook schema definitions
+- [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md) - Lifecycle actions and domain semantics
 - [Type System](./type-system.md) - Contract validation rules
 
 ---
@@ -60,12 +60,7 @@ interface ExtensionDomain {
 
 ## Contract Matching
 
-For an MFE entry to be mountable into a domain:
-1. `entry.requiredProperties` ⊆ `domain.sharedProperties`
-2. `entry.actions` ⊆ `domain.extensionsActions`
-3. `domain.actions` ⊆ `entry.domainActions`
-
-See [Type System - Contract Matching](./type-system.md#decision-8-contract-matching-rules) for the full diagram, validation implementation, and error handling.
+Contract matching validates that the entry's requirements are a subset of the domain's provisions (and vice versa for domain actions). See [Type System - Decision 8: Contract Matching Rules](./type-system.md#decision-8-contract-matching-rules) for the three subset rules, validation diagram, and error handling.
 
 ---
 
@@ -83,7 +78,7 @@ HOST APPLICATION
                                 └── Extension 3 (deeply nested MFE)
 ```
 
-HAI3 provides base layout domains for the host level, and any MFE can define its own domains for nested composition. Base domains are registered via the Type System plugin.
+HAI3 provides base layout domains for the host level, and any MFE can define its own domains for nested composition. Base domains are registered at runtime via `runtime.registerDomain()`.
 
 ### Base Layout Domains
 
@@ -164,6 +159,21 @@ See [schemas.md - Extension Schema](./schemas.md#extension-schema) for the JSON 
 
 ```typescript
 /**
+ * Presentation metadata for host UI integration.
+ * Defines how an extension presents itself in navigation menus and other host UI elements.
+ */
+interface ExtensionPresentation {
+  /** Display label in host UI (e.g., nav menu item text) */
+  label: string;
+  /** Icon identifier in host UI (e.g., icon name from UIKit) */
+  icon?: string;
+  /** Route path for the extension (e.g., '/hello-world'). Used by navigation. */
+  route: string;
+  /** Sort order in host UI lists (lower = higher priority) */
+  order?: number;
+}
+
+/**
  * Binds an MFE entry to an extension domain
  * GTS Type: gts.hai3.mfes.ext.extension.v1~
  *
@@ -177,6 +187,8 @@ interface Extension {
   domain: string;
   /** MfeEntry type ID to mount */
   entry: string;
+  /** Presentation metadata for host UI integration (menu items, navigation) */
+  presentation?: ExtensionPresentation;
   /** Optional lifecycle hooks - explicitly declared actions for each stage */
   lifecycle?: LifecycleHook[];
   // Domain-specific fields are added via derived types, not defined here
@@ -195,9 +207,15 @@ const analyticsExtension = {
   domain: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
   // Entry instance ID - does NOT end with ~
   entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+  // Presentation metadata for host UI integration
+  presentation: {
+    label: 'Analytics Dashboard',
+    icon: 'chart-line',
+    route: '/analytics',
+    order: 10,
+  },
   // Domain-specific fields (defined in derived widget_extension schema):
   title: 'Analytics Dashboard',
-  icon: 'chart-line',
   size: 'large',
 };
 

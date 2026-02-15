@@ -19,6 +19,29 @@
       "type": "array",
       "items": { "type": "object", "$ref": "gts://gts.hai3.mfes.lifecycle.hook.v1~" },
       "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
+    },
+    "presentation": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "$comment": "Human-readable label for the extension"
+        },
+        "icon": {
+          "type": "string",
+          "$comment": "Optional icon identifier (e.g., 'user', 'settings')"
+        },
+        "route": {
+          "type": "string",
+          "$comment": "Route path for navigation (e.g., '/profile', '/settings')"
+        },
+        "order": {
+          "type": "number",
+          "$comment": "Optional sort order for menu items (lower numbers first)"
+        }
+      },
+      "required": ["label", "route"],
+      "$comment": "Optional presentation metadata for UI rendering (menus, navigation, etc.)"
     }
   },
   "required": ["id", "domain", "entry"],

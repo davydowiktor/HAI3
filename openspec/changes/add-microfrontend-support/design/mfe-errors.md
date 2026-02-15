@@ -5,15 +5,15 @@ This document covers the error class hierarchy for the MFE system.
 **Related Documents:**
 - [MFE Loading](./mfe-loading.md) - Handler architecture and bundle loading
 - [MFE Actions](./mfe-actions.md) - Action types and chain execution
-- [MFE Domain](./mfe-domain.md) - Domain and extension registration
-- [MFE Lifecycle](./mfe-lifecycle.md) - Lifecycle stages and hooks
+- [Schemas](./schemas.md) - Domain, Extension, LifecycleStage, LifecycleHook schema definitions
+- [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md) - Lifecycle actions and domain registration
 - [Type System](./type-system.md) - Contract validation rules
 
 ---
 
 ## Context
 
-The MFE system has multiple failure points: [bundle loading](./mfe-loading.md), contract validation, [action chain](./mfe-actions.md) execution, and [domain/extension](./mfe-domain.md) registration. Each failure type requires specific error information for debugging and recovery. The error hierarchy provides typed errors with contextual data for each scenario.
+The MFE system has multiple failure points: [bundle loading](./mfe-loading.md), contract validation, [action chain](./mfe-actions.md) execution, and domain/extension registration (see [registry-runtime.md](./registry-runtime.md)). Each failure type requires specific error information for debugging and recovery. The error hierarchy provides typed errors with contextual data for each scenario.
 
 All MFE errors extend MfeError, which provides a base with error code and message. Specific errors add relevant context (type IDs, validation errors, chain execution state).
 

@@ -227,6 +227,8 @@ export const gtsPlugin: TypeSystemPlugin = new GtsPlugin();
 
 Schema IDs end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~`); instance IDs do NOT (e.g., `gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1`). gts-ts extracts the schema ID from the instance ID automatically.
 
+> **Canonical definition**: This is the authoritative definition of the instance ID convention. Other documents may reference this convention inline for readability.
+
 ### Decision 2: GTS Type ID Format and Registration
 
 The GTS type ID format follows the structure: `gts.<vendor>.<package>.<namespace>.<type>.v<MAJOR>[.<MINOR>]~`
@@ -267,8 +269,8 @@ TypeScript interface definitions are distributed across their respective design 
 
 - **MfeEntry / MfeEntryMF**: See [MFE Entry](./mfe-entry-mf.md#typescript-interface-definitions)
 - **MfManifest / SharedDependencyConfig**: See [MFE Manifest](./mfe-manifest.md#typescript-interface-definitions)
-- **ExtensionDomain / Extension**: See [MFE Domain](./mfe-domain.md#typescript-interface-definitions)
-- **SharedProperty**: See [MFE Shared Property](./mfe-shared-property.md#typescript-interface-definition)
+- **ExtensionDomain / Extension / ExtensionPresentation**: See [MFE Domain](./mfe-domain.md#typescript-interface-definitions) for TypeScript interface definitions; see [schemas.md - Extension Domain Schema](./schemas.md#extension-domain-schema) and [schemas.md - Extension Schema](./schemas.md#extension-schema) for JSON Schema definitions
+- **SharedProperty**: See [schemas.md - Shared Property Schema](./schemas.md#shared-property-schema) for the JSON Schema definition and TypeScript interface
 - **Action / ActionsChain**: See [MFE Actions](./mfe-actions.md#typescript-interface-definitions)
 - **MfeEntryLifecycle**: See [MFE API](./mfe-api.md#mfeentrylifecycle-interface)
 

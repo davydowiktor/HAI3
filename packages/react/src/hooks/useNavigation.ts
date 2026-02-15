@@ -7,7 +7,6 @@
 import { useCallback } from 'react';
 import { useHAI3 } from '../HAI3Context';
 import { useAppSelector } from './useAppSelector';
-import type { RootStateWithLayout } from '@hai3/framework';
 import type { UseNavigationReturn } from '../types';
 
 /**
@@ -46,8 +45,15 @@ export function useNavigation(): UseNavigationReturn {
         return flatKey['layout/screen'].activeScreen ?? null;
       }
       // Fallback to nested structure (for backward compatibility)
-      const nested = state as unknown as RootStateWithLayout;
-      return nested.layout?.screen?.activeScreen ?? null;
+      const nested = state as Record<string, unknown>;
+      if (nested.layout && typeof nested.layout === 'object' && nested.layout !== null) {
+        const layoutState = nested.layout as Record<string, unknown>;
+        if (layoutState.screen && typeof layoutState.screen === 'object' && layoutState.screen !== null) {
+          const screenState = layoutState.screen as { activeScreen?: string | null };
+          return screenState.activeScreen ?? null;
+        }
+      }
+      return null;
     }
   );
 

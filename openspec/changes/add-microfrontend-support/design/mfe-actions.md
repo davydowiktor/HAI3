@@ -159,10 +159,10 @@ The **ActionsChainsMediator** delivers action chains to targets and handles succ
 3. Validate action against target's contract
 4. Validate payload via typeSystem.validateInstance()
 5. Deliver payload to target
-7. Wait for result (Promise<success|failure>)
-8. If success AND chain.next: mediator executes chain.next
-9. If failure AND chain.fallback: mediator executes chain.fallback
-10. Recurse until no next/fallback
+6. Wait for result (Promise<success|failure>)
+7. If success AND chain.next: mediator executes chain.next
+8. If failure AND chain.fallback: mediator executes chain.fallback
+9. Recurse until no next/fallback
 
 ### ActionsChainsMediator
 

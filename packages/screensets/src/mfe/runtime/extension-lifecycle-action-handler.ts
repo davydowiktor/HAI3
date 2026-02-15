@@ -10,7 +10,6 @@
 
 import type { ActionHandler } from '../mediator';
 import type { ParentMfeBridge } from '../handler/types';
-import type { LoadExtPayload, MountExtPayload, UnmountExtPayload } from '../types';
 import type { ContainerProvider } from './container-provider';
 import {
   HAI3_ACTION_LOAD_EXT,
@@ -63,6 +62,12 @@ export interface ExtensionLifecycleCallbacks {
 }
 
 /**
+ * Custom action handler callback type.
+ * Invoked for non-lifecycle actions on the domain.
+ */
+export type CustomActionHandler = (actionTypeId: string, payload: Record<string, unknown> | undefined) => Promise<void>;
+
+/**
  * Action handler for extension lifecycle actions within a domain.
  * Registered with the ActionsChainsMediator as the domain's action handler.
  *
@@ -85,7 +90,8 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
     private readonly domainId: string,
     private readonly callbacks: ExtensionLifecycleCallbacks,
     private readonly domainSemantics: DomainSemantics,
-    private readonly containerProvider: ContainerProvider
+    private readonly containerProvider: ContainerProvider,
+    private readonly customActionHandler?: CustomActionHandler
   ) {}
 
   async handleAction(
@@ -95,34 +101,38 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
     switch (actionTypeId) {
       case HAI3_ACTION_LOAD_EXT: {
         this.requirePayload(actionTypeId, payload);
-        await this.callbacks.loadExtension((payload as unknown as LoadExtPayload).extensionId);
+        const extensionId = this.requireExtensionId(payload);
+        await this.callbacks.loadExtension(extensionId);
         break;
       }
 
       case HAI3_ACTION_MOUNT_EXT: {
         this.requirePayload(actionTypeId, payload);
-        const mountPayload = payload as unknown as MountExtPayload;
+        const extensionId = this.requireExtensionId(payload);
         if (this.domainSemantics === 'swap') {
-          await this.handleScreenSwap(mountPayload);
+          await this.handleScreenSwap(extensionId);
         } else {
           // Toggle semantics: get container and mount
-          const container = this.containerProvider.getContainer(mountPayload.extensionId);
-          await this.callbacks.mountExtension(mountPayload.extensionId, container);
+          const container = this.containerProvider.getContainer(extensionId);
+          await this.callbacks.mountExtension(extensionId, container);
         }
         break;
       }
 
       case HAI3_ACTION_UNMOUNT_EXT: {
         this.requirePayload(actionTypeId, payload);
-        const extensionId = (payload as unknown as UnmountExtPayload).extensionId;
+        const extensionId = this.requireExtensionId(payload);
         await this.callbacks.unmountExtension(extensionId);
         this.containerProvider.releaseContainer(extensionId);
         break;
       }
 
       default:
-        // Non-lifecycle domain actions: pass through as no-op.
+        // Non-lifecycle domain actions: delegate to custom handler if provided.
         // The mediator already validated that the domain supports this action type.
+        if (this.customActionHandler) {
+          await this.customActionHandler(actionTypeId, payload);
+        }
         break;
     }
   }
@@ -139,9 +149,18 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
     }
   }
 
-  private async handleScreenSwap(payload: MountExtPayload): Promise<void> {
-    const { extensionId: newExtensionId } = payload;
+  private requireExtensionId(payload: Record<string, unknown>): string {
+    const { extensionId } = payload;
+    if (typeof extensionId !== 'string' || extensionId.length === 0) {
+      throw new MfeError(
+        'Action payload must contain a non-empty "extensionId" string',
+        'LIFECYCLE_ACTION_INVALID_PAYLOAD'
+      );
+    }
+    return extensionId;
+  }
 
+  private async handleScreenSwap(newExtensionId: string): Promise<void> {
     // Get current mounted extension in this domain (if any)
     const currentExtId = this.callbacks.getMountedExtension(this.domainId);
     if (currentExtId && currentExtId !== newExtensionId) {

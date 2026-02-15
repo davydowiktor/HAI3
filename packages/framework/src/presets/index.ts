@@ -13,6 +13,7 @@ import { routing } from '../plugins/routing';
 import { i18n } from '../plugins/i18n';
 import { effects } from '../plugins/effects';
 import { mock } from '../plugins/mock';
+import { microfrontends, type MicrofrontendsConfig } from '../plugins/microfrontends';
 
 /**
  * Full preset configuration.
@@ -20,6 +21,8 @@ import { mock } from '../plugins/mock';
 export interface FullPresetConfig {
   /** Configuration for themes plugin */
   themes?: ThemesConfig;
+  /** Configuration for microfrontends plugin */
+  microfrontends?: MicrofrontendsConfig;
 }
 
 /**
@@ -35,15 +38,21 @@ export interface FullPresetConfig {
  * - i18n (i18n registry, setLanguage action)
  * - effects (effect coordination)
  * - mock (mock mode control for API services)
+ * - microfrontends (MFE registry, actions, effects)
  *
  * @param config - Optional preset configuration
  *
  * @example
  * ```typescript
  * import { applyTheme } from '@hai3/uikit';
+ * import { MfeHandlerMF } from '@hai3/screensets/mfe/handler';
+ * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
  *
  * const app = createHAI3()
- *   .use(full({ themes: { applyFn: applyTheme } }))
+ *   .use(full({
+ *     themes: { applyFn: applyTheme },
+ *     microfrontends: { mfeHandlers: [new MfeHandlerMF(gtsPlugin)] }
+ *   }))
  *   .build();
  * ```
  */
@@ -57,6 +66,7 @@ export function full(config?: FullPresetConfig): HAI3Plugin[] {
     navigation(),
     i18n(),
     mock(),
+    microfrontends(config?.microfrontends),
   ];
 }
 

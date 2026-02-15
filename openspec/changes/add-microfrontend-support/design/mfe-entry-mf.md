@@ -6,7 +6,7 @@ This document covers the MfeEntry and MfeEntryMF types and their usage in the MF
 
 ## Context
 
-MfeEntry defines the contract that an MFE declares with its hosting [domain](./mfe-domain.md). It specifies what [properties](./mfe-shared-property.md) the MFE requires/accepts and what [action types](./mfe-actions.md) it can send (to its domain) and receive (when targeted). The entry is referenced by [Extension](./mfe-domain.md#extension) to bind an MFE implementation to a specific domain.
+MfeEntry defines the contract that an MFE declares with its hosting [domain](./schemas.md#extension-domain-schema). It specifies what [properties](./schemas.md#shared-property-schema) the MFE requires/accepts and what [action types](./mfe-actions.md) it can send (to its domain) and receive (when targeted). The entry is referenced by [Extension](./schemas.md#extension-schema) to bind an MFE implementation to a specific domain.
 
 MfeEntry is abstract - it defines only the communication contract. Derived types add loader-specific fields. HAI3 ships MfeEntryMF (Module Federation) as the default, but companies can create their own derived types with richer contracts.
 
@@ -60,7 +60,7 @@ gts.hai3.mfes.mfe.mf_manifest.v1~ (Standalone - Module Federation Config)
   |-- remoteName: string
   |-- sharedDependencies?: SharedDependencyConfig[] (code sharing + optional instance sharing)
   |     |-- name: string
-  |     |-- requiredVersion: string
+  |     |-- requiredVersion?: string
   |     |-- singleton?: boolean (default: false = isolated instances)
   |-- entries?: x-gts-ref[] -> gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~*
 ```
@@ -126,6 +126,13 @@ interface MfeEntryMF extends MfeEntry {
    * Can be either:
    * - A type ID reference (string) to a cached manifest
    * - An inline MfManifest object
+   *
+   * **Design note (JSON schema vs TypeScript):** The GTS JSON schema for MfeEntryMF
+   * (in schemas.md) defines `manifest` as an `x-gts-ref` (string reference only),
+   * because the JSON schema validates the *persisted* form where manifests are always
+   * stored as string references. The TypeScript runtime interface accepts both forms
+   * (string reference OR inline MfManifest object) for convenience -- inline objects
+   * are resolved at load time by MfeHandlerMF.resolveManifest().
    */
   manifest: string | MfManifest;
   /** Module Federation exposed module name (e.g., './ChartWidget') */
@@ -136,14 +143,16 @@ interface MfeEntryMF extends MfeEntry {
 ## Example MfeEntryMF Instance
 
 ```typescript
+import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
+
 const chartEntry: MfeEntryMF = {
   id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   requiredProperties: [
-    'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.user_context.v1',
-    'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.selected_date_range.v1',
+    HAI3_SHARED_PROPERTY_THEME,
+    HAI3_SHARED_PROPERTY_LANGUAGE,
   ],
   optionalProperties: [
-    'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
+    'gts.hai3.mfes.comm.shared_property.v1~acme.analytics.comm.selected_date_range.v1',
   ],
   actions: ['gts.hai3.mfes.comm.action.v1~acme.analytics.ext.data_updated.v1'],
   domainActions: ['gts.hai3.mfes.comm.action.v1~acme.analytics.ext.refresh.v1'],
