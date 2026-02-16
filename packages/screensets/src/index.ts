@@ -47,6 +47,7 @@ export type {
   MfeEntryMF,
   ExtensionDomain,
   Extension,
+  ScreenExtension,
   ExtensionPresentation,
   SharedProperty,
   Action,
@@ -68,10 +69,10 @@ export { MfeHandler, MfeBridgeFactory } from './mfe';
 
 // HAI3 Action Constants
 export {
+  HAI3_SCREEN_EXTENSION_TYPE,
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
-  HAI3_ACTION_NOTIFY_USER,
 } from './mfe';
 
 // HAI3 Shared Property Constants

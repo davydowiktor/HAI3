@@ -84,7 +84,7 @@ Actions use `type` as their identifier rather than `id`. The Action schema annot
 
 **Why `type` and not `id`:**
 - Actions are self-identifying messages; the `type` field IS the action's identity
-- The `type` field follows the GTS type ID format (e.g., `gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.refresh.v1`)
+- The `type` field follows the GTS type ID format (e.g., `gts.hai3.mfes.comm.action.v1~acme.dashboard.actions.refresh.v1`)
 - Using `type` directly as the entity ID avoids the need for synthetic IDs (no `Date.now()` or `Math.random()` composition)
 - This is consistent with the `x-gts-ref: "/$id"` annotation on the `type` field in the Action JSON schema
 
@@ -212,20 +212,20 @@ const dashboardDomain: ExtensionDomain = {
   sharedProperties: [...],
   actions: [...],
   extensionsActions: [...],
-  extensionsTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.main_extension.v1~',  // Derived Extension type (schema reference, ends with ~)
+  extensionsTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~',  // Derived Extension type (schema reference, ends with ~)
   defaultActionTimeout: 30000,  // 30 seconds default for all actions
 };
 
 // Action uses domain's default timeout
 const refreshAction: Action = {
-  type: 'gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.refresh.v1',
+  type: 'gts.hai3.mfes.comm.action.v1~acme.dashboard.actions.refresh.v1',
   target: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.main.v1',
   // No timeout specified - uses domain's 30000ms default
 };
 
 // Action overrides for a long-running operation
 const exportAction: Action = {
-  type: 'gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.export.v1',
+  type: 'gts.hai3.mfes.comm.action.v1~acme.dashboard.actions.export.v1',
   target: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.main.v1',
   timeout: 120000,  // 2 minutes for this specific action
   // On timeout: executes fallback chain if defined (same as any other failure)

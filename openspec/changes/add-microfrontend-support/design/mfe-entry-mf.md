@@ -154,8 +154,8 @@ const chartEntry: MfeEntryMF = {
   optionalProperties: [
     'gts.hai3.mfes.comm.shared_property.v1~acme.analytics.comm.selected_date_range.v1',
   ],
-  actions: ['gts.hai3.mfes.comm.action.v1~acme.analytics.ext.data_updated.v1'],
-  domainActions: ['gts.hai3.mfes.comm.action.v1~acme.analytics.ext.refresh.v1'],
+  actions: ['gts.hai3.mfes.comm.action.v1~acme.analytics.actions.data_updated.v1'],
+  domainActions: ['gts.hai3.mfes.comm.action.v1~acme.analytics.actions.refresh.v1'],
   manifest: 'gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.mfe.manifest.v1',
   exposedModule: './ChartWidget',
 };

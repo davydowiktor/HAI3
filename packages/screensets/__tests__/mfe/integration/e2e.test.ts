@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ScreensetsRegistry } from '../../../src/mfe/runtime';
+import { HAI3_SCREEN_EXTENSION_TYPE } from '../../../src/mfe/constants';
 
 describe('Phase 12.1: Integration Testing', () => {
   let runtime: ScreensetsRegistry;
@@ -102,6 +103,62 @@ describe('Phase 12.1: Integration Testing', () => {
       // Standard operations should still work
       const schema = customRuntime.typeSystem.getSchema('gts.hai3.mfes.ext.domain.v1~');
       expect(schema).toBeDefined();
+    });
+  });
+
+  describe('Phase 37: Screen Extension Derived Type Schema Validation', () => {
+    it('should have extension_screen.v1 schema loaded as built-in', () => {
+      // Verify the screen extension derived type schema is registered
+      const schema = runtime.typeSystem.getSchema(HAI3_SCREEN_EXTENSION_TYPE);
+      expect(schema).toBeDefined();
+      expect(schema?.$id).toContain('extension.v1~hai3.screensets.layout.screen.v1~');
+    });
+
+    it('should check type hierarchy for screen extension derived type', () => {
+      // Screen extension type derives from base extension type
+      expect(
+        runtime.typeSystem.isTypeOf(
+          HAI3_SCREEN_EXTENSION_TYPE,
+          'gts.hai3.mfes.ext.extension.v1~'
+        )
+      ).toBe(true);
+
+      // Base extension type does NOT derive from screen extension type
+      expect(
+        runtime.typeSystem.isTypeOf(
+          'gts.hai3.mfes.ext.extension.v1~',
+          HAI3_SCREEN_EXTENSION_TYPE
+        )
+      ).toBe(false);
+    });
+
+    it('should have screen extension schema with presentation field', () => {
+      // Verify the screen extension schema defines presentation property
+      const schema = runtime.typeSystem.getSchema(HAI3_SCREEN_EXTENSION_TYPE);
+      expect(schema).toBeDefined();
+
+      // The schema should extend base extension and add presentation
+      // Check that schema has allOf with base reference and presentation requirement
+      expect(schema?.allOf).toBeDefined();
+      expect(Array.isArray(schema?.allOf)).toBe(true);
+
+      // Check for presentation in required fields or properties
+      const hasPresentation =
+        schema?.required?.includes('presentation') ||
+        schema?.properties?.presentation !== undefined;
+      expect(hasPresentation).toBe(true);
+    });
+
+    it('should have base extension schema without presentation field', () => {
+      // Verify base extension schema does NOT have presentation
+      const baseSchema = runtime.typeSystem.getSchema('gts.hai3.mfes.ext.extension.v1~');
+      expect(baseSchema).toBeDefined();
+
+      // Base schema should NOT have presentation in required or properties
+      const hasPresentation =
+        baseSchema?.required?.includes('presentation') ||
+        baseSchema?.properties?.presentation !== undefined;
+      expect(hasPresentation).toBe(false);
     });
   });
 });

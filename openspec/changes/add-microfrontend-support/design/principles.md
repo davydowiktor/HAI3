@@ -25,6 +25,29 @@ This document covers the core architectural principles for the MFE system.
 
 ---
 
+## Independent Data Fetching per Runtime
+
+**Principle**: Each runtime (host application and each MFE) is responsible for obtaining its own data from the API independently. MFEs MUST NOT act as data proxies for the host application, and the host MUST NOT depend on MFEs for data it needs.
+
+**Why**:
+- Data proxy patterns create tight coupling between host and MFE
+- If the MFE fails to load, the host loses data it should have independently
+- It inverts the dependency: the host becomes dependent on child runtime behavior
+- Duplicate requests are a temporary cost solved by infrastructure, not architecture
+
+**Implications**:
+- The host header fetches its own user data independently (e.g., via `@hai3/api`)
+- MFEs fetch their own data independently for their own UI needs
+- No actions or action handlers exist to "notify" one runtime of another's data
+- Later optimization: `@hai3/api` package adds transparent request deduplication/caching so that identical API calls from different runtimes do not result in duplicate network requests
+
+**Anti-patterns (FORBIDDEN)**:
+- MFE fetches user data, then sends it to the host via an action (data proxy)
+- Host waits for MFE to provide data before rendering its own UI
+- Custom action handlers that exist solely to relay data between runtimes
+
+---
+
 ## Extensibility via Handlers
 
 Companies extend the MFE system by creating custom derived entry types, custom handlers, and custom bridge factories - NOT by modifying HAI3 core. This keeps the core thin and stable for 3rd-party vendors while allowing enterprises to add richness for internal MFEs.

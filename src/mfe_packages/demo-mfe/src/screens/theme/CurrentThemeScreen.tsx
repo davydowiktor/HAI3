@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
+import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
 import { Card, CardContent, Skeleton } from '@hai3/uikit';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
 
@@ -40,14 +41,14 @@ export const CurrentThemeScreen: React.FC<CurrentThemeScreenProps> = ({ bridge }
 
   useEffect(() => {
     // Subscribe to theme domain property
-    const themeUnsubscribe = bridge.subscribeToProperty('theme', (value) => {
+    const themeUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_THEME, (value) => {
       if (typeof value === 'string') {
         setTheme(value);
       }
     });
 
     // Subscribe to language domain property
-    const languageUnsubscribe = bridge.subscribeToProperty('language', (value) => {
+    const languageUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (value) => {
       if (typeof value === 'string') {
         setLanguage(value);
         const rootNode = containerRef.current?.getRootNode();

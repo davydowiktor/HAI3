@@ -26,9 +26,9 @@ import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
-  HAI3_ACTION_NOTIFY_USER,
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
+  HAI3_SCREEN_EXTENSION_TYPE,
 } from '@hai3/screensets';
 import {
   HAI3_SCREEN_DOMAIN,
@@ -38,8 +38,19 @@ import {
 } from './constants';
 
 /**
+ * Init-only lifecycle stage (1 stage).
+ * Used by the screen domain, which is a permanent fixture: always visible,
+ * never destroyed during the application lifespan. It is initialized once
+ * at app startup and remains alive until the app itself is torn down.
+ */
+const INIT_ONLY_LIFECYCLE_STAGES: readonly string[] = [
+  'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+];
+
+/**
  * Default lifecycle stage instance IDs (4 stages).
- * All domains use the same set of lifecycle stages.
+ * Used by sidebar, popup, and overlay domains which can be
+ * shown/hidden/destroyed during the application lifespan.
  */
 const DEFAULT_LIFECYCLE_STAGES: readonly string[] = [
   'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
@@ -53,16 +64,22 @@ const DEFAULT_LIFECYCLE_STAGES: readonly string[] = [
  *
  * Extension domain for main content area screens.
  * Uses swap semantics: mounting a new screen implicitly unmounts the previous one.
- * Actions: load_ext, mount_ext (NO unmount_ext), and notify_user (custom lifecycle notification).
+ * Actions: load_ext, mount_ext (NO unmount_ext).
+ * Extensions must use extension_screen.v1~ derived type (adds presentation metadata).
+ *
+ * lifecycleStages: [init] only. The screen domain is a permanent fixture --
+ * always visible, never destroyed during the application lifespan. Extensions
+ * within the screen domain still go through all 4 stages (extensionsLifecycleStages).
  */
 export const screenDomain: ExtensionDomain = {
   id: HAI3_SCREEN_DOMAIN,
-  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_NOTIFY_USER],
+  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT],
   extensionsActions: [],
   sharedProperties: [HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE],
   defaultActionTimeout: 30000,
-  lifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
+  lifecycleStages: [...INIT_ONLY_LIFECYCLE_STAGES],
   extensionsLifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
+  extensionsTypeId: HAI3_SCREEN_EXTENSION_TYPE,
   lifecycle: undefined,
 };
 

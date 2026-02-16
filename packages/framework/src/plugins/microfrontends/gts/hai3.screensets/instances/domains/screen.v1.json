@@ -6,16 +6,13 @@
   ],
   "actions": [
     "gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1",
-    "gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1",
-    "gts.hai3.mfes.comm.action.v1~hai3.mfes.lifecycle.notify_user.v1"
+    "gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1"
   ],
   "extensionsActions": [],
-  "defaultActionTimeout": 5000,
+  "extensionsTypeId": "gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~",
+  "defaultActionTimeout": 30000,
   "lifecycleStages": [
-    "gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1",
-    "gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1",
-    "gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1",
-    "gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1"
+    "gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1"
   ],
   "extensionsLifecycleStages": [
     "gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1",

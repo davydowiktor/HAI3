@@ -1,6 +1,0 @@
-{
-  "id": "gts.hai3.mfes.comm.action.v1~hai3.mfes.lifecycle.notify_user.v1",
-  "type": "gts.hai3.mfes.comm.action.v1~hai3.mfes.lifecycle.notify_user.v1",
-  "target": "",
-  "description": "Notifies the host application that user data has been loaded by an MFE"
-}

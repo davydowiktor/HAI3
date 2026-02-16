@@ -168,7 +168,7 @@ The `ScreensetsRegistry` is an abstract class. The dynamic API is defined as abs
 ```typescript
 // Dynamic registration after user action
 settingsButton.onClick = async () => {
-  const extensionId = 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1';
+  const extensionId = 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.widgets.chart.v1';
   const domainId = 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1';
 
   // Extension using derived type that includes domain-specific fields
@@ -443,33 +443,18 @@ packages/screensets/src/mfe/state/
 
 #### Export Policy
 
-The `@hai3/screensets` public barrel exports:
-- `ScreensetsRegistry` (abstract class, pure contract)
-- `ScreensetsRegistryFactory` (abstract class, pure contract)
-- `screensetsRegistryFactory` (singleton `ScreensetsRegistryFactory` instance -- the ONLY way to obtain a `ScreensetsRegistry`)
-- `ScreensetsRegistryConfig` (interface)
-- `ContainerProvider` (abstract class, pure contract -- consumers extend this for custom domain container management)
-- `TypeSystemPlugin` (interface)
-- `MfeHandler` (abstract class -- consumers extend this for custom entry type handlers)
-- `MfeBridgeFactory` (abstract class -- consumers extend this for custom bridge implementations in custom handlers)
-- `MfeEntryLifecycle` (interface -- MFEs implement this for mount/unmount)
-- `ChildMfeBridge` (interface -- MFEs receive this for parent communication)
-- `ParentMfeBridge` (interface -- parent uses this for child instance management)
-- GTS type interfaces: `MfeEntry`, `MfeEntryMF`, `ExtensionDomain`, `Extension`, `SharedProperty`, `Action`, `ActionsChain`, `LifecycleStage`, `LifecycleHook`. Note: `SharedProperty` is the GTS contract type (defines `supportedValues`). Bridge property methods (`subscribeToProperty`, `getProperty`) return runtime values (`unknown`), not `SharedProperty` objects.
-- Action constants: `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`
-- Shared property constants: `HAI3_SHARED_PROPERTY_THEME`, `HAI3_SHARED_PROPERTY_LANGUAGE`
-- Shadow DOM utilities: `createShadowRoot`, `injectCssVariables`
-- Validation types: `ValidationResult`, `ValidationError`, `JSONSchema`
+The `@hai3/screensets` public barrel exports the following categories. The full symbol list is in the barrel files (`packages/screensets/src/index.ts` and `packages/screensets/src/mfe/index.ts`).
 
-The `@hai3/screensets/plugins/gts` subpath export provides:
-- `gtsPlugin` (singleton `TypeSystemPlugin` instance)
-- `GtsPlugin` (concrete class, `@internal` for test files that need fresh instances; production code uses the `gtsPlugin` singleton)
+- **Abstract classes** (pure contracts, consumers extend): `ScreensetsRegistry`, `ScreensetsRegistryFactory`, `ContainerProvider`, `MfeHandler`, `MfeBridgeFactory`
+- **Singleton instances**: `screensetsRegistryFactory` (the ONLY way to obtain a `ScreensetsRegistry`)
+- **Interfaces**: `ScreensetsRegistryConfig`, `TypeSystemPlugin`, `MfeEntryLifecycle`, `ChildMfeBridge`, `ParentMfeBridge`
+- **GTS type interfaces**: `MfeEntry`, `MfeEntryMF`, `ExtensionDomain`, `Extension`, `ScreenExtension`, `ExtensionPresentation`, `SharedProperty`, `Action`, `ActionsChain`, `LifecycleStage`, `LifecycleHook`
+- **Constants**: action constants (`HAI3_ACTION_LOAD_EXT`, etc.), shared property constants (`HAI3_SHARED_PROPERTY_THEME`, etc.)
+- **Utilities**: Shadow DOM utilities, validation types
 
-These are NOT re-exported from the main `@hai3/screensets` barrel to avoid pulling in `@globaltypesystem/gts-ts` for consumers who do not need it.
+The `@hai3/screensets/plugins/gts` subpath provides `gtsPlugin` (singleton) and `GtsPlugin` (`@internal`). These are NOT re-exported from the main barrel to avoid pulling in `@globaltypesystem/gts-ts`.
 
-All other symbols are internal implementation details and are NOT exported from the main `@hai3/screensets` public barrel. This includes: concrete classes (`DefaultScreensetsRegistry`, `DefaultExtensionManager`, `MfeHandlerMF`, `MfeBridgeFactoryDefault`), internal abstract classes (`RuntimeCoordinator`, `ActionsChainsMediator`, `RuntimeBridgeFactory`), internal types (`RuntimeConnection`, `ChainResult`, `ChainExecutionOptions`, `MfeStateContainer`, `MfeStateContainerConfig`), error classes (all 13 `MfeError` subclasses), validation helpers (`validateContract`, `validateExtensionType`), Module Federation internals (`MfManifest`, `SharedDependencyConfig`), and constant collections (`HAI3_CORE_TYPE_IDS`, `HAI3_LIFECYCLE_STAGE_IDS`, `HAI3_MF_TYPE_IDS`). Note: `MfeEntryMF` is a public GTS type interface listed above, not an internal.
-
-**Handler sub-barrel**: The `handler/` directory has its own barrel (`handler/index.ts`) that re-exports `MfeHandler`, `MfeBridgeFactory`, `MfeHandlerMF`, and `MfeBridgeFactoryDefault`. `MfeHandler` and `MfeBridgeFactory` are public abstract classes (re-exported from the main `@hai3/screensets` barrel). `MfeHandlerMF` and `MfeBridgeFactoryDefault` are concrete implementations -- they are NOT re-exported from the main barrel. Test files and internal wiring code import concrete types from the sub-barrel path directly.
+All other symbols (concrete classes, internal abstract classes, error classes, validation helpers, Module Federation internals, constant collections) are internal and NOT exported from the main barrel. The `handler/` sub-barrel re-exports concrete handler types (`MfeHandlerMF`, `MfeBridgeFactoryDefault`) for test files and internal wiring.
 
 #### React Layer Export Policy
 

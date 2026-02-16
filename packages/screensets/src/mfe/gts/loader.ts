@@ -14,6 +14,7 @@ import type { LifecycleStage, Action } from '../types';
 import entrySchema from './hai3.mfes/schemas/mfe/entry.v1.json';
 import domainSchema from './hai3.mfes/schemas/ext/domain.v1.json';
 import extensionSchema from './hai3.mfes/schemas/ext/extension.v1.json';
+import extensionScreenSchema from './hai3.mfes/schemas/ext/extension_screen.v1.json';
 import actionSchema from './hai3.mfes/schemas/comm/action.v1.json';
 import actionsChainSchema from './hai3.mfes/schemas/comm/actions_chain.v1.json';
 import sharedPropertySchema from './hai3.mfes/schemas/comm/shared_property.v1.json';
@@ -32,7 +33,6 @@ import lifecycleDestroyedInstance from './hai3.mfes/instances/lifecycle/destroye
 import loadExtActionInstance from './hai3.mfes/instances/ext/load_ext.v1.json';
 import mountExtActionInstance from './hai3.mfes/instances/ext/mount_ext.v1.json';
 import unmountExtActionInstance from './hai3.mfes/instances/ext/unmount_ext.v1.json';
-import notifyUserActionInstance from './hai3.mfes/instances/lifecycle/notify_user.v1.json';
 
 // Import shared property instances
 import themeSharedPropertyInstance from './hai3.mfes/instances/comm/theme.v1.json';
@@ -40,7 +40,7 @@ import languageSharedPropertyInstance from './hai3.mfes/instances/comm/language.
 
 /**
  * Load all core MFE schema JSON files.
- * These are the 10 first-class citizen schemas (8 core + 2 MF-specific).
+ * These are the 11 first-class citizen schemas (8 core + 2 MF-specific + 1 built-in derived).
  *
  * @returns Array of JSON schemas for core MFE types
  */
@@ -58,6 +58,8 @@ export function loadSchemas(): JSONSchema[] {
     // MF-specific types (2)
     manifestSchema as JSONSchema,
     entryMfSchema as JSONSchema,
+    // Built-in derived types (1)
+    extensionScreenSchema as JSONSchema,
   ];
 }
 
@@ -78,8 +80,7 @@ export function loadLifecycleStages(): LifecycleStage[] {
 
 /**
  * Load base action instances.
- * These are the generic extension lifecycle actions used by all domains,
- * plus custom lifecycle notification actions.
+ * These are the generic extension lifecycle actions used by all domains.
  *
  * @returns Array of action instances
  */
@@ -88,7 +89,6 @@ export function loadBaseActions(): Action[] {
     loadExtActionInstance,
     mountExtActionInstance,
     unmountExtActionInstance,
-    notifyUserActionInstance,
   ] as Action[];
 }
 

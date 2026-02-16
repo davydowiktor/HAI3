@@ -55,33 +55,15 @@ Communication happens ONLY through the explicit contract (ChildMfeBridge interfa
 
 ### Architectural Decisions Summary
 
-> **Navigation index** -- authoritative content is in the linked design documents.
+For the full topic-by-topic index of all design documents, see [overview.md](./design/overview.md). The key architectural decisions are:
 
-The table below maps each architectural topic to its authoritative design document. Each entry is a one-line summary; follow the link for the full design, rationale, and code examples.
-
-| Topic | Summary | Design Doc |
-|-------|---------|------------|
-| Type System Plugin | Opaque type IDs; `TypeSystemPlugin` required at init; GTS is the default | [type-system.md - Decision 1](./design/type-system.md#decision-1-type-system-plugin-interface) |
-| GTS-Native Validation | Schema IDs end with `~`, instance IDs do not; gts-ts extracts schema ID automatically | [type-system.md - Instance ID Convention](./design/type-system.md#instance-id-convention) |
-| Built-in Schemas | GTS plugin ships with all HAI3 first-class citizen schemas built-in; `registerSchema()` is vendor-only | [type-system.md - Decision 4](./design/type-system.md#decision-4-built-in-first-class-citizen-schemas) |
-| GTS Type IDs | 8 core + 2 MF-specific types; format `gts.<vendor>.<package>.<namespace>.<type>.v<N>~` | [type-system.md - Decision 2](./design/type-system.md#decision-2-gts-type-id-format-and-registration) |
-| TypeScript Interfaces | `id: string` identifier on all types; cross-references per type | [type-system.md - Decision 3](./design/type-system.md#decision-3-internal-typescript-type-definitions) |
-| JSON Schemas | 10 schemas with `$id`; `registerSchema()` for vendor schemas only | [schemas.md](./design/schemas.md) |
-| Bridge Interfaces | ChildMfeBridge (child side) / ParentMfeBridge (parent side) | [mfe-api.md - Bridge Interfaces](./design/mfe-api.md#mfe-bridge-interfaces) |
-| MfeEntry Type Hierarchy | MfeEntry (abstract) -> MfeEntryMF (MF); companies derive custom types | [mfe-entry-mf.md](./design/mfe-entry-mf.md#mfeentry-type-hierarchy) |
-| Contract Matching | 3 subset rules between entry and domain | [type-system.md - Decision 8](./design/type-system.md#decision-8-contract-matching-rules) |
-| Derived Extension Types | `extensionsTypeId` on domain; GTS-native validation | [type-system.md - Decision 9](./design/type-system.md#decision-9-domain-specific-extension-validation-via-derived-types) |
-| Action Timeouts | `action.timeout ?? domain.defaultActionTimeout`; timeout triggers fallback | [mfe-actions.md - Timeout](./design/mfe-actions.md#explicit-timeout-configuration) |
-| Actions Chain Mediation | Success -> next; failure/timeout -> fallback; recurse | [mfe-actions.md - Mediation](./design/mfe-actions.md#actions-chain-mediation) |
-| Hierarchical Domains | Domains at any level; MFEs can be both extension and domain provider | [schemas.md - Extension Domain Schema](./design/schemas.md#extension-domain-schema) |
-| Extension Presentation | Optional `presentation` metadata drives nav menu auto-population | [overview.md - Menu Auto-Population](./design/overview.md#navigation-menu-auto-population) |
-| Demo Conversion | 4 legacy screens -> independent MFE packages under `src/mfe_packages/` | [tasks.md - Phase 35](./tasks.md) |
-| Lifecycle Actions | `load_ext`, `mount_ext`, `unmount_ext` via `executeActionsChain()` | [mfe-ext-lifecycle-actions.md](./design/mfe-ext-lifecycle-actions.md) |
-| ContainerProvider | Abstract class; registered with domain; handler owns all interactions | [mfe-ext-lifecycle-actions.md - ContainerProvider](./design/mfe-ext-lifecycle-actions.md#container-provider-abstraction) |
-| Dynamic Registration | Extensions registered at any time; entity fetching out of scope | [registry-runtime.md - Decision 17](./design/registry-runtime.md#decision-17-dynamic-registration-model) |
-| Abstract Class Layers | Abstract (contract) + concrete (impl); singleton/factory-with-cache/direct | [registry-runtime.md - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) |
-| Monorepo Tooling | MFE packages are L4; zero exclusions; import only from `@hai3/react` (L3) | [principles.md - Tooling Compliance](./design/principles.md#mfe-monorepo-tooling-compliance) |
-| Flux Compliance | Lifecycle actions fire-and-forget; effects for register/unregister only | [mfe-ext-lifecycle-actions.md](./design/mfe-ext-lifecycle-actions.md) |
+| Decision | Summary | Design Doc |
+|----------|---------|------------|
+| Instance-Level Isolation | Each MFE instance has its own runtime; Shadow DOM enforces CSS isolation | [principles.md](./design/principles.md#shadow-dom-style-isolation-default-handler) |
+| Abstract Class Layers | Abstract (contract) + concrete (impl); singleton/factory-with-cache construction | [registry-runtime.md - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) |
+| GTS Type System | Opaque type IDs; built-in schemas; derived extension types for domain-specific validation | [type-system.md](./design/type-system.md) |
+| Actions Chain Mediation | Declarative lifecycle operations; success/failure branching; domain-specific semantics | [mfe-ext-lifecycle-actions.md](./design/mfe-ext-lifecycle-actions.md) |
+| Independent Data Fetching | Each runtime fetches its own data; no data proxying between runtimes | [principles.md](./design/principles.md#independent-data-fetching-per-runtime) |
 
 ## Impact
 
@@ -122,7 +104,7 @@ Note: HAI3 is in alpha stage. Backward-incompatible interface changes are expect
 1. Define `TypeSystemPlugin` interface in @hai3/screensets
 2. Create GTS plugin implementation with built-in first-class citizen schemas
 3. Implement ScreensetsRegistry with dynamic registration API
-4. Define internal TypeScript types for MFE architecture (8 core + 2 MF-specific)
+4. Define internal TypeScript types for MFE architecture (8 core + 2 MF-specific + 1 built-in derived type)
 5. GTS plugin registers all first-class schemas during construction (no separate initialization step)
 6. Support runtime registration of extensions, domains, and MFEs at any time
 7. Propagate plugin through @hai3/framework layers

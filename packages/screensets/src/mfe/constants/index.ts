@@ -43,6 +43,12 @@ export const HAI3_EXT_DOMAIN = 'gts.hai3.mfes.ext.domain.v1~';
 export const HAI3_EXT_EXTENSION = 'gts.hai3.mfes.ext.extension.v1~';
 
 /**
+ * Screen Extension schema type ID (derived extension type for screen domain).
+ * Derives from Extension and adds presentation metadata for navigation menu integration.
+ */
+export const HAI3_SCREEN_EXTENSION_TYPE = 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~';
+
+/**
  * Action schema type ID (communication action).
  * Defines a domain action with target and self-id fields.
  */
@@ -69,12 +75,6 @@ export const HAI3_ACTION_MOUNT_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext
  * Unmount an extension from a domain (remove from DOM).
  */
 export const HAI3_ACTION_UNMOUNT_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1';
-
-/**
- * Notify user loaded action instance ID.
- * Notifies the host application that user data has been loaded by an MFE.
- */
-export const HAI3_ACTION_NOTIFY_USER = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.lifecycle.notify_user.v1';
 
 // ============================================================================
 // Shared Property Instance IDs (built-in properties for all domains)

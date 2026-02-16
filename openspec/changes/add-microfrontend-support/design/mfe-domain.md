@@ -110,8 +110,8 @@ plugin.registerSchema({
 const widgetSlotDomain: ExtensionDomain = {
   id: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
   sharedProperties: ['gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.user_context.v1'],
-  actions: ['gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.refresh.v1'],
-  extensionsActions: ['gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.data_update.v1'],
+  actions: ['gts.hai3.mfes.comm.action.v1~acme.dashboard.actions.refresh.v1'],
+  extensionsActions: ['gts.hai3.mfes.comm.action.v1~acme.dashboard.actions.data_update.v1'],
   extensionsTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~',
   defaultActionTimeout: 30000,
   lifecycleStages: [
@@ -132,12 +132,7 @@ plugin.register(widgetSlotDomain);
 
 ## Domain-Specific Layout Semantics
 
-Different domain layouts have different semantics for extension lifecycle:
-
-- **Popup, Sidebar, Overlay** - Support all three lifecycle actions (`load_ext`, `mount_ext`, `unmount_ext`). Extensions can be shown or removed; empty state is valid.
-- **Screen** - Supports `load_ext` and `mount_ext` only. `mount_ext` has **swap semantics**: it internally unmounts the current screen and mounts the new one (no empty screen state). `unmount_ext` is not supported.
-
-The ActionsChainsMediator validates action support against the domain's `actions` array before delivery. See [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md) for the complete domain support matrix and swap semantics design.
+Each domain type has different lifecycle action support and mount semantics. See [Extension Lifecycle Actions - Domain Action Support Matrix](./mfe-ext-lifecycle-actions.md#domain-action-support-matrix) for the complete support matrix, swap semantics, and validation rules.
 
 ---
 
@@ -153,19 +148,20 @@ Extensions are registered dynamically at runtime and can be added/removed at any
 
 ### Extension Schema
 
-See [schemas.md - Extension Schema](./schemas.md#extension-schema) for the JSON Schema definition.
+See [schemas.md - Extension Schema (Base)](./schemas.md#extension-schema-base) for the base JSON Schema definition and [schemas.md - Screen Extension Schema (Derived)](./schemas.md#screen-extension-schema-derived) for the screen-domain-specific derived type.
 
 ### TypeScript Interface Definition
 
 ```typescript
 /**
- * Presentation metadata for host UI integration.
- * Defines how an extension presents itself in navigation menus and other host UI elements.
+ * Presentation metadata for screen domain extensions.
+ * Defines how a screen extension presents itself in navigation menus.
+ * This is a screen-domain-specific field, NOT on the base Extension type.
  */
 interface ExtensionPresentation {
   /** Display label in host UI (e.g., nav menu item text) */
   label: string;
-  /** Icon identifier in host UI (e.g., icon name from UIKit) */
+  /** Icon identifier in host UI (e.g., Iconify icon name with prefix) */
   icon?: string;
   /** Route path for the extension (e.g., '/hello-world'). Used by navigation. */
   route: string;
@@ -174,9 +170,10 @@ interface ExtensionPresentation {
 }
 
 /**
- * Binds an MFE entry to an extension domain
+ * Binds an MFE entry to an extension domain (base type)
  * GTS Type: gts.hai3.mfes.ext.extension.v1~
  *
+ * The base Extension type contains only universal fields.
  * Domain-specific fields are defined in derived Extension types.
  * If domain.extensionsTypeId is specified, extension must use a type deriving from it.
  */
@@ -187,33 +184,49 @@ interface Extension {
   domain: string;
   /** MfeEntry type ID to mount */
   entry: string;
-  /** Presentation metadata for host UI integration (menu items, navigation) */
-  presentation?: ExtensionPresentation;
   /** Optional lifecycle hooks - explicitly declared actions for each stage */
   lifecycle?: LifecycleHook[];
-  // Domain-specific fields are added via derived types, not defined here
+  // Domain-specific fields (like presentation) are added via derived types, not here
+}
+
+/**
+ * Screen extension with presentation metadata (derived type).
+ * GTS Type: gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~
+ *
+ * Used by the screen domain (extensionsTypeId references this schema).
+ * Adds `presentation` for nav menu auto-population.
+ */
+interface ScreenExtension extends Extension {
+  /** Required presentation metadata for screen extensions */
+  presentation: ExtensionPresentation;
 }
 ```
 
-### Extension Example
+### Extension Examples
 
 ```typescript
-// Extension using derived type with domain-specific fields
+// Screen extension with presentation (derived type)
 // Note: Instance IDs do NOT end with ~ (only schema IDs do)
+const helloWorldScreenExtension: ScreenExtension = {
+  id: 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.helloworld.v1',
+  domain: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1',
+  entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.demo.mfe.helloworld.v1',
+  presentation: {
+    label: 'Hello World',
+    icon: 'lucide:globe',
+    route: '/hello-world',
+    order: 10,
+  },
+};
+
+// Widget extension with domain-specific fields (different derived type)
 const analyticsExtension = {
   // Instance ID - does NOT end with ~
-  id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.v1',
+  id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.widgets.chart.v1',
   // Domain instance ID - does NOT end with ~
   domain: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
   // Entry instance ID - does NOT end with ~
   entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
-  // Presentation metadata for host UI integration
-  presentation: {
-    label: 'Analytics Dashboard',
-    icon: 'chart-line',
-    route: '/analytics',
-    order: 10,
-  },
   // Domain-specific fields (defined in derived widget_extension schema):
   title: 'Analytics Dashboard',
   size: 'large',

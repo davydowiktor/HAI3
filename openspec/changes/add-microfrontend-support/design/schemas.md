@@ -30,7 +30,7 @@ Layout-specific domain instances that use the core `hai3.mfes` schemas. These ar
 
 ## Overview
 
-The MFE type system consists of **8 core types** plus **2 MF-specific types**. See [Type System - Decision 2](./type-system.md#decision-2-gts-type-id-format-and-registration) for the complete GTS Type ID table and layout domain instances.
+The MFE type system consists of **8 core types** plus **2 MF-specific types** plus **1 built-in derived type** (screen extension). See [Type System - Decision 2](./type-system.md#decision-2-gts-type-id-format-and-registration) for the complete GTS Type ID table and layout domain instances.
 
 ---
 
@@ -131,9 +131,9 @@ Defines an extension point where MFEs can be mounted.
 }
 ```
 
-### Extension Schema
+### Extension Schema (Base)
 
-Binds an MFE entry to a domain. Domain-specific fields are defined in derived Extension schemas. The base schema includes an optional `presentation` object for host UI integration (menu items, navigation).
+Binds an MFE entry to a domain. The base schema contains only the universal fields (`id`, `domain`, `entry`, `lifecycle`). Domain-specific fields (such as `presentation` for screen extensions) are defined in derived Extension schemas. Domains may specify `extensionsTypeId` to require extensions use a particular derived type.
 
 ```json
 {
@@ -153,6 +153,31 @@ Binds an MFE entry to a domain. Domain-specific fields are defined in derived Ex
       "x-gts-ref": "gts.hai3.mfes.mfe.entry.v1~*",
       "$comment": "MfeEntry type ID to mount"
     },
+    "lifecycle": {
+      "type": "array",
+      "items": { "type": "object", "$ref": "gts://gts.hai3.mfes.lifecycle.hook.v1~" },
+      "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
+    }
+  },
+  "required": ["id", "domain", "entry"],
+  "$comment": "Domain-specific fields are defined in derived Extension schemas. Domains may specify extensionsTypeId to require extensions use a derived type."
+}
+```
+
+### Screen Extension Schema (Derived)
+
+A derived Extension type for the screen domain that adds `presentation` metadata. The screen domain sets `extensionsTypeId` to reference this schema, so all screen extensions must use types that derive from it. The `presentation` object contains nav-menu-specific metadata (`label`, `icon`, `route`, `order`) that is meaningful for screen extensions but not for generic extensions (e.g., sidebar widgets, popup modals).
+
+**Why `presentation` is NOT on the base schema**: The base `extension.v1` schema's own comment says "Domain-specific fields are defined in derived Extension schemas." The `presentation` object (`label`, `icon`, `route`, `order`) is nav-menu-specific metadata relevant only to the screen domain. A sidebar widget does not need `route`. A popup does not need `order`. Placing domain-specific metadata on the base type violates the schema's own design intent and the GTS derived type pattern.
+
+```json
+{
+  "$id": "gts://gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "allOf": [
+    { "$ref": "gts://gts.hai3.mfes.ext.extension.v1~" }
+  ],
+  "properties": {
     "presentation": {
       "type": "object",
       "properties": {
@@ -162,7 +187,7 @@ Binds an MFE entry to a domain. Domain-specific fields are defined in derived Ex
         },
         "icon": {
           "type": "string",
-          "$comment": "Icon identifier for the extension in host UI (e.g., icon name from UIKit)"
+          "$comment": "Icon identifier for the extension in host UI (e.g., Iconify icon name with prefix)"
         },
         "route": {
           "type": "string",
@@ -174,18 +199,22 @@ Binds an MFE entry to a domain. Domain-specific fields are defined in derived Ex
         }
       },
       "required": ["label", "route"],
-      "$comment": "Presentation metadata for host UI integration. Defines how this extension appears in navigation menus and other host UI elements. The same entry could mount in different domains with different presentation."
-    },
-    "lifecycle": {
-      "type": "array",
-      "items": { "type": "object", "$ref": "gts://gts.hai3.mfes.lifecycle.hook.v1~" },
-      "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
+      "$comment": "Presentation metadata for screen domain extensions. Drives nav menu auto-population."
     }
   },
-  "required": ["id", "domain", "entry"],
-  "$comment": "Domain-specific fields are defined in derived Extension schemas. Domains may specify extensionsTypeId to require extensions use a derived type."
+  "required": ["presentation"]
 }
 ```
+
+**GTS Type ID**: `gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~`
+
+**Package**: `hai3.mfes` (core infrastructure -- this is a built-in derived type, not vendor-defined)
+
+**Screen domain configuration**: The screen domain declares `extensionsTypeId: 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~'` so all screen extensions are validated against this derived schema. Extensions for screen domain must include `presentation` (it is required on the derived type). The derived segment uses the screen domain namespace (`hai3.screensets.layout.screen.v1`) rather than a redundant extension-namespace concept, because the base type `gts.hai3.mfes.ext.extension.v1` already identifies this as an extension -- the derived segment identifies which domain the extension belongs to.
+
+**Extension instance IDs for screen domain**: Screen extensions use type IDs that derive from the screen extension schema. Example: `gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.helloworld.v1`
+
+**Other domains** (sidebar, popup, overlay) do NOT set `extensionsTypeId` and use the base `extension.v1` schema directly. They do not require `presentation`.
 
 ### Shared Property Schema
 
@@ -422,7 +451,8 @@ packages/screensets/src/mfe/gts/
         entry_mf.v1.json             # MfeEntryMF schema (gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~)
       ext/
         domain.v1.json               # ExtensionDomain schema (gts.hai3.mfes.ext.domain.v1~)
-        extension.v1.json            # Extension schema (gts.hai3.mfes.ext.extension.v1~)
+        extension.v1.json            # Extension base schema (gts.hai3.mfes.ext.extension.v1~)
+        extension_screen.v1.json     # Screen Extension derived schema (gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~)
       comm/
         shared_property.v1.json      # SharedProperty schema (gts.hai3.mfes.comm.shared_property.v1~)
         action.v1.json               # Action schema (gts.hai3.mfes.comm.action.v1~)
@@ -458,3 +488,47 @@ packages/framework/src/plugins/microfrontends/gts/
 ## Schema Registration
 
 First-class citizen schemas are built into the GTS plugin (no explicit registration needed). Vendors register derived type schemas using `registerSchema(schema)`. See [Type System - Decision 4](./type-system.md#decision-4-built-in-first-class-citizen-schemas) for rationale and [Type System - Decision 5](./type-system.md#decision-5-vendor-type-registration) for vendor registration examples.
+
+---
+
+## Instance ID Naming Convention
+
+GTS instance IDs consist of two parts: the **type segment** (schema ID prefix, ending with `~`) and the **instance segment** (vendor-specific suffix, no trailing `~`). The instance segment follows a strict naming convention:
+
+```
+<vendor-package>.<namespace>.<name>.v<version>
+```
+
+### Rules
+
+1. **Vendor package name reflects MFE identity**, not the host application. For example, the demo MFE uses `hai3.demo`, not `hai3.app`. A vendor's analytics MFE would use `acme.analytics`, not `acme.app`.
+
+2. **Namespace describes what the instance IS in the vendor's domain**, not what GTS type it belongs to. The GTS type segment already encodes the type -- the namespace in the instance segment should add domain-specific meaning:
+   - `screens` -- for screen extensions (the instance represents a screen)
+   - `mfe` -- for MFE entries and manifests (the instance represents MFE infrastructure)
+   - `widgets` -- for widget extensions in a dashboard domain
+   - `layout` -- for domain instances that define layout extension points
+
+3. **Instance segment does NOT repeat the type namespace**. The base type `gts.hai3.mfes.ext.extension.v1~` already says this is an extension. Using `ext` as the instance namespace is redundant. Use a domain-appropriate namespace instead.
+
+4. **Derived type segments are always kept** between the base type and the instance segment. They identify which concrete type the instance belongs to (e.g., `hai3.screensets.layout.screen.v1~` for screen extensions).
+
+5. **No type-name suffixes on instance names**. If the namespace already communicates the category, do not append it to the name. For example, `hai3.demo.screens.helloworld.v1` (correct) vs `hai3.demo.screens.helloworld_screen.v1` (redundant suffix).
+
+### Examples
+
+| Entity | Correct Instance ID | Why |
+|--------|-------------------|-----|
+| Demo MFE manifest | `gts.hai3.mfes.mfe.mf_manifest.v1~hai3.demo.mfe.manifest.v1` | Package `hai3.demo`, namespace `mfe` (MFE infrastructure) |
+| Demo MFE helloworld entry | `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.demo.mfe.helloworld.v1` | Package `hai3.demo`, namespace `mfe`, derived type segment kept |
+| Demo helloworld screen extension | `gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.helloworld.v1` | Package `hai3.demo`, namespace `screens` (it IS a screen), derived type segment kept |
+| Vendor widget extension | `gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.widgets.chart.v1` | Package `acme.analytics`, namespace `widgets` (it IS a widget) |
+| Screen domain instance | `gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1` | Package `hai3.screensets`, namespace `layout` (defines a layout extension point) |
+
+### Anti-patterns
+
+| Anti-pattern | Problem | Correct |
+|-------------|---------|---------|
+| `hai3.app.ext.helloworld_screen.v1` | Wrong package (`app` not MFE identity), redundant namespace (`ext` repeats type), redundant suffix (`_screen`) | `hai3.demo.screens.helloworld.v1` |
+| `hai3.app.mfe.demo.helloworld.v1` | Wrong package (`app`), redundant `demo` segment (package name already identifies MFE) | `hai3.demo.mfe.helloworld.v1` |
+| `acme.ext.widget.v1` | Namespace `ext` is redundant (type already says extension) | `acme.widgets.chart.v1` or similar domain-specific namespace |

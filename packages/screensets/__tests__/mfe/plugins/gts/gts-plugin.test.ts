@@ -170,8 +170,14 @@ describe('GTS Plugin', () => {
   });
 
   describe('extension presentation metadata', () => {
-    it('extension schema includes presentation field', () => {
+    it('base extension schema does NOT include presentation field', () => {
       const schema = gtsPlugin.getSchema('gts.hai3.mfes.ext.extension.v1~');
+      expect(schema).toBeDefined();
+      expect(schema?.properties).not.toHaveProperty('presentation');
+    });
+
+    it('screen extension derived schema includes presentation field (required)', () => {
+      const schema = gtsPlugin.getSchema('gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~');
       expect(schema).toBeDefined();
       expect(schema?.properties).toHaveProperty('presentation');
       expect((schema?.properties as Record<string, unknown>).presentation).toMatchObject({
@@ -184,12 +190,7 @@ describe('GTS Plugin', () => {
         },
         required: ['label', 'route'],
       });
-    });
-
-    it('presentation field is optional in extension schema', () => {
-      const schema = gtsPlugin.getSchema('gts.hai3.mfes.ext.extension.v1~');
-      expect(schema).toBeDefined();
-      expect(schema?.required).not.toContain('presentation');
+      expect(schema?.required).toContain('presentation');
     });
   });
 

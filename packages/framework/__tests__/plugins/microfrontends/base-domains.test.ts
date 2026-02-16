@@ -15,6 +15,9 @@ import {
 import {
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
+  HAI3_SCREEN_EXTENSION_TYPE,
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
 } from '@hai3/screensets';
 
 describe('Base Extension Domain Constants - Shared Properties', () => {
@@ -105,6 +108,32 @@ describe('Base Extension Domain Constants - Shared Properties', () => {
 
       expect(allPropertiesProvided).toBe(false);
       expect(domainProperties).not.toContain(nonexistentProperty);
+    });
+  });
+
+  describe('Screen Domain - extensionsTypeId Configuration', () => {
+    it('screenDomain has extensionsTypeId set to HAI3_SCREEN_EXTENSION_TYPE', () => {
+      expect(screenDomain.extensionsTypeId).toBe(HAI3_SCREEN_EXTENSION_TYPE);
+      expect(screenDomain.extensionsTypeId).toBe(
+        'gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~'
+      );
+    });
+
+    it('screenDomain actions array contains only load_ext and mount_ext', () => {
+      expect(screenDomain.actions).toEqual([HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT]);
+      expect(screenDomain.actions).toHaveLength(2);
+    });
+
+    it('sidebarDomain does NOT have extensionsTypeId', () => {
+      expect(sidebarDomain.extensionsTypeId).toBeUndefined();
+    });
+
+    it('popupDomain does NOT have extensionsTypeId', () => {
+      expect(popupDomain.extensionsTypeId).toBeUndefined();
+    });
+
+    it('overlayDomain does NOT have extensionsTypeId', () => {
+      expect(overlayDomain.extensionsTypeId).toBeUndefined();
     });
   });
 });

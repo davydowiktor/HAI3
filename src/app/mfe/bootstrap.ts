@@ -12,11 +12,9 @@ import {
   popupDomain,
   overlayDomain,
   HAI3_ACTION_MOUNT_EXT,
-  HAI3_ACTION_NOTIFY_USER,
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
   RefContainerProvider,
-  headerActions,
 } from '@hai3/react';
 import demoMfeConfig from '@/mfe_packages/demo-mfe/mfe.json';
 
@@ -52,27 +50,7 @@ export async function bootstrapMFE(
   // Step 1: Register all 4 extension domains with ContainerProviders
   // Screen domain uses the actual container ref from the host UI
   const screenContainerProvider = new RefContainerProvider(screenContainerRef);
-
-  // Custom action handler for screen domain to handle notify_user action
-  interface NotifyUserPayload {
-    user?: {
-      firstName?: string;
-      lastName?: string;
-      email?: string;
-    };
-  }
-  const screenCustomActionHandler = async (actionTypeId: string, payload?: NotifyUserPayload) => {
-    if (actionTypeId === HAI3_ACTION_NOTIFY_USER && payload?.user) {
-      const user = payload.user;
-      // Dispatch to header store slice to show user info
-      app.store.dispatch(headerActions.setUser({
-        displayName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : undefined,
-        email: user.email,
-      }));
-    }
-  };
-
-  screensetsRegistry.registerDomain(screenDomain, screenContainerProvider, undefined, screenCustomActionHandler);
+  screensetsRegistry.registerDomain(screenDomain, screenContainerProvider);
 
   // Sidebar, popup, and overlay domains use detached container providers (no host element required)
   // These domains are not used in the initial demo but are registered to demonstrate the pattern

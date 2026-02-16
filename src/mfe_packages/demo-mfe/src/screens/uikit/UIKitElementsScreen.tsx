@@ -13,6 +13,7 @@
 
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
+import { HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
 import { CategoryMenu } from './components/CategoryMenu';
 import { Skeleton, Toaster, TooltipProvider } from '@hai3/uikit';
@@ -72,7 +73,7 @@ export const UIKitElementsScreen: React.FC<UIKitElementsScreenProps> = ({ bridge
 
   // Handle RTL languages
   useEffect(() => {
-    const languageUnsubscribe = bridge.subscribeToProperty('language', (value) => {
+    const languageUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (value) => {
       if (typeof value === 'string') {
         const rootNode = containerRef.current?.getRootNode();
         if (rootNode && 'host' in rootNode) {

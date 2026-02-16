@@ -39,7 +39,18 @@ export interface Extension {
   entry: string;
   /** Optional lifecycle hooks - explicitly declared actions for each stage */
   lifecycle?: LifecycleHook[];
-  /** Optional presentation metadata for UI rendering (menus, navigation, etc.) */
-  presentation?: ExtensionPresentation;
   // Domain-specific fields are added via derived types, not defined here
+}
+
+/**
+ * Screen Extension (derived from Extension)
+ * GTS Type: gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~
+ *
+ * Extends the base Extension type with presentation metadata required for screen domain.
+ * Screen domain sets extensionsTypeId to reference this derived type, so all screen
+ * extensions must include presentation metadata.
+ */
+export interface ScreenExtension extends Extension {
+  /** Presentation metadata for screen domain extensions (required) */
+  presentation: ExtensionPresentation;
 }

@@ -13,7 +13,7 @@ import {
   HAI3_ACTION_MOUNT_EXT,
   HAI3_SCREEN_DOMAIN,
   type MenuState,
-  type Extension,
+  type ScreenExtension,
 } from '@hai3/react';
 import {
   Sidebar,
@@ -40,7 +40,7 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
   const collapsed = menuState?.collapsed ?? false;
 
   // Extension-driven menu state
-  const [extensions, setExtensions] = useState<Extension[]>([]);
+  const [extensions, setExtensions] = useState<ScreenExtension[]>([]);
   const [mountedId, setMountedId] = useState<string | undefined>();
 
   useEffect(() => {
@@ -48,11 +48,10 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
 
     const refresh = () => {
       const exts = screensetsRegistry.getExtensionsForDomain(HAI3_SCREEN_DOMAIN);
-      const sorted = exts
-        .filter(
-          (ext): ext is Extension & { presentation: NonNullable<Extension['presentation']> } =>
-            !!ext.presentation
-        )
+      // Screen extensions are guaranteed to be ScreenExtension type (enforced by extensionsTypeId)
+      // Cast to ScreenExtension since screen domain requires the derived type with presentation
+      const screenExts = exts as ScreenExtension[];
+      const sorted = screenExts
         .sort((a, b) => (a.presentation.order ?? 999) - (b.presentation.order ?? 999));
       setExtensions(sorted);
       setMountedId(screensetsRegistry.getMountedExtension(HAI3_SCREEN_DOMAIN));
@@ -97,7 +96,7 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
         <SidebarMenu>
           {extensions.map((ext) => {
             const isActive = ext.id === mountedId;
-            const pres = ext.presentation!;
+            const pres = ext.presentation;
             return (
               <SidebarMenuItem key={ext.id}>
                 <SidebarMenuButton

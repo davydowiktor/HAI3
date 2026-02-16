@@ -97,7 +97,7 @@ interface ValidationError {
  * - All runtime entities (schemas AND instances) must be registered with the plugin
  * - Validation happens on registered instances by their instance ID
  * - Schema/type IDs end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~`)
- * - Instance IDs do NOT end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1`)
+ * - Instance IDs do NOT end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~acme.dashboard.widgets.chart.v1`)
  * - gts-ts extracts the schema ID from the chained instance ID automatically
  *
  * Note: buildTypeId() is intentionally omitted. GTS type IDs are consumed
@@ -136,7 +136,7 @@ interface TypeSystemPlugin {
    * For instances, the entity must have an `id` field containing the instance ID.
    *
    * gts-ts uses the instance ID to automatically determine the schema:
-   * - Instance ID: `gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1`
+   * - Instance ID: `gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~acme.dashboard.widgets.chart.v1`
    * - Schema ID:   `gts.hai3.mfes.ext.extension.v1~` (extracted automatically)
    *
    * @param entity - The GTS entity to register (must have an `id` field)
@@ -148,7 +148,7 @@ interface TypeSystemPlugin {
    * The instance must be registered first via register().
    *
    * gts-ts extracts the schema ID from the instance ID automatically:
-   * - Instance ID: `gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1`
+   * - Instance ID: `gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~acme.dashboard.widgets.chart.v1`
    * - Schema ID:   `gts.hai3.mfes.ext.extension.v1~`
    *
    * @param instanceId - The instance ID (does NOT end with ~)
@@ -225,9 +225,11 @@ export const gtsPlugin: TypeSystemPlugin = new GtsPlugin();
 
 #### Instance ID Convention
 
-Schema IDs end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~`); instance IDs do NOT (e.g., `gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1`). gts-ts extracts the schema ID from the instance ID automatically.
+Schema IDs end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~`); instance IDs do NOT (e.g., `gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.helloworld.v1`). gts-ts extracts the schema ID from the instance ID automatically.
 
 > **Canonical definition**: This is the authoritative definition of the instance ID convention. Other documents may reference this convention inline for readability.
+
+For the naming rules governing the instance segment (package name, namespace, and name), see [schemas.md -- Instance ID Naming Convention](./schemas.md#instance-id-naming-convention).
 
 ### Decision 2: GTS Type ID Format and Registration
 
@@ -235,7 +237,7 @@ The GTS type ID format follows the structure: `gts.<vendor>.<package>.<namespace
 
 #### HAI3 GTS Type IDs
 
-The type system is organized into **8 core types** that define the contract model (including LifecycleStage and LifecycleHook), plus **2 MF-specific types** for Module Federation loading. See [schemas.md](./schemas.md) for complete schema definitions.
+The type system is organized into **8 core types** that define the contract model (including LifecycleStage and LifecycleHook), plus **2 MF-specific types** for Module Federation loading, plus **1 built-in derived type** (screen extension). See [schemas.md](./schemas.md) for complete schema definitions.
 
 **Core Types (8 total):**
 
@@ -293,7 +295,7 @@ A vendor package is a self-contained bundle that includes:
 
 All vendor package identifiers follow the pattern `~<vendor>.<package>.*.*v*` as a GTS qualifier suffix.
 
-**Note on Wildcards:** The wildcards (`*`) in this diagram represent pattern matching for documentation purposes only. Actual type IDs use concrete values (e.g., `acme.analytics.ext.data_updated.v1`).
+**Note on Wildcards:** The wildcards (`*`) in this diagram represent pattern matching for documentation purposes only. Actual type IDs use concrete values (e.g., `acme.analytics.actions.data_updated.v1`).
 
 ```
 +-------------------------------------------------------------+
@@ -302,7 +304,7 @@ All vendor package identifiers follow the pattern `~<vendor>.<package>.*.*v*` as
 +-------------------------------------------------------------+
 |  Derived Types (schemas):                                   |
 |  - gts.hai3.mfes.comm.action.v1~acme.analytics.comm.data_updated.v1~|
-|  - gts.hai3.mfes.mfe.entry.v1~acme.analytics.mfe.chart_widget.v1~ |
+|  - gts.hai3.mfes.mfe.entry.v1~acme.analytics.mfe.chart.v1~ |
 |                                                             |
 |  Instances:                                                 |
 |  - MFE entries, manifests, extensions, actions              |
@@ -462,7 +464,7 @@ The visual representation of contract matching:
 
 **Validation behavior**: `validateExtensionType(plugin, extension, domain)` skips the check if `domain.extensionsTypeId` is unset. Otherwise, it calls `plugin.isTypeOf(extension.id, domain.extensionsTypeId)` to verify the extension's type derives from the domain's required type. Returns a `ValidationResult` with an error on the `id` path if the check fails. GTS-native instance validation (via `validateInstance`) handles domain-specific field validation separately.
 
-**Domain Definition Example:**
+**Domain Definition Example:** (See [mfe-domain.md - Vendor-Defined Domains](./mfe-domain.md#vendor-defined-domains) for the full `widgetSlotDomain` definition with all fields.)
 
 ```typescript
 // 1. First, define and register a derived Extension schema with domain-specific fields
@@ -494,7 +496,7 @@ const widgetSlotDomain: ExtensionDomain = {
 // 3. Extensions use the derived type with domain-specific fields
 // Note: Instance IDs do NOT end with ~ (only schema IDs do)
 const analyticsExtension: Extension = {
-  id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.v1',
+  id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.widgets.chart.v1',
   domain: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
   entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   // Domain-specific fields (defined in derived schema):

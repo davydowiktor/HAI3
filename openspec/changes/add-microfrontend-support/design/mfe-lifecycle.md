@@ -266,7 +266,7 @@ await registry.triggerDomainLifecycleStage(
 ```typescript
 // Extension using derived type that includes domain-specific fields (title, icon, size)
 const analyticsExtension = {
-  id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.v1',
+  id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.widgets.chart.v1',
   domain: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
   entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   // Domain-specific fields from derived Extension type (no uiMeta wrapper)
@@ -291,7 +291,7 @@ const analyticsExtension = {
       actions_chain: {
         action: {
           type: 'gts.hai3.mfes.comm.action.v1~acme.analytics.actions.start_polling.v1',
-          target: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.widgets.analytics.v1',
+          target: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.widgets.chart.v1',
           payload: { interval: 30000 },
         },
       },
@@ -302,7 +302,7 @@ const analyticsExtension = {
       actions_chain: {
         action: {
           type: 'gts.hai3.mfes.comm.action.v1~acme.analytics.actions.stop_polling.v1',
-          target: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.widgets.analytics.v1',
+          target: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.widgets.chart.v1',
         },
       },
     },
@@ -323,47 +323,7 @@ const analyticsExtension = {
 
 ### Domain with Lifecycle Hooks
 
-```typescript
-const widgetSlotDomain: ExtensionDomain = {
-  id: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
-  sharedProperties: [
-    'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.user_context.v1',
-  ],
-  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
-  extensionsActions: [
-    'gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.data_update.v1',
-  ],
-  // Reference to derived Extension type for this domain (schema reference, ends with ~)
-  extensionsTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~',
-  defaultActionTimeout: 30000,
-  lifecycleStages: [
-    // Domain itself only supports init/destroyed stages
-    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
-    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
-  ],
-  extensionsLifecycleStages: [
-    // Extensions support all 4 default stages plus a custom refresh stage
-    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
-    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
-    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
-    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
-    'gts.hai3.mfes.lifecycle.stage.v1~acme.dashboard.lifecycle.refresh.v1',
-  ],
-  lifecycle: [
-    {
-      // On init: log domain registration for debugging
-      stage: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
-      actions_chain: {
-        action: {
-          type: 'gts.hai3.mfes.comm.action.v1~acme.logging.actions.log.v1',
-          target: 'gts.hai3.mfes.ext.domain.v1~acme.logging.service.v1',
-          payload: { message: 'Widget slot domain initialized', level: 'info' },
-        },
-      },
-    },
-  ],
-};
-```
+The `widgetSlotDomain` example is defined canonically in [mfe-domain.md - Vendor-Defined Domains](./mfe-domain.md#vendor-defined-domains). It declares `lifecycleStages` (init + destroyed for the domain itself), `extensionsLifecycleStages` (all 4 default stages plus a custom refresh stage), and an optional `lifecycle` hook array binding the init stage to a logging action.
 
 ---
 

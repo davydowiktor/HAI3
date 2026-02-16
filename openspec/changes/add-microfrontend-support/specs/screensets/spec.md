@@ -23,7 +23,7 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 - **AND** validation SHALL happen via `plugin.validateInstance(instanceId)` where instanceId is the entity's id
 - **AND** gts-ts SHALL extract the schema ID from the instance ID automatically
 - **AND** schema IDs SHALL end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~`)
-- **AND** instance IDs SHALL NOT end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~acme.widget.v1`)
+- **AND** instance IDs SHALL NOT end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~acme.analytics.widgets.chart.v1`)
 
 #### Scenario: GTS plugin as default implementation
 
@@ -129,7 +129,7 @@ The system SHALL validate Extension instances using derived Extension types when
 
 #### Scenario: Extension validation with derived types
 
-- **WHEN** an extension uses a derived type (e.g., `gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.widget.v1`)
+- **WHEN** an extension uses a derived type (e.g., `gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.widgets.chart.v1`)
 - **THEN** the runtime SHALL first register the extension via `plugin.register(extension)`
 - **AND** the runtime SHALL validate the registered instance via `plugin.validateInstance(extension.id)`
 - **AND** gts-ts SHALL extract the schema ID from the instance ID automatically
@@ -211,9 +211,20 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **AND** the binding SHALL reference valid domain and entry type IDs
 - **AND** domain SHALL reference an ExtensionDomain type ID
 - **AND** entry SHALL reference an MfeEntry type ID (base or derived)
-- **AND** the binding MAY have a `presentation` field (optional `ExtensionPresentation` object with `label`, `route`, and optional `icon`, `order`)
+- **AND** the base binding SHALL NOT have a `presentation` field (presentation metadata is defined on derived types, not the base Extension)
 - **AND** if the domain has extensionsTypeId, the extension's type SHALL derive from that type
 - **AND** domain-specific fields SHALL be defined in derived Extension schemas, NOT in a separate uiMeta field
+
+#### Scenario: ScreenExtension binding type definition
+
+- **WHEN** binding an MFE entry to the screen domain
+- **THEN** the binding SHALL conform to `ScreenExtension` derived type (extends `Extension`)
+- **AND** the binding SHALL have a `presentation` field (REQUIRED `ExtensionPresentation` object)
+- **AND** `presentation.label` SHALL be a string (display label for navigation)
+- **AND** `presentation.route` SHALL be a string (route path for the screen)
+- **AND** `presentation.icon` MAY be a string (icon identifier)
+- **AND** `presentation.order` MAY be a number (sort order for menu positioning)
+- **AND** the `presentation` field is REQUIRED because screen extensions drive the host navigation menu
 
 #### Scenario: Shared property type definition
 
@@ -698,28 +709,30 @@ The system SHALL export constants for the built-in shared property type IDs. The
 
 ### Requirement: Extension Presentation Metadata
 
-The system SHALL support optional presentation metadata on Extension instances for host UI integration (e.g., navigation menu items).
+The system SHALL support presentation metadata on ScreenExtension instances (derived type for screen-domain extensions) for host UI integration (e.g., navigation menu items). Non-screen-domain extensions use the base Extension type which does not include presentation metadata.
 
-#### Scenario: Extension with presentation metadata
+#### Scenario: ScreenExtension with presentation metadata
 
-- **WHEN** registering an extension with a `presentation` field
-- **THEN** the extension's `presentation.label` SHALL be a string (display label)
+- **WHEN** registering a screen-domain extension using the `ScreenExtension` derived type
+- **THEN** the extension's `presentation` field SHALL be REQUIRED (not optional)
+- **AND** the extension's `presentation.label` SHALL be a string (display label)
 - **AND** the extension's `presentation.route` SHALL be a string (route path)
 - **AND** the extension's `presentation.icon` MAY be a string (icon identifier)
 - **AND** the extension's `presentation.order` MAY be a number (sort order)
 - **AND** the presentation metadata SHALL be accessible via `runtime.getExtension(extensionId).presentation`
 
-#### Scenario: Extension without presentation metadata
+#### Scenario: Non-screen-domain extension without presentation metadata
 
-- **WHEN** registering an extension without a `presentation` field
-- **THEN** the extension SHALL be registered successfully
+- **WHEN** registering an extension for a non-screen domain (sidebar, popup, overlay) using the base `Extension` type
+- **THEN** the extension SHALL be registered successfully without a `presentation` field
 - **AND** `runtime.getExtension(extensionId).presentation` SHALL be `undefined`
+- **AND** the base `Extension` type SHALL NOT define a `presentation` field
 
 #### Scenario: Host derives menu from screen extensions
 
 - **WHEN** querying screen extensions via `runtime.getExtensionsForDomain(HAI3_SCREEN_DOMAIN)`
-- **THEN** each returned extension MAY have a `presentation` field
-- **AND** the host SHALL build navigation menu items from extensions that have presentation metadata
+- **THEN** each returned `ScreenExtension` SHALL have a `presentation` field (required on the derived type)
+- **AND** the host SHALL build navigation menu items from each screen extension's presentation metadata
 - **AND** menu items SHALL be sorted by `presentation.order` (ascending, lower = higher priority)
 
 ### Requirement: Shadow DOM Utilities

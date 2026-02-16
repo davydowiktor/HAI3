@@ -106,11 +106,12 @@ The public API is `registry.executeActionsChain(chain)` -- the single entry poin
 
 ## Navigation Menu Auto-Population
 
-The navigation menu is driven entirely by registered screen extensions. Each extension carries optional `presentation` metadata (label, icon, route, order) that the host uses to build the nav menu dynamically.
+The navigation menu is driven entirely by registered screen extensions. Screen extensions use the derived `extension_screen.v1` type which includes required `presentation` metadata (label, icon, route, order) that the host uses to build the nav menu dynamically.
 
 ```
 Screen Extension Registration Flow:
   1. registerExtension({ id, domain: screenDomain, entry, presentation: { label, icon, route, order } })
+     (Extension uses extension_screen derived type with required presentation)
   2. Host queries: runtime.getExtensionsForDomain(HAI3_SCREEN_DOMAIN)
   3. Host builds menu items from each extension's presentation metadata
   4. Menu items are sorted by presentation.order
@@ -120,7 +121,7 @@ Screen Extension Registration Flow:
   The menu reflects exactly what is registered.
 ```
 
-See [Extension Schema](./schemas.md#extension-schema) for the `presentation` field definition and [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md#extension-domains-vs-configuration-domains) for the menu configuration domain.
+See [Screen Extension Schema](./schemas.md#screen-extension-schema-derived) for the `presentation` field definition and [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md#extension-domains-vs-configuration-domains) for the menu configuration domain.
 
 ---
 

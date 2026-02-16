@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
-import { HAI3_ACTION_NOTIFY_USER } from '@hai3/react';
+import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
 import { Card, CardContent, CardFooter, Button, Skeleton } from '@hai3/uikit';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
 
@@ -37,7 +37,7 @@ interface UserData {
  *
  * Uses UIKit components and i18n for all text.
  * Demonstrates simulated API fetch pattern (setTimeout with mock data).
- * Notifies the host application when user data is loaded (updates header).
+ * Manages loading, error, and data states independently.
  */
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,33 +88,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
 
       // Simulate success
       setUserData(mockUser);
-
-      // Notify host that user data loaded (updates header)
-      await bridge.executeActionsChain({
-        action: {
-          type: HAI3_ACTION_NOTIFY_USER,
-          target: bridge.domainId,
-          payload: { user: mockUser },
-        },
-      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
       setLoading(false);
     }
-  }, [bridge]);
+  }, []); // bridge is stable and doesn't need to be in dependencies
 
   // Subscribe to theme and language domain properties
   useEffect(() => {
     // Subscribe to theme domain property
-    const themeUnsubscribe = bridge.subscribeToProperty('theme', (value) => {
+    const themeUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_THEME, (value) => {
       if (typeof value === 'string') {
         setTheme(value);
       }
     });
 
     // Subscribe to language domain property
-    const languageUnsubscribe = bridge.subscribeToProperty('language', (value) => {
+    const languageUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (value) => {
       if (typeof value === 'string') {
         setLanguage(value);
         const rootNode = containerRef.current?.getRootNode();

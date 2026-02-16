@@ -322,52 +322,18 @@ The `screensetsRegistryFactory` uses a factory-with-cache pattern where `build(c
 
 ### Domain-Level Property Updates
 
-Shared properties are managed at the DOMAIN level, not per-MFE. When the parent updates a domain property, ALL extensions in that domain that subscribe to that property receive the update.
+Shared properties are managed at the DOMAIN level, not per-MFE. For the propagation model and subscription semantics, see [Principles - Theme and Language as Domain Properties](./principles.md#theme-and-language-as-domain-properties).
 
-```
-+------------------------------------------+
-|                PARENT                     |
-|                                          |
-|  runtime.updateDomainProperty(           |
-|    domainId,                             |
-|    "theme",                              |
-|    "dark"                                |
-|  )                                       |
-+--------------------+---------------------+
-                     |
-                     v
-+--------------------+---------------------+
-|              DOMAIN                      |
-|  (stores property value)                 |
-|                                          |
-|  theme: "dark"                           |
-+----+---------------+----------------+----+
-     |               |                |
-     v               v                v
-+----+----+    +-----+----+    +-----+----+
-|Extension|    |Extension |    |Extension |
-|    A    |    |    B     |    |    C     |
-+---------+    +----------+    +----------+
-|subscribed|   |subscribed|    |   NOT    |
-|to theme  |   |to theme  |    |subscribed|
-+---------+    +----------+    +----------+
-     |               |                |
-     v               v                X
- RECEIVES        RECEIVES         (no update)
- "dark"          "dark"
-```
-
-**Key Points:**
-- Properties are stored at the domain level
-- Only extensions that subscribe to a property receive updates
-- Subscription is determined by the entry's `requiredProperties` or `optionalProperties`
+**API methods:**
 
 ```typescript
 import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE, HAI3_SCREEN_DOMAIN } from '@hai3/react';
 
-// Update theme for all subscribed extensions in the screen domain
+// Parent updates a property for all subscribed extensions in a domain
 runtime.updateDomainProperty(HAI3_SCREEN_DOMAIN, HAI3_SHARED_PROPERTY_THEME, 'dark');
-
-// Update language for all subscribed extensions in the screen domain
 runtime.updateDomainProperty(HAI3_SCREEN_DOMAIN, HAI3_SHARED_PROPERTY_LANGUAGE, 'de');
+
+// MFE subscribes to property changes via bridge
+bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_THEME, (value) => { /* apply theme */ });
+bridge.getProperty(HAI3_SHARED_PROPERTY_THEME); // returns current value
 ```

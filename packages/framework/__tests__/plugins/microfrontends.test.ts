@@ -372,7 +372,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
         ],
         extensionsActions: [],
-        defaultActionTimeout: 5000,
+        defaultActionTimeout: 30000,
       });
       expect(domain.lifecycleStages).toHaveLength(4);
       expect(domain.extensionsLifecycleStages).toHaveLength(4);
@@ -393,7 +393,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
         ],
         extensionsActions: [],
-        defaultActionTimeout: 5000,
+        defaultActionTimeout: 30000,
       });
       expect(domain.lifecycleStages).toHaveLength(4);
       expect(domain.extensionsLifecycleStages).toHaveLength(4);
@@ -413,10 +413,12 @@ describe('microfrontends plugin - Phase 7.9', () => {
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
         ],
         extensionsActions: [],
-        defaultActionTimeout: 5000,
+        defaultActionTimeout: 30000,
       });
       expect(domain.actions).toHaveLength(2);
-      expect(domain.lifecycleStages).toHaveLength(4);
+      // Screen domain is permanent (init-only): 1 lifecycle stage
+      expect(domain.lifecycleStages).toHaveLength(1);
+      // Screen extensions still go through full lifecycle: 4 stages
       expect(domain.extensionsLifecycleStages).toHaveLength(4);
     });
 
@@ -435,7 +437,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
         ],
         extensionsActions: [],
-        defaultActionTimeout: 5000,
+        defaultActionTimeout: 30000,
       });
       expect(domain.lifecycleStages).toHaveLength(4);
       expect(domain.extensionsLifecycleStages).toHaveLength(4);

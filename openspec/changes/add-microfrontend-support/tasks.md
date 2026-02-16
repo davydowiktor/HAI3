@@ -6,7 +6,11 @@ Phases 1-34 are COMPLETE (448 tests passing: 367 screensets + 65 framework + 16 
 
 Phase 35 (Shared Properties on Domains, Extension Presentation Metadata, Full Demo Conversion) has CRITICAL GAPS found during review. Infrastructure tasks (35.1-35.5, 35.10) are complete. Demo conversion tasks (35.6-35.9) are structurally complete but have zero feature parity with the original demo screenset. See `design/post-conversion-features.md` for the full gap analysis.
 
-Phase 36 (Feature Parity Remediation) is PLANNED. Closes every gap documented in `design/post-conversion-features.md` to achieve 100% feature parity with `design/pre-conversion-features.md`. Covers GTS design fix, package consolidation, full i18n restoration, screen feature restoration, legacy cleanup, and verification.
+Phase 36 (Feature Parity Remediation) is COMPLETE (36.7.4 and 36.11.5 manual verification pending). Closes every gap documented in `design/post-conversion-features.md` to achieve 100% feature parity with `design/pre-conversion-features.md`. Covers GTS design fix, package consolidation, full i18n restoration, screen feature restoration, legacy cleanup, and verification.
+
+Phase 37 (Remove notify_user Action + Move Presentation to Screen Extension Derived Type + Fix Instance IDs) is COMPLETE. Three architectural corrections: (1) Remove the `notify_user` action which violated the independent data fetching principle; (2) Move `presentation` from the base `extension.v1` schema to a screen-domain-specific derived type `extension_screen.v1`; (3) Fix incorrect GTS instance IDs in demo-mfe and _blank-mfe packages.
+
+Phase 38 (Remove Legacy Screensets API Remnants from Packages) is PLANNED. The application layer (`src/`) has fully migrated to MFE architecture with zero legacy references. However, the package layer still carries significant dead code: full legacy type definitions in `@hai3/screensets`, legacy navigation/routing/routeRegistry plugins in `@hai3/framework`, legacy CLI screenset generators and commands, legacy studio ControlPanel logic, and stale documentation. Phase 38 removes all of this dead code and updates documentation to reflect MFE as the primary architecture.
 
 **Phase 35 Review Findings (3 critical issues + 1 GTS design error):**
 
@@ -20,7 +24,9 @@ Phase 36 (Feature Parity Remediation) is PLANNED. Closes every gap documented in
 
 ### Upcoming Work
 
-Phase 36 remediates all Phase 35 gaps. No new phases can begin until Phase 36 is complete and all 36.10.x verification checkpoints pass.
+Phase 37 is COMPLETE. All three architectural corrections implemented: (1) `notify_user` action removed, (2) `presentation` moved to screen extension derived type, (3) GTS instance IDs fixed across all MFE packages.
+
+Phase 38 removes all legacy screensets API remnants from the package layer: legacy type definitions (`ScreensetCategory`, `MenuItemConfig`, `ScreenLoader`, `MenuScreenItem`, `ScreensetDefinition`, `ScreensetRegistry`), legacy framework plugins (`navigation.ts`, `routing.ts`, `routeRegistry.ts`), legacy CLI generators and commands (`screenset:create`, `screenset:copy`), legacy studio ControlPanel screenset selector, and stale documentation. No Phase 38 tasks can begin until Phase 37 is complete.
 
 ### Completed Work
 
@@ -37,6 +43,8 @@ Phase 36 remediates all Phase 35 gaps. No new phases can begin until Phase 36 is
 | Phase 34 | Wire MFEs into Host App: host MF config, handler registration, domain + extension registration, remove legacy screenset API, tooling compliance, hello-world-mfe Shadow DOM/domain properties | COMPLETE |
 | Phase 35 | Shared Properties on Domains, Extension Presentation Metadata, Full Demo Conversion | CRITICAL GAPS (see review findings above) |
 | Phase 36 | Feature Parity Remediation: GTS fix, package consolidation, i18n, screen features, cleanup | COMPLETE (36.7.4 and 36.11.5 manual verification pending) |
+| Phase 37 | Remove notify_user action + Move presentation to screen extension derived type + Fix instance IDs | COMPLETE |
+| Phase 38 | Remove legacy screensets API remnants from packages: types, plugins, CLI, studio, docs | PLANNED |
 
 ### Current Construction Patterns
 
@@ -48,13 +56,13 @@ Phase 36 remediates all Phase 35 gaps. No new phases can begin until Phase 36 is
 
 ---
 
----
-
 ## Phase 35: Shared Properties on Domains, Extension Presentation Metadata, Full Demo Conversion
 
 **Status**: CRITICAL GAPS -- infrastructure complete, demo conversion has zero feature parity. See `design/post-conversion-features.md`.
 
 **Goal**: Close three design gaps: (1) populate base extension domain `sharedProperties` with theme and language, define GTS shared property instances, update MFE entries to declare `requiredProperties`; (2) add `presentation` metadata to the Extension schema and update the host to build the nav menu from registered extensions; (3) convert all 4 original demo screens into MFE packages.
+
+**Traceability**: Design docs `mfe-shared-property.md`, `schemas.md`, `mfe-ext-lifecycle-actions.md`, `principles.md`, `mfe-domain.md`, `overview.md`, `mfe-api.md`. Specs: microfrontends spec (shared properties, presentation metadata, demo conversion, host registration), screensets spec (domain properties, extension presentation).
 
 **Review Findings** (added post-review):
 - Tasks 35.1-35.5, 35.10: Infrastructure is complete and correct.
@@ -67,8 +75,8 @@ Phase 36 remediates all Phase 35 gaps. No new phases can begin until Phase 36 is
 
 Create the GTS JSON instance files for the two built-in shared properties. Register them as built-in instances in the GTS plugin alongside the existing lifecycle stages and extension actions.
 
-- [x] 35.1.1 Create `packages/screensets/src/mfe/gts/hai3.mfes/instances/comm/theme.v1.json` with content: `{ "id": "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1", "value": "light" }`. (Superseded by 36.1.2 -- implemented with the old `value` design, corrected in Phase 36 to use `supportedValues` instead.)
-- [x] 35.1.2 Create `packages/screensets/src/mfe/gts/hai3.mfes/instances/comm/language.v1.json` with content: `{ "id": "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1", "value": "en" }`. (Superseded by 36.1.3 -- implemented with the old `value` design, corrected in Phase 36 to use `supportedValues` instead.)
+- [x] 35.1.1 Create `packages/screensets/src/mfe/gts/hai3.mfes/instances/comm/theme.v1.json` with content: `{ "id": "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1", "value": "light" }`.
+- [x] 35.1.2 Create `packages/screensets/src/mfe/gts/hai3.mfes/instances/comm/language.v1.json` with content: `{ "id": "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1", "value": "en" }`.
 - [x] 35.1.3 Register both instances as built-in in the GTS plugin constructor (same pattern as lifecycle stage and ext action instances). Import the JSON files and call `this.register()` for each during `GtsPlugin` construction.
 - [x] 35.1.4 Add constants to `packages/screensets/src/mfe/constants/index.ts`:
   - `HAI3_SHARED_PROPERTY_THEME = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1'`
@@ -76,8 +84,6 @@ Create the GTS JSON instance files for the two built-in shared properties. Regis
 - [x] 35.1.5 Export `HAI3_SHARED_PROPERTY_THEME` and `HAI3_SHARED_PROPERTY_LANGUAGE` from the `@hai3/screensets` public barrel, the `@hai3/framework` barrel, and the `@hai3/react` barrel.
 - [x] 35.1.6 Write unit test: verify `gtsPlugin.validateInstance('gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1')` returns valid.
 - [x] 35.1.7 Write unit test: verify `gtsPlugin.validateInstance('gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1')` returns valid.
-
-**Traceability**: Design doc `mfe-shared-property.md` -- HAI3 Default Shared Property Instances. Design doc `schemas.md` -- GTS Entity Storage Format (comm instances). Screensets spec -- HAI3 Shared Property Constants requirement.
 
 ### 35.2 Add Theme and Language to Base Extension Domain Constants
 
@@ -89,8 +95,6 @@ Update the 4 base extension domain constants in `@hai3/framework` to declare the
 - [x] 35.2.4 Write unit test: register `screenDomain`, then register an extension whose entry has `requiredProperties: [HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE]` -- expect contract validation to pass. (Completed in Phase 36.1.7 -- see base-domains.test.ts lines 77-109)
 - [x] 35.2.5 Write unit test: register `screenDomain`, then register an extension whose entry has `requiredProperties` including a property NOT in the domain's `sharedProperties` -- expect contract validation to fail with `missing_property`. (Completed in Phase 36.1.7 -- see base-domains.test.ts lines 77-109)
 
-**Traceability**: Design doc `mfe-ext-lifecycle-actions.md` -- Domain Action Declarations (sharedProperties). Design doc `principles.md` -- Theme and Language as Domain Properties. Screensets spec -- Domain carries theme and language properties.
-
 ### 35.3 Update hello-world-mfe Entry to Declare Required Properties
 
 Update the hello-world-mfe `mfe.json` to declare theme and language as required properties, and add presentation metadata to the extension.
@@ -99,20 +103,16 @@ Update the hello-world-mfe `mfe.json` to declare theme and language as required 
 - [x] 35.3.2 Update `src/mfe_packages/hello-world-mfe/mfe.json`: add `presentation` to the extension object: `{ "label": "Hello World", "icon": "hand-wave", "route": "/hello-world", "order": 10 }`.
 - [x] 35.3.3 Verify the MFE still registers and mounts successfully with the updated `mfe.json`.
 
-**Traceability**: Microfrontends spec -- hello-world-mfe entry declares required properties. Microfrontends spec -- hello-world-mfe extension declares presentation metadata.
-
 ### 35.4 Add Presentation Field to Extension TypeScript Interface and GTS Schema
 
 Update the base Extension TypeScript interface and GTS schema to include the optional `presentation` field.
 
-- [x] 35.4.1 Update the `Extension` TypeScript interface in `packages/screensets/src/mfe/types/` (or wherever `Extension` is defined) to add `presentation?: ExtensionPresentation`. Define `ExtensionPresentation` interface: `{ label: string; icon?: string; route: string; order?: number; }`.
-- [x] 35.4.2 Update the Extension GTS JSON schema at `packages/screensets/src/mfe/gts/hai3.mfes/schemas/ext/extension.v1.json` to include the `presentation` property object with `label` (required string), `icon` (optional string), `route` (required string), `order` (optional number).
+- [x] 35.4.1 Update the `Extension` TypeScript interface in `packages/screensets/src/mfe/types/` (or wherever `Extension` is defined) to add `presentation?: ExtensionPresentation`. Define `ExtensionPresentation` interface: `{ label: string; icon?: string; route: string; order?: number; }`. (Design iteration: moved to derived ScreenExtension type in Phase 37.5)
+- [x] 35.4.2 Update the Extension GTS JSON schema at `packages/screensets/src/mfe/gts/hai3.mfes/schemas/ext/extension.v1.json` to include the `presentation` property object with `label` (required string), `icon` (optional string), `route` (required string), `order` (optional number). (Design iteration: moved to derived ScreenExtension type in Phase 37.5)
 - [x] 35.4.3 Export `ExtensionPresentation` from `@hai3/screensets` public barrel, `@hai3/framework`, and `@hai3/react`. Update `registry-runtime.md` Export Policy to include `ExtensionPresentation` in the list of public exports.
 - [x] 35.4.4 Write unit test: register an extension with `presentation: { label: 'Test', route: '/test' }` -- expect GTS validation to pass.
 - [x] 35.4.5 Write unit test: register an extension without `presentation` -- expect GTS validation to pass (field is optional).
 - [x] 35.4.6 Write unit test: `runtime.getExtension(extensionId).presentation` returns the presentation metadata after registration.
-
-**Traceability**: Design doc `schemas.md` -- Extension Schema (presentation field). Design doc `mfe-domain.md` -- Extension TypeScript Interface. Screensets spec -- Extension Presentation Metadata requirement.
 
 ### 35.5 Host Nav Menu Driven by Extension Presentation Metadata
 
@@ -122,8 +122,6 @@ Update the host application to build the navigation menu dynamically from regist
 - [x] 35.5.2 Clicking a menu item SHALL dispatch `mount_ext` for the corresponding extension: `mfeActions.mountExtension(extension.id)`.
 - [x] 35.5.3 Remove any remaining hardcoded menu items, `MenuItemConfig` references, or legacy `screensetRegistry`-based menu population logic.
 - [x] 35.5.4 Verify the menu auto-populates when new screen extensions are registered dynamically.
-
-**Traceability**: Design doc `overview.md` -- Navigation Menu Auto-Population. Design doc `mfe-ext-lifecycle-actions.md` -- Menu auto-population. Microfrontends spec -- Host derives menu from screen extensions.
 
 ### 35.6 Create profile-mfe Package
 
@@ -135,8 +133,6 @@ Convert the legacy Profile screen into an independent MFE package.
 - [x] 35.6.4 Add `dev:mfe:profile` script to root `package.json`. Update `dev:all` to include this server.
 - [x] 35.6.5 Verify the Profile MFE builds, serves, and renders correctly when registered and mounted.
 
-**Traceability**: Microfrontends spec -- Full Demo Screenset Conversion. Each demo screen becomes its own MFE package.
-
 ### 35.7 Create current-theme-mfe Package
 
 Convert the legacy CurrentTheme screen into an independent MFE package.
@@ -147,8 +143,6 @@ Convert the legacy CurrentTheme screen into an independent MFE package.
 - [x] 35.7.4 Add `dev:mfe:current-theme` script to root `package.json`. Update `dev:all`.
 - [x] 35.7.5 Verify the CurrentTheme MFE builds, serves, and renders correctly.
 
-**Traceability**: Microfrontends spec -- Full Demo Screenset Conversion.
-
 ### 35.8 Create uikit-elements-mfe Package
 
 Convert the legacy UIKitElements screen into an independent MFE package.
@@ -158,8 +152,6 @@ Convert the legacy UIKitElements screen into an independent MFE package.
 - [x] 35.8.3 The `UIKitElementsScreen.tsx` SHALL demonstrate UIKit components inside Shadow DOM. All imports from `@hai3/react` (L3) only.
 - [x] 35.8.4 Add `dev:mfe:uikit-elements` script to root `package.json`. Update `dev:all`.
 - [x] 35.8.5 Verify the UIKitElements MFE builds, serves, and renders correctly.
-
-**Traceability**: Microfrontends spec -- Full Demo Screenset Conversion.
 
 ### 35.9 Register All MFE Extensions in Host App
 
@@ -172,8 +164,6 @@ Update the host app initialization to register all 4 MFE extensions and verify t
 - [x] 35.9.5 Verify theme changes propagate to all mounted MFEs.
 - [x] 35.9.6 Verify language changes propagate to all mounted MFEs.
 
-**Traceability**: Microfrontends spec -- Host app registers all MFE extensions. Design doc `overview.md` -- Navigation Menu Auto-Population.
-
 ### 35.10 Host Provides Theme and Language Property Updates
 
 Ensure the host app calls `updateDomainProperty()` for theme and language when they change.
@@ -182,8 +172,6 @@ Ensure the host app calls `updateDomainProperty()` for theme and language when t
 - [x] 35.10.2 In the host app language change handler (or i18n plugin), call `registry.updateDomainProperty(domainId, HAI3_SHARED_PROPERTY_LANGUAGE, newLanguage)` for each registered extension domain.
 - [x] 35.10.3 Verify mounted MFEs receive theme updates immediately via `bridge.subscribeToProperty()`.
 - [x] 35.10.4 Verify mounted MFEs receive language updates immediately via `bridge.subscribeToProperty()`.
-
-**Traceability**: Design doc `mfe-api.md` -- Domain-Level Property Updates. Design doc `principles.md` -- Theme and Language as Domain Properties.
 
 ### 35.11 Validation
 
@@ -197,13 +185,13 @@ Ensure the host app calls `updateDomainProperty()` for theme and language when t
 
 ## Phase 36: Feature Parity Remediation
 
-**Status**: PLANNED
+**Status**: COMPLETE
 
 **Goal**: Close every gap documented in `design/post-conversion-features.md` and achieve 100% feature parity with `design/pre-conversion-features.md`. This phase fixes the GTS shared property design error, consolidates 4 MFE packages into 1 `demo-mfe` package with 4 entries, restores all lost screen features (i18n, API integration, UIKit components, navigation, lazy loading), converts the blank screenset template, deletes the legacy screenset API, and verifies parity across all dimensions.
 
 **Architecture**: ONE SCREENSET = ONE MFE. The demo screenset is a single `demo-mfe` package with 1 manifest, 4 entries, 4 extensions, and shared internals. Navigation between screens is host-controlled via `mount_ext` actions -- no internal routing.
 
-**Traceability**: All tasks trace to gaps in `design/post-conversion-features.md` against the baseline in `design/pre-conversion-features.md`.
+**Traceability**: All tasks trace to gaps in `design/post-conversion-features.md` against the baseline in `design/pre-conversion-features.md`. Design docs: `mfe-shared-property.md`, `schemas.md`, `mfe-ext-lifecycle-actions.md`, `principles.md`, `overview.md`. Specs: microfrontends spec (demo conversion), screensets spec (extension presentation).
 
 ### 36.1 Fix Shared Properties GTS Design
 
@@ -216,8 +204,6 @@ Fix the GTS shared property schema and instances so that schemas define enum con
 - [x] 36.1.5 Update existing unit tests (35.1.6, 35.1.7) to validate the new instance shape: `supportedValues` array present, no `value` field. Add a test verifying `theme.v1.json` has exactly 5 supported values and `language.v1.json` has exactly 36 supported values.
 - [x] 36.1.6 Add a unit test: validate that the shared property schema requires `supportedValues` and does NOT require `value`.
 - [x] 36.1.7 Complete unchecked Phase 35 tasks 35.2.4 and 35.2.5 as part of this phase: (a) Write unit test: register `screenDomain`, then register an extension whose entry has `requiredProperties: [HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE]` -- expect contract validation to pass. (b) Write unit test: register `screenDomain`, then register an extension whose entry has `requiredProperties` including a property NOT in the domain's `sharedProperties` -- expect contract validation to fail with `missing_property`.
-
-**Traceability**: `design/post-conversion-features.md` -- "Shared Properties GTS Design Error". `design/pre-conversion-features.md` does not mention GTS instance values -- they are a type-system-only concern. Task 36.1.7 traces to Phase 35 tasks 35.2.4 and 35.2.5 (contract validation tests).
 
 ### 36.2 Consolidate 4 MFE Packages into 1 demo-mfe
 
@@ -236,8 +222,6 @@ Merge all 4 MFE packages (`hello-world-mfe`, `profile-mfe`, `current-theme-mfe`,
 - [x] 36.2.11 Update workspace configuration (root `package.json` workspaces or `pnpm-workspace.yaml`) to reference `src/mfe_packages/demo-mfe` instead of the 4 old paths.
 - [x] 36.2.12 Verify `npm run build` succeeds with the consolidated package. Verify the Module Federation remote exposes all 4 lifecycle modules.
 
-**Traceability**: `design/post-conversion-features.md` -- "Architecture Error: 4 MFEs Instead of 1".
-
 ### 36.3 Restore HelloWorld Screen Features
 
 Restore full i18n, UIKit components, skeleton loading, and navigation for the HelloWorld screen.
@@ -248,8 +232,6 @@ Restore full i18n, UIKit components, skeleton loading, and navigation for the He
 - [x] 36.3.4 Add `<TextLoader>` skeleton state: while translations are loading (async import in progress), render `<Skeleton>` placeholder components instead of text content (UIKit does not export TextLoader, used Skeleton instead).
 - [x] 36.3.5 Replace raw divs/Tailwind with UIKit components: wrap content in `<Card>` and `<CardContent>` from `@hai3/uikit`. Use `<Button>` for the navigation action.
 - [x] 36.3.6 Add "Go to Theme Screen" navigation button: on click, invoke `bridge.executeActionsChain({ action: { type: 'mount_ext', target: screenDomainId, payload: { extensionId: themeExtensionId } } })` to switch to the CurrentTheme screen. The `themeExtensionId` is the GTS ID of the theme extension from `mfe.json`. Created `demo-mfe/src/shared/extension-ids.ts` with all 4 extension IDs for centralized cross-screen navigation references.
-
-**Traceability**: `design/pre-conversion-features.md` -- "Screen: HelloWorld". `design/post-conversion-features.md` -- hello-world-mfe gaps (no i18n, no UIKit, no navigation, no TextLoader).
 
 ### 36.4 Restore Profile Screen Features
 
@@ -262,11 +244,9 @@ Restore API integration, all UI states (loading, error, no-data, data), UIKit co
 - [x] 36.4.5 Implement no-data state: when no user data exists (null response), display `t('no_user_data')` and a `<Button>` labeled `t('load_user')` that triggers the fetch.
 - [x] 36.4.6 Implement data display: render user fields -- avatar (round image), firstName, lastName, email. Labeled fields: `t('role_label')`: role, `t('department_label')`: department, `t('id_label')`: id, `t('created_label')`: createdAt, `t('last_updated_label')`: updatedAt.
 - [x] 36.4.7 Add Refresh button in `<CardFooter>` labeled `t('refresh')` that re-triggers the user fetch.
-- [x] 36.4.8 Header notification is IMPLEMENTED (originally planned as deferred but implemented during Phase 36). The MFE sends `HAI3_ACTION_NOTIFY_USER` via `bridge.executeActionsChain()` with user data in the payload. The host bootstrap code registers a `customActionHandler` on the screen domain that dispatches `headerActions.setUser()` to the Redux store when receiving `notify_user` actions. This pattern uses the 4-parameter `registerDomain(domain, containerProvider, onInitError?, customActionHandler?)` signature to handle non-lifecycle domain actions. The `customActionHandler` is documented in `design/mfe-ext-lifecycle-actions.md`.
+- [x] 36.4.8 Header notification is IMPLEMENTED via `HAI3_ACTION_NOTIFY_USER` and `customActionHandler` on the screen domain.
 - [x] 36.4.9 Use UIKit components throughout: `<Card>`, `<CardContent>`, `<CardFooter>`, `<Button>`.
 - [x] 36.4.10 Wire up `useScreenTranslations` (from 36.3.2 shared hook) for profile screen i18n.
-
-**Traceability**: `design/pre-conversion-features.md` -- "Screen: Profile". `design/post-conversion-features.md` -- profile-mfe gaps (static data, no API, no states, no UIKit, no i18n, no header notification).
 
 ### 36.5 Restore CurrentTheme Screen Features
 
@@ -276,8 +256,6 @@ Restore i18n and translation keys for the CurrentTheme screen. Theme value displ
 - [x] 36.5.2 Update `CurrentThemeScreen.tsx`: replace all hardcoded strings with `t()` calls. Use `t('title')` for the heading, `t('current_theme_label')` for the theme label, `t('description')` for descriptive text.
 - [x] 36.5.3 Wire up `useScreenTranslations` for theme screen i18n.
 - [x] 36.5.4 Existing theme display via bridge property subscription is correct and retained. No changes needed to the theme value access mechanism.
-
-**Traceability**: `design/pre-conversion-features.md` -- "Screen: CurrentTheme". `design/post-conversion-features.md` -- current-theme-mfe gaps (no i18n).
 
 ### 36.6 Restore UIKitElements Screen Features
 
@@ -292,8 +270,6 @@ Restore the full UIKit showcase: CategoryMenu, 9 categories, 56 elements using a
 - [x] 36.6.7 Implement scroll-to-element: each element demo section has an `id` attribute (`element-{name}`). CategoryMenu items use `scrollIntoView({ behavior: 'smooth' })` to navigate. IntersectionObserver tracks active element for menu highlighting.
 - [x] 36.6.8 Wire up `useScreenTranslations` for UIKit screen i18n. All element titles, descriptions, and labels use `t()` keys. Skeleton loader shown while translations load.
 
-**Traceability**: `design/pre-conversion-features.md` -- "Screen: UIKitElements". `design/post-conversion-features.md` -- uikit-elements-mfe gaps (5 static sections, ~12 CSS mockups, no CategoryMenu, no actual UIKit components, no lazy loading, no scroll-to-element, no i18n).
-
 ### 36.7 Fix Menu Labels and Icons
 
 Ensure extension presentation metadata uses translation keys (not plain strings) and correct Iconify icon prefixes.
@@ -302,8 +278,6 @@ Ensure extension presentation metadata uses translation keys (not plain strings)
 - [x] 36.7.2 Update `mfe.json` extension presentation icons to use the `lucide:` Iconify prefix: `"lucide:globe"` (HelloWorld), `"lucide:user"` (Profile), `"lucide:palette"` (CurrentTheme), `"lucide:component"` (UIKitElements).
 - [x] 36.7.3 The host menu component SHALL render `extension.presentation.label` directly as a plain string -- no `t()` call. Menu label translation is a future enhancement (requires MFE i18n namespace registration with the host, which does not exist yet). Verified Menu.tsx line 113 renders `pres.label` directly.
 - [ ] 36.7.4 Verify all 4 menu items render with correct Lucide icons and translated labels. Verify icons resolve correctly in the Iconify runtime.
-
-**Traceability**: `design/pre-conversion-features.md` -- "Menu" (labels are translation keys, icons use `lucide:` prefix). `design/post-conversion-features.md` -- Menu gaps (labels are plain strings, icons may not resolve without prefix).
 
 ### 36.8 Convert Blank Screenset to MFE Template
 
@@ -316,8 +290,6 @@ Convert the legacy `_blank` screenset template to an MFE template that serves as
 - [x] 36.8.5 The `HomeScreen.tsx` SHALL use `useScreenTranslations` for i18n, UIKit `<Card>` for layout, and demonstrate bridge property subscription (theme, language).
 - [x] 36.8.6 Add a `README.md` in `_blank-mfe/` explaining how to use this template to create a new MFE (copy, rename, update IDs).
 - [x] 36.8.7 Do NOT add `_blank-mfe` to the workspace or dev scripts -- it is a template, not a runnable package. Add a CI validation step (e.g., in CI config or a `check:template` script) that copies `_blank-mfe` to a temporary workspace location, runs `tsc --noEmit` and `eslint` against it, then discards the copy. This prevents template drift where the template becomes invalid over time as APIs evolve.
-
-**Traceability**: `design/pre-conversion-features.md` -- "Blank Screenset". `design/post-conversion-features.md` -- "_blank not converted".
 
 ### 36.9 Delete Legacy Screenset API
 
@@ -332,8 +304,6 @@ Remove all legacy screenset registry references and the legacy screensets direct
 - [x] 36.9.7 Remove `ScreensetDefinition`, `ScreensetCategory`, `MenuItemConfig`, `ScreenLoader`, and other legacy screenset types from `@hai3/screensets` exports. `LayoutDomain` is kept as it's used by framework layout slices. Legacy navigation/routing plugins use inline type definitions.
 - [x] 36.9.8 Search the entire codebase for remaining `screensetRegistry` references (excluding `openspec/`, test snapshots, and git history). Fix or remove any found. (NOTE: Legacy navigation and routing plugins still reference screensetRegistry but are deprecated. These plugins are not used in the MFE architecture.)
 - [x] 36.9.9 Run `npm run type-check` to confirm no broken imports after removal. (PASS: Legacy navigation/routing plugins fixed with `LegacyAppWithRegistry` typed cast pattern. Type-check passes with zero errors.)
-
-**Traceability**: `design/post-conversion-features.md` -- "legacy screenset API not deleted". `design/post-conversion-features.md` -- "Blank Screenset: Legacy screenset API (`screensetRegistry`) not deleted".
 
 ### 36.10 Feature Parity Verification
 
@@ -350,14 +320,333 @@ Each sub-task is a verification checkpoint. ALL must pass before Phase 36 is com
 - [x] 36.10.9 **GTS**: Verify `theme.v1.json` has `supportedValues` with 5 theme IDs and no `value` field. Verify `language.v1.json` has `supportedValues` with 36 language codes and no `value` field. Verify `shared_property.v1.json` schema requires `supportedValues`, not `value`.
 - [x] 36.10.10 **Build validation**: `npm run type-check` passes. `npm run test` -- all tests pass. `npm run build` succeeds (host + demo-mfe remote). `npm run lint` clean.
 
-**Traceability**: Each sub-task corresponds to a gap category in `design/post-conversion-features.md` "Gap Summary" table.
-
 ### 36.11 Validation
 
 Standard validation suite confirming all Phase 36 changes compile, test, build, and function correctly end-to-end.
 
 - [x] 36.11.1 Run `npm run type-check` -- must pass with zero errors. (PASS: zero errors)
-- [x] 36.11.2 Run `npm run test` -- all existing tests pass. Any new tests added in 36.1 pass. No test regressions from package consolidation. (PASS: 379 screensets + 16 react = 395 tests)
+- [x] 36.11.2 Run `npm run test` -- all existing tests pass. Any new tests added in 36.1 pass. No test regressions from package consolidation. (PASS: 379 screensets + 65 framework + 16 react = 460 tests)
 - [x] 36.11.3 Run `npm run build` -- must pass. Host builds. The single `demo-mfe` remote builds with all 4 exposed lifecycle modules. (PASS: host + demo-mfe builds succeed)
 - [x] 36.11.4 Run `npm run lint` -- must pass. The `demo-mfe` package is included in lint scope. No lint exclusions. (PASS: zero errors, zero warnings)
 - [ ] 36.11.5 Manual E2E: start `demo-mfe` dev server (port 3001) + host. Menu shows 4 items with Lucide icons and translated labels. Clicking each menu item loads the correct screen via `mount_ext`. Theme changes propagate to all screens. Language changes cause translation reload in all screens. Profile screen fetches API data and shows loading/error/data states. UIKit screen shows CategoryMenu with 56 elements and scroll-to-element. All screens render inside Shadow DOM with correct styles.
+
+---
+
+## Phase 37: Remove notify_user Action + Move Presentation to Screen Extension Derived Type + Fix Instance IDs
+
+**Status**: COMPLETE
+
+**Goal**: Three architectural corrections:
+1. Remove the `notify_user` action which violated the independent data fetching principle (each runtime fetches its own data independently; MFEs must not act as data proxies for the host).
+2. Move `presentation` from the base `extension.v1` schema to a screen-domain-specific derived type, following the GTS derived type pattern that the extension schema's own comment prescribes. The derived type ID combines the base extension type with the screen domain namespace: `gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~`.
+3. Fix incorrect GTS instance IDs in demo-mfe and _blank-mfe packages: wrong package name (`hai3.app` should be `hai3.demo`), wrong namespace (`ext` should be `screens` for screen extensions, `mfe` for entries/manifests), and redundant `_screen` suffixes.
+
+**Architecture**:
+- **Independent data fetching**: Each runtime (host and MFE) obtains its own data from the API independently. The `notify_user` action had the MFE acting as a data proxy, sending user data to the host. This is wrong -- the host header should fetch user data itself. Later optimization via `@hai3/api` transparent cache deduplication will prevent duplicate network requests.
+- **Screen extension derived type**: The `presentation` object (`label`, `icon`, `route`, `order`) is nav-menu-specific metadata. A sidebar widget does not need `route`. A popup does not need `order`. The base `extension.v1` schema should stay generic (`id`, `domain`, `entry`, `lifecycle`). The screen domain sets `extensionsTypeId` to reference the derived type `gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~` so screen extensions must include `presentation`. The derived type ID follows the pattern: base extension type + domain namespace (identifying which domain the extension belongs to).
+- **Instance ID naming convention**: Instance segments use the vendor's package name (reflecting MFE identity, e.g., `hai3.demo`) and a domain-appropriate namespace (describing what the instance IS, e.g., `screens` for screen extensions). The namespace does NOT repeat the GTS type namespace -- the type segment already encodes that. See `schemas.md` -- Instance ID Naming Convention for the full rules and examples.
+
+**Traceability**: Design doc `principles.md` -- Independent Data Fetching per Runtime. Design doc `schemas.md` -- Screen Extension Schema (Derived), Instance ID Naming Convention. Design doc `mfe-ext-lifecycle-actions.md` -- Domain Action Declarations (screen domain `extensionsTypeId`).
+
+### 37.1 Remove notify_user GTS Instance and Constant
+
+Remove the `notify_user` action GTS instance JSON file, its import in the loader, and its constant definition.
+
+- [x] 37.1.1 Delete the GTS instance file `packages/screensets/src/mfe/gts/hai3.mfes/instances/lifecycle/notify_user.v1.json`.
+- [x] 37.1.2 Remove the `notifyUserActionInstance` import from `packages/screensets/src/mfe/gts/loader.ts`. Remove it from the `loadBaseActions()` return array. Update the JSDoc comment for `loadBaseActions()` to remove the "custom lifecycle notification actions" reference -- it should say "generic extension lifecycle actions used by all domains".
+- [x] 37.1.3 Remove `HAI3_ACTION_NOTIFY_USER` constant from `packages/screensets/src/mfe/constants/index.ts`. Remove the entire constant declaration and its JSDoc comment.
+- [x] 37.1.4 Remove `HAI3_ACTION_NOTIFY_USER` from the `@hai3/screensets` barrel export (`packages/screensets/src/mfe/index.ts`).
+- [x] 37.1.5 Remove `HAI3_ACTION_NOTIFY_USER` from the `@hai3/framework` barrel export (`packages/framework/src/index.ts`), if present.
+- [x] 37.1.6 Remove `HAI3_ACTION_NOTIFY_USER` from the `@hai3/react` barrel export (`packages/react/src/index.ts`), if present.
+
+**Traceability**: Design doc `principles.md` -- Independent Data Fetching per Runtime. Design doc `mfe-ext-lifecycle-actions.md` -- Constants section (notify_user removed).
+
+### 37.2 Remove notify_user from Screen Domain Actions
+
+Remove `HAI3_ACTION_NOTIFY_USER` from the screen domain's `actions` array in both the TypeScript constant and the GTS JSON instance.
+
+- [x] 37.2.1 Update `packages/framework/src/plugins/microfrontends/base-domains.ts`: remove `HAI3_ACTION_NOTIFY_USER` from `screenDomain.actions` array. Remove the `HAI3_ACTION_NOTIFY_USER` import. The screen domain actions should be `[HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT]` only.
+- [x] 37.2.2 Update the screen domain GTS JSON instance `packages/framework/src/plugins/microfrontends/gts/hai3.screensets/instances/domains/screen.v1.json`: remove the `notify_user` action type ID from the `actions` array. The actions array should contain only `load_ext` and `mount_ext` action type IDs.
+- [x] 37.2.3 Update the `screenDomain` JSDoc comment in `base-domains.ts` to remove the reference to `notify_user`: change "Actions: load_ext, mount_ext (NO unmount_ext), and notify_user (custom lifecycle notification)" to "Actions: load_ext, mount_ext (NO unmount_ext)".
+- [x] 37.2.4 Align `defaultActionTimeout` in ALL 4 domain GTS JSON instance files to `30000` (matching the TypeScript constants in `base-domains.ts`). The files `screen.v1.json`, `sidebar.v1.json`, `popup.v1.json`, and `overlay.v1.json` currently have `5000` due to an implementation-time discrepancy. Update each file's `"defaultActionTimeout"` from `5000` to `30000`.
+
+**Traceability**: Design doc `mfe-ext-lifecycle-actions.md` -- Domain Action Declarations (screen domain actions). Design doc `mfe-ext-lifecycle-actions.md` -- Domain Action Support Matrix.
+
+### 37.3 Remove notify_user from Bootstrap and ProfileScreen
+
+Remove the `notify_user` usage from the host bootstrap and the MFE ProfileScreen.
+
+- [x] 37.3.1 Update `src/app/mfe/bootstrap.ts`: remove the entire `screenCustomActionHandler` function and the `NotifyUserPayload` interface. Remove the `HAI3_ACTION_NOTIFY_USER` import. Simplify the `registerDomain` call for the screen domain to 2 arguments: `screensetsRegistry.registerDomain(screenDomain, screenContainerProvider)` (no `onInitError`, no `customActionHandler`).
+- [x] 37.3.2 Update `src/mfe_packages/demo-mfe/src/screens/profile/ProfileScreen.tsx`: remove the `HAI3_ACTION_NOTIFY_USER` import. Remove the entire `bridge.executeActionsChain` call that sends the `notify_user` action (lines 93-99 in the `fetchUserData` callback). The profile screen should still fetch and display user data for its own UI -- it just no longer notifies the host.
+- [x] 37.3.3 Update the stale JSDoc comment in `src/mfe_packages/demo-mfe/src/screens/profile/ProfileScreen.tsx` line 39 that says "Notifies the host application when user data is loaded (updates header)." Change to "Manages loading, error, and data states independently." Verify that the profile screen still loads, shows loading/error/data states, and displays user data correctly without the notify_user call.
+
+**Traceability**: Design doc `principles.md` -- Independent Data Fetching per Runtime (anti-patterns section). Task 36.4.8 is superseded by this removal.
+
+### 37.4 Create Screen Extension Derived Schema
+
+Create the `extension_screen.v1.json` GTS schema file that derives from `extension.v1` and adds the `presentation` property.
+
+- [x] 37.4.1 Create `packages/screensets/src/mfe/gts/hai3.mfes/schemas/ext/extension_screen.v1.json` with the JSON schema for the screen extension derived type. Schema ID: `gts://gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~`. Uses `allOf` to inherit from `gts://gts.hai3.mfes.ext.extension.v1~`. Adds `presentation` object property with sub-properties `label` (required string), `icon` (optional string), `route` (required string), `order` (optional number). `presentation` is required on this derived type.
+- [x] 37.4.2 Import the new schema in `packages/screensets/src/mfe/gts/loader.ts` and add it to the `loadSchemas()` return array. Update the JSDoc comment to reflect "11 first-class citizen schemas (8 core + 2 MF-specific + 1 built-in derived)".
+- [x] 37.4.3 Register the schema as a built-in in the GTS plugin alongside existing schemas. The GTS plugin constructor must call `this.registerSchema()` for `extension_screen.v1.json` so that it is available for `extensionsTypeId` validation without vendor registration.
+- [x] 37.4.4 Add constant `HAI3_SCREEN_EXTENSION_TYPE = 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~'` to `packages/screensets/src/mfe/constants/index.ts`. Export it from the screensets, framework, and react barrels.
+
+**Traceability**: Design doc `schemas.md` -- Screen Extension Schema (Derived). Design doc `schemas.md` -- GTS Entity Storage Format (directory structure).
+
+### 37.5 Remove presentation from Base Extension Schema and TypeScript Interface
+
+Remove the `presentation` property from the base `extension.v1.json` schema and the base `Extension` TypeScript interface. Add a `ScreenExtension` derived interface.
+
+- [x] 37.5.1 Update `packages/screensets/src/mfe/gts/hai3.mfes/schemas/ext/extension.v1.json`: remove the entire `presentation` property object from the `properties` section. The base schema should only have `id`, `domain`, `entry`, `lifecycle` properties.
+- [x] 37.5.2 Update `packages/screensets/src/mfe/types/extension.ts`: remove `presentation?: ExtensionPresentation` from the `Extension` interface. Add a new `ScreenExtension` interface extending `Extension` with `presentation: ExtensionPresentation` (required, not optional). Keep `ExtensionPresentation` interface definition in the same file (it is still exported publicly for consumers working with screen extensions).
+- [x] 37.5.3 Export `ScreenExtension` from the `@hai3/screensets` public barrel (`packages/screensets/src/mfe/index.ts` and `packages/screensets/src/mfe/types/index.ts`).
+- [x] 37.5.4 Export `ScreenExtension` from `@hai3/framework` barrel and `@hai3/react` barrel.
+- [x] 37.5.5 Update the screensets spec at `openspec/changes/add-microfrontend-support/specs/screensets/spec.md`: in the "Extension binding type definition" scenario, change line `the binding MAY have a presentation field (optional ExtensionPresentation object with label, route, and optional icon, order)` to reflect that `presentation` is NOT on the base `Extension` type. Replace with: `the base binding SHALL NOT have a presentation field (presentation is defined on the derived ScreenExtension type for screen-domain extensions)`. Add a new scenario "Screen extension binding type definition" describing that screen extensions (type `ScreenExtension`) SHALL have a required `presentation` field with `label` (string), `route` (string), and optional `icon` (string) and `order` (number).
+- [x] 37.5.6 Update the screensets spec at `openspec/changes/add-microfrontend-support/specs/screensets/spec.md`: in the "Extension Presentation Metadata" requirement section (around lines 699-723), clarify that `presentation` metadata applies to screen-domain extensions using the derived `ScreenExtension` type, not to the base `Extension` type. Update the "Extension with presentation metadata" scenario to say `WHEN registering a screen extension (ScreenExtension type) with a presentation field` instead of `WHEN registering an extension with a presentation field`. Update the "Extension without presentation metadata" scenario to clarify it applies to non-screen-domain extensions using the base `Extension` type. Update the "Host derives menu from screen extensions" scenario to reference `ScreenExtension` and note that `presentation` is required (not optional) on screen extensions.
+
+**Traceability**: Design doc `schemas.md` -- Extension Schema (Base) and Screen Extension Schema (Derived). Design doc `mfe-domain.md` -- TypeScript Interface Definition. Screensets spec -- Extension Presentation Metadata requirement section.
+
+### 37.6 Add extensionsTypeId to Screen Domain
+
+Configure the screen domain to require screen extension derived type.
+
+- [x] 37.6.1 Update `packages/framework/src/plugins/microfrontends/base-domains.ts`: set `extensionsTypeId: 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~'` on `screenDomain`. Import `HAI3_SCREEN_EXTENSION_TYPE` from `@hai3/screensets` and use it.
+- [x] 37.6.2 Update the screen domain GTS JSON instance `packages/framework/src/plugins/microfrontends/gts/hai3.screensets/instances/domains/screen.v1.json`: add `"extensionsTypeId": "gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~"` to the JSON object.
+- [x] 37.6.3 Verify that sidebar, popup, and overlay domains do NOT set `extensionsTypeId` -- they use the base `extension.v1` schema directly.
+
+**Traceability**: Design doc `mfe-ext-lifecycle-actions.md` -- Domain Action Declarations (screen domain `extensionsTypeId`). Design doc `schemas.md` -- Screen Extension Schema (Derived) -- screen domain configuration.
+
+### 37.7 Fix GTS Instance IDs in MFE Packages
+
+Fix incorrect GTS instance IDs in demo-mfe and _blank-mfe packages. Three issues: (1) wrong package name (`hai3.app` -> `hai3.demo`), (2) wrong namespace for screen extensions (`ext` -> `screens`), (3) redundant `_screen` suffixes. Also add the screen extension derived type prefix for `extensionsTypeId` validation.
+
+- [x] 37.7.1 Update `src/mfe_packages/demo-mfe/mfe.json`: change all 4 screen extension IDs to use the screen extension derived type prefix AND fix the package name and namespace. The instance segment must use `hai3.demo` (matching the MFE identity) with `screens` namespace (describing what the instance is -- a screen), not `hai3.app` with `ext` namespace. Drop the `_screen` suffix since the namespace already says `screens`. Example: `gts.hai3.mfes.ext.extension.v1~hai3.app.ext.helloworld_screen.v1` becomes `gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.helloworld.v1`. All 4 extensions follow the same pattern: `hai3.demo.screens.<name>.v1`.
+- [x] 37.7.2 Update `src/mfe_packages/demo-mfe/mfe.json`: fix the manifest ID from `hai3.app.mfe.demo.manifest.v1` to `hai3.demo.mfe.manifest.v1` (package name reflects MFE identity, namespace `mfe` for MFE-related entities).
+- [x] 37.7.3 Update `src/mfe_packages/demo-mfe/mfe.json`: fix all 4 entry IDs from `hai3.app.mfe.demo.<name>.v1` to `hai3.demo.mfe.<name>.v1` (drop redundant `demo` segment since the package name `hai3.demo` already identifies the MFE).
+- [x] 37.7.4 Update `src/mfe_packages/demo-mfe/src/shared/extension-ids.ts`: update all 4 extension ID constants to use the corrected IDs (with `hai3.demo.screens.<name>.v1` instance segments).
+- [x] 37.7.5 Update `src/mfe_packages/_blank-mfe/mfe.json`: update the extension, entry, and manifest IDs to use concrete IDs with `hai3.blank` package name (so the template works as-is without modification). The template is a working starting point; developers will copy and rename IDs during setup:
+  - Manifest ID: `gts.hai3.mfes.mfe.mf_manifest.v1~hai3.blank.mfe.manifest.v1` (concrete ID usable immediately)
+  - Entry ID: `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.blank.mfe.home.v1` (concrete ID usable immediately)
+  - Extension ID: `gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.blank.screens.home.v1` (concrete ID usable immediately, namespace `screens` for screen extensions)
+  - All references to manifest and entry in the entries/extensions array must use the concrete IDs above
+- [x] 37.7.6 Check and update all hardcoded extension ID, entry ID, and manifest ID references in test files, bootstrap code, and other source files. Update all references to use the corrected IDs. Files to check:
+  - `src/app/mfe/bootstrap.ts` (extension registration)
+  - `packages/framework/src/plugins/microfrontends/actions.ts` (if referencing extension IDs)
+  - `packages/screensets/__tests__/mfe/` (test files referencing screen extension IDs)
+  - `packages/react/__tests__/mfe/` (test files referencing screen extension IDs)
+
+**Traceability**: Design doc `schemas.md` -- Screen Extension Schema (Derived) -- extension instance IDs, Instance ID Naming Convention. Design doc `mfe-domain.md` -- Extension Examples.
+
+### 37.8 Update Menu Component for ScreenExtension Type
+
+Update the host Menu component to use the `ScreenExtension` type instead of `Extension` with optional `presentation`.
+
+- [x] 37.8.1 Update `src/app/layout/Menu.tsx`: import `ScreenExtension` (or import both `Extension` and `ScreenExtension`). The filter for extensions with `presentation` can be simplified -- since screen extensions are now guaranteed to have `presentation` (it is required on the derived type), the `filter(ext => !!ext.presentation)` pattern is still safe (other domains may not have it) but the type can be narrowed to `ScreenExtension` after filtering.
+- [x] 37.8.2 Verify the menu still renders correctly with all 4 items, correct icons, and correct labels.
+
+**Traceability**: Design doc `overview.md` -- Navigation Menu Auto-Population. Task 35.5 -- Host Nav Menu Driven by Extension Presentation Metadata.
+
+### 37.9 Update Package CLAUDE.md Files for Phase 37 Changes
+
+Update package-level CLAUDE.md files to reflect the Phase 37 changes immediately, so documentation is never stale relative to the code at any phase boundary.
+
+- [x] 37.9.1 Update `packages/screensets/CLAUDE.md`: remove any references to `HAI3_ACTION_NOTIFY_USER` or `notify_user` action. Document the new `ScreenExtension` type and `HAI3_SCREEN_EXTENSION_TYPE` constant. Update the extension type documentation to reflect that `presentation` is on the derived `ScreenExtension` type (not on the base `Extension` type). Document the new `extension_screen.v1` GTS schema as a built-in derived schema.
+- [x] 37.9.2 Update `packages/framework/CLAUDE.md`: remove any references to `HAI3_ACTION_NOTIFY_USER` or `notify_user` action. Document the `extensionsTypeId` field on `screenDomain` that references the screen extension derived type. Update the screen domain action list documentation from `[load_ext, mount_ext, notify_user]` to `[load_ext, mount_ext]`. Document the new `ScreenExtension` and `HAI3_SCREEN_EXTENSION_TYPE` re-exports.
+- [x] 37.9.3 Update `packages/react/CLAUDE.md`: remove any references to `HAI3_ACTION_NOTIFY_USER` or `notify_user` action. Document the new `ScreenExtension` and `HAI3_SCREEN_EXTENSION_TYPE` re-exports. Update any extension examples to use the screen extension derived type ID format.
+- [x] 37.9.4 Search all CLAUDE.md files in the repository for remaining references to `notify_user` or `HAI3_ACTION_NOTIFY_USER`. Fix any found.
+
+**Traceability**: No documentation debt -- CLAUDE.md files are updated in the same phase as the code changes they describe. Phase 38.7 handles the remaining legacy API removal documentation (screensetRegistry, navigation, routing, etc.).
+
+### 37.10 Update Tests
+
+Update existing tests to reflect both changes: removal of `notify_user` and the new screen extension derived type.
+
+- [x] 37.10.1 Update `packages/screensets/__tests__/mfe/runtime/dynamic-registration.test.ts`: if any tests reference `notify_user` or use screen extension IDs, update them. Screen extension test fixtures should use the new derived type ID prefix.
+- [x] 37.10.2 Update `packages/framework/src/plugins/microfrontends/` tests (if any): verify `screenDomain.actions` no longer includes `HAI3_ACTION_NOTIFY_USER`. Verify `screenDomain.extensionsTypeId` is set correctly.
+- [x] 37.10.3 Write unit test: register `screenDomain`, then register an extension WITHOUT the screen extension derived type prefix -- expect `ExtensionTypeError` because `extensionsTypeId` validation fails.
+- [x] 37.10.4 Write unit test: register `screenDomain`, then register an extension WITH the screen extension derived type prefix and `presentation` -- expect registration to succeed.
+- [x] 37.10.5 Write unit test: verify the `extension_screen.v1` schema is loaded as a built-in by the GTS plugin -- `gtsPlugin.validateInstance()` for a screen extension instance should pass.
+- [x] 37.10.6 Write unit test: verify a screen extension instance WITHOUT `presentation` fails GTS validation (since `presentation` is required on the derived type).
+- [x] 37.10.7 Write unit test: verify that sidebar/popup/overlay domains (without `extensionsTypeId`) still accept base `extension.v1` instances without `presentation`.
+- [x] 37.10.8 Search all test files for `HAI3_ACTION_NOTIFY_USER` or `notify_user` references and remove/update them.
+
+**Traceability**: Design doc `schemas.md` -- Screen Extension Schema (Derived). Design doc `principles.md` -- Independent Data Fetching per Runtime. Phase 35 tasks 35.4.4-35.4.6 (extension presentation tests) are updated by this phase.
+
+### 37.11 Validation
+
+Standard validation suite confirming all Phase 37 changes compile, test, build, and function correctly.
+
+- [x] 37.11.1 Run `npm run type-check` -- must pass with zero errors. No broken imports from removed `HAI3_ACTION_NOTIFY_USER` constant. No type errors from `Extension` interface changes.
+- [x] 37.11.2 Run `npm run test` -- all existing tests pass with updated extension IDs. New tests from 37.10 pass.
+- [x] 37.11.3 Run `npm run build` -- must pass. Host builds. Demo-mfe remote builds with updated extension IDs.
+- [x] 37.11.4 Run `npm run lint` -- must pass with zero errors.
+- [x] 37.11.5 Manual E2E: start demo-mfe dev server + host. Menu shows 4 items (screen extensions with derived type IDs). Profile screen loads user data independently (no host header update from MFE). Theme/language changes propagate. All screens render correctly.
+
+---
+
+## Phase 38: Remove Legacy Screensets API Remnants from Packages
+
+**Status**: PLANNED
+
+**Goal**: Remove all legacy screensets API dead code from the package layer. The application layer (`src/`) has fully migrated to MFE architecture with zero legacy references. The package layer still carries: legacy type definitions (`ScreensetCategory`, `MenuItemConfig`, `ScreenLoader`, `MenuScreenItem`, `ScreensetDefinition`, `ScreensetRegistry`), legacy framework plugins (`navigation.ts`, `routing.ts`) and `routeRegistry.ts`, legacy CLI screenset generators and commands, legacy studio ControlPanel screenset selector logic, and stale documentation. This phase eliminates all of it and updates documentation to reflect MFE as the primary and only architecture.
+
+**Architecture**: After this phase, the `@hai3/screensets` package exports ONLY MFE types, constants, and utilities. The `@hai3/framework` package exports ONLY MFE-era plugins (`microfrontends()`) for extension orchestration -- no legacy `navigation()` or `routing()` plugins. The CLI package has no `screenset:create` or `screenset:copy` commands. All CLAUDE.md and llms.txt files document MFE as the primary API.
+
+**Dependencies**: Phase 37 must be complete before Phase 38 begins. Phase 37 removes `HAI3_ACTION_NOTIFY_USER` and restructures extension types, which affects what remains to clean up in Phase 38.
+
+**Scope boundaries**:
+- `LayoutDomain` enum in `packages/screensets/src/types.ts` is NOT legacy -- it is used by framework layout slices and MUST be preserved.
+- Branded types (`ScreensetId`, `ScreenId`) in `packages/screensets/src/types.ts` are NOT used by any MFE code. Evaluate if they are imported anywhere outside the legacy types file. If unused, remove them.
+- The `screensets()` plugin in `packages/framework/src/plugins/screensets.ts` provides the Redux `screenSlice` for screen state management. It is NOT legacy -- it is still used for layout state. Evaluate if it should be renamed or kept as-is.
+- `RouteRegistry` interface and related types in `packages/framework/src/types.ts` are used ONLY by the legacy routing plugin. If the legacy routing plugin is removed, these types become dead code too.
+- The `routeMatcher` utility module (`packages/framework/src/utils/routeMatcher.ts`) is used ONLY by the legacy navigation and routing plugins. If those plugins are removed, this utility becomes dead code too.
+
+### 38.1 Remove Legacy Type Definitions from @hai3/screensets
+
+Remove all legacy screensets types from `packages/screensets/src/types.ts`. Keep only `LayoutDomain` which is actively used by framework layout slices.
+
+- [ ] 38.1.1 Search the entire codebase (excluding `openspec/`, `node_modules/`, `.git/`) for imports of `ScreensetCategory`, `MenuItemConfig`, `ScreenLoader`, `ScreenConfig`, `MenuScreenItem`, `ScreensetDefinition`, `ScreensetRegistry` from `@hai3/screensets` or from the types file directly. Document which files import each type. Expected result: zero imports from MFE code, only self-references within the types file and legacy plugins that are also being removed.
+- [ ] 38.1.2 Search for imports of `ScreensetId` and `ScreenId` branded types. Expected result: zero imports from any active code. If any active code imports them, document the usage and evaluate whether to keep them.
+- [ ] 38.1.3 Remove the following from `packages/screensets/src/types.ts`: `ScreensetCategory` enum, `MenuItemConfig` interface, `ScreenLoader` type, `ScreenConfig` interface, `MenuScreenItem` interface, `ScreensetDefinition` interface, `ScreensetRegistry` interface, `ScreensetId` branded type, `ScreenId` branded type. Keep ONLY the `LayoutDomain` enum and its section comment.
+- [ ] 38.1.4 Update `packages/screensets/src/index.ts`: verify `LayoutDomain` is still exported. Remove any remaining legacy type re-exports if present (e.g., `ScreensetCategory`, `ScreensetDefinition`). The barrel should export only `LayoutDomain` from `./types` plus all MFE exports.
+- [ ] 38.1.5 Run `npm run type-check` to confirm no broken imports. Any type errors indicate code that still references the removed types and must be updated.
+
+**Traceability**: Phase 36.9.7 partially removed legacy type exports but noted "Legacy navigation/routing plugins use inline type definitions." This phase completes the removal by also deleting the source definitions.
+
+### 38.2 Remove Legacy Framework Plugins
+
+Remove the legacy `navigation()` and `routing()` plugins, the `createRouteRegistry()` factory, and the `routeRegistry.ts` module. These plugins are dead code in MFE mode (both have `if (!screensetRegistry) return;` guards that always exit early since `screensetRegistry` no longer exists on the app object).
+
+- [ ] 38.2.1 Delete `packages/framework/src/plugins/navigation.ts`. This file contains 325 lines of legacy navigation logic including inline `MenuScreenItem`, `ScreensetDefinition`, `ScreensetRegistry` type definitions, eventBus event listeners, URL sync with browser/hash/memory modes, screenset translation loading, and menu population from screenset definitions. ALL of this is replaced by MFE actions chains and extension presentation metadata.
+- [ ] 38.2.2 Delete `packages/framework/src/plugins/routing.ts`. This file contains 77 lines of legacy routing plugin that creates a `RouteRegistry` from the `screensetRegistry`. The MFE architecture uses actions chains for navigation -- no route registry is needed.
+- [ ] 38.2.3 Delete `packages/framework/src/registries/routeRegistry.ts`. This file contains 201 lines of legacy route registry implementation that syncs routes from `screensetRegistry`. All route-matching, path-generation, and screenset-to-route mapping logic is dead code.
+- [ ] 38.2.4 Update `packages/framework/src/plugins/index.ts` (or equivalent plugin barrel): remove exports of `navigation` and `routing` plugin factories.
+- [ ] 38.2.5 Update `packages/framework/src/registries/index.ts`: remove the `createRouteRegistry` export. This file currently exports `createThemeRegistry` and `createRouteRegistry` -- after removal it exports only `createThemeRegistry`.
+- [ ] 38.2.6 Update `packages/framework/src/index.ts`: remove `navigation` and `routing` from the plugin exports block. Remove `createRouteRegistry` from the registry exports block. Remove `RouteRegistry`, `RouteMatchResult`, `CompiledRoute`, `RouteParams` from the type exports block (these types are only used by the legacy routing plugin).
+- [ ] 38.2.7 Check if `packages/framework/src/utils/routeMatcher.ts` exists and is imported ONLY by the deleted plugins. If so, delete it. If other code imports it, leave it in place.
+- [ ] 38.2.8 Update `packages/react/src/index.ts`: remove `navigation`, `routing`, and `createRouteRegistry` from the re-exports block. Remove `RouteRegistry`, `NavigateToScreenPayload`, `NavigateToScreensetPayload`, `RouteMatchResult`, `CompiledRoute`, `RouteParams` from the type re-exports if they are only used by legacy code. Evaluate `NavigateToScreenPayload` and `NavigateToScreensetPayload` -- if still used by legacy `useNavigation` hook, handle in task 38.3.
+- [ ] 38.2.9 Run `npm run type-check` to confirm no broken imports.
+
+**Traceability**: Phase 36.9.8 noted "Legacy navigation and routing plugins still reference screensetRegistry but are deprecated. These plugins are not used in the MFE architecture." This phase completes the removal.
+
+### 38.3 Clean Up Framework Types
+
+Remove legacy references from `packages/framework/src/types.ts`, `packages/framework/src/compat.ts`, and related files.
+
+- [ ] 38.3.1 Update `packages/framework/src/types.ts`: remove the `HAI3Plugin` JSDoc example that references `screensetRegistry: createScreensetRegistry()` and `discoverScreensets(app.screensetRegistry)`. Replace with an MFE-era example using `screensetsRegistry`.
+- [ ] 38.3.2 Update `packages/framework/src/types.ts`: remove `RouteRegistry` interface, `RouteMatchResult` interface, `CompiledRoute` interface, `RouteParams` interface, and their section comments. These types were used exclusively by the legacy routing plugin. The `HAI3App` interface reference to `routeRegistry: RouteRegistry` must also be removed.
+- [ ] 38.3.3 Update `packages/framework/src/types.ts`: remove `routeRegistry` from the `HAI3App` interface. The MFE architecture does not use a route registry.
+- [ ] 38.3.4 Update the `HAI3App` JSDoc example in `packages/framework/src/types.ts`: remove `const screensets = app.screensetRegistry.getAll();` and the `app.actions.navigateToScreen(...)` example. Replace with MFE-era examples using `app.screensetsRegistry.registerDomain(...)` and `app.actions.mountExtension(extensionId)`.
+- [ ] 38.3.5 Update `packages/framework/src/types.ts`: evaluate `NavigateToScreenPayload`, `NavigateToScreensetPayload`, `NavigationConfig`, and `ScreensetsConfig` types. If they are ONLY referenced by the deleted navigation/routing/screensets plugins, remove them. If `ScreensetsConfig` is still used by the `screensets()` plugin, keep it. `NavigateToScreenPayload` and `NavigateToScreensetPayload` are referenced by `HAI3Actions` -- remove them from `HAI3Actions` and then delete the type definitions.
+- [ ] 38.3.6 Update `packages/framework/src/types.ts` `HAI3Actions` interface: remove `navigateToScreen` and `navigateToScreenset` action entries. These actions are part of the legacy navigation plugin. MFE navigation uses `mountExtension`, `loadExtension`, etc.
+- [ ] 38.3.7 Update `packages/framework/src/compat.ts`: remove the comment "Legacy screensetRegistry has been removed." since it is no longer needed as a migration note after the full cleanup. If the file contains only `ACCOUNTS_DOMAIN` after this, evaluate whether the file should be removed entirely or kept for backward compatibility.
+- [ ] 38.3.8 Run `npm run type-check` to confirm no broken imports.
+
+**Traceability**: Phase 36.9 partially cleaned up `screensetRegistry` references. This phase removes the remaining structural types that supported the legacy navigation/routing architecture.
+
+### 38.4 Clean Up Legacy useNavigation Hook
+
+The `useNavigation` hook in `@hai3/react` wraps the legacy `navigateToScreen` and `navigateToScreenset` actions. In MFE mode, navigation is done via `mountExtension`/`loadExtension` actions or via `bridge.executeActionsChain()`. Evaluate and update the hook.
+
+- [ ] 38.4.1 Read `packages/react/src/hooks/useNavigation.ts` and determine what it provides. If it wraps ONLY the legacy `navigateToScreen`/`navigateToScreenset` actions, it is dead code and should be removed. If it provides MFE-relevant functionality too, refactor to remove the legacy parts.
+- [ ] 38.4.2 Search for imports of `useNavigation` from `@hai3/react` in the codebase (excluding `openspec/`, `node_modules/`). Document which files import it and whether they use legacy methods (`navigateToScreen`, `navigateToScreenset`) or MFE methods.
+- [ ] 38.4.3 If `useNavigation` is imported by `packages/studio/src/sections/ControlPanel.tsx` (which it is, per the current file), handle the studio side in task 38.5. If imported by demo-mfe code, evaluate whether those usages should be replaced with `useMfeBridge` + `bridge.executeActionsChain()`.
+- [ ] 38.4.4 Based on findings: either (a) remove `useNavigation` entirely and update all import sites, or (b) refactor it to expose only MFE navigation utilities (e.g., wrap `mountExtension` action). Update `packages/react/src/hooks/index.ts` barrel export accordingly.
+- [ ] 38.4.5 Update `packages/react/src/types.ts`: remove `UseNavigationReturn` type if `useNavigation` is removed, or update it to reflect the new MFE-only API.
+- [ ] 38.4.6 Run `npm run type-check` to confirm no broken imports.
+
+**Traceability**: `useNavigation` wraps actions from the legacy navigation plugin (Phase 38.2). Its removal or refactoring follows from the plugin removal.
+
+### 38.5 Remove Legacy Studio ControlPanel Screenset Selector
+
+The `ControlPanel.tsx` has an inline `ScreensetCategory` enum, a `buildScreensetOptions()` function that returns empty data, and a `ScreensetSelector` component rendering. All of this is dead code.
+
+- [ ] 38.5.1 Update `packages/studio/src/sections/ControlPanel.tsx`: remove the inline `ScreensetCategory` enum definition (lines 9-13). Remove `ALL_CATEGORIES` constant. Remove the entire `buildScreensetOptions` function. Remove the `screensetOptions` state variable and its `useEffect` populator. Remove the `getCurrentValue` function. Remove the `handleScreensetChange` function. Remove the `ScreensetSelector` JSX rendering and its conditional block.
+- [ ] 38.5.2 Remove the `useNavigation` import if it is no longer used by the ControlPanel after cleanup. Remove the `ScreensetSelector` import and any related type imports.
+- [ ] 38.5.3 Evaluate `packages/studio/src/sections/ScreensetSelector.tsx` (or wherever the ScreensetSelector component is defined): if it is ONLY used by ControlPanel and is now dead code, delete the entire file. Remove its barrel export.
+- [ ] 38.5.4 The remaining ControlPanel should contain only: `ApiModeToggle`, `ThemeSelector`, `LanguageSelector`. Verify the component still renders correctly with these controls.
+- [ ] 38.5.5 Run `npm run type-check` to confirm no broken imports.
+
+**Traceability**: Phase 36.9 noted the studio ControlPanel has "Legacy screensetRegistry removed" comments. This phase removes the dead code entirely.
+
+### 38.6 Remove Legacy CLI Screenset Generators and Commands
+
+The CLI package has generators and commands for creating/copying legacy screensets. These generate code that uses `screensetRegistry`, `ScreensetCategory`, and `ScreensetDefinition` -- all of which no longer exist. Replace with MFE-based scaffolding or remove entirely.
+
+**Note**: All file deletions in this section are conditional. If a referenced file does not exist at execution time (e.g., removed by prior work or a different branch), treat the deletion as a no-op and proceed to the next task.
+
+- [ ] 38.6.1 If `packages/cli/src/generators/screenset.ts` exists, delete it. This generates legacy screenset code with `screensetRegistry.register()`, `ScreensetCategory`, and the old `ScreensetConfig` pattern. No-op if the file does not exist.
+- [ ] 38.6.2 If `packages/cli/src/generators/screensetFromTemplate.ts` exists, delete it. This generates screensets by copying the `_blank` template with identifier transformations. The `_blank` screenset no longer exists (replaced by `_blank-mfe` in Phase 36.8). No-op if the file does not exist.
+- [ ] 38.6.3 If `packages/cli/src/commands/screenset/create.ts` exists, delete it. This is the `screenset:create` CLI command that creates legacy screensets. Remove the command registration from the CLI command router/index if present. No-op if the file does not exist.
+- [ ] 38.6.4 If `packages/cli/src/commands/screenset/copy.ts` exists, delete it. This is the `screenset:copy` CLI command that copies legacy screensets with transformed IDs. Remove the command registration if present. No-op if the file does not exist.
+- [ ] 38.6.5 If `packages/cli/src/commands/screenset/` directory exists and is now empty, delete it. No-op if the directory does not exist or still contains files.
+- [ ] 38.6.6 Search `packages/cli/src/` for any remaining imports from the deleted files. Update or remove any barrel exports, command registrations, or type references that point to deleted modules. No-op if no references are found.
+- [ ] 38.6.7 If `packages/cli/src/generators/i18n.ts` exists, evaluate whether `generateI18nStubs` and `generateTranslationLoader` are ONLY used by the deleted screenset generators. If they are dead code, remove them. If used by other generators (screen generators, etc.), keep them.
+- [ ] 38.6.8 If `packages/cli/src/utils/project.ts` exists, evaluate whether `getScreensetsDir` and `screensetExists` are ONLY used by the deleted commands. If dead code, remove them. Keep if used elsewhere.
+- [ ] 38.6.9 Evaluate CLI templates that reference legacy screenset patterns: search `packages/cli/templates/` and `packages/cli/template-sources/` (if they exist) for `screensetRegistry`, `ScreensetCategory`, `ScreensetDefinition`, `screenset:create`, `screenset:copy`. Update or remove any references found. Key files to check (if they exist):
+  - `packages/cli/templates/.ai/targets/SCREENSETS.md` -- likely documents legacy screenset patterns
+  - `packages/cli/templates/commands-bundle/hai3-duplicate-screenset.md` -- likely references `screenset:copy`
+  - `packages/cli/templates/commands-bundle/hai3-new-screen.md` -- may reference legacy screen scaffolding
+- [ ] 38.6.10 Run `npm run type-check` across the CLI package (or the full workspace) to confirm no broken imports.
+
+**Traceability**: The CLI generates legacy screenset code that uses types and APIs removed in this phase. CLI commands must be updated to match the MFE architecture.
+
+### 38.7 Update Package Documentation (CLAUDE.md)
+
+Update all package-level CLAUDE.md files to document MFE as the primary and only architecture. Remove all legacy screenset API documentation. Note: Phase 37.9 already updated CLAUDE.md files for Phase 37-specific changes (notify_user removal, ScreenExtension derived type, extensionsTypeId). This task handles the remaining legacy API removal documentation: screensetRegistry, navigation(), routing(), ScreensetCategory, and other legacy types/plugins removed in Phase 38.
+
+- [ ] 38.7.1 Rewrite `packages/screensets/CLAUDE.md`: remove all references to `screensetRegistry`, `ScreensetCategory`, `ScreensetDefinition`, `MenuItemConfig`, `ScreenLoader`, and the legacy "What This Package Contains" table. Replace with MFE-focused content: document `ScreensetsRegistry`, `Extension`, `ExtensionDomain`, `MfeHandler`, `MfeBridgeFactory`, `GtsPlugin`, action constants, shared property constants, and the type system plugin. Keep the `LayoutDomain` documentation. Update the "Package Relationship" diagram to show MFE-era dependency flow.
+- [ ] 38.7.2 Rewrite `packages/framework/CLAUDE.md`: remove all references to `screensetRegistry`, `createScreensetRegistry`, `navigation()`, `routing()`, `routeRegistry`. Update the "Available Plugins" table to remove `navigation()` and `routing()` rows and add `microfrontends()`. Update the "Built Application" section to show MFE-era API (`screensetsRegistry`, `mountExtension`, etc.) instead of `screensetRegistry.getAll()` and `navigateToScreen`. Update the "Re-exports" section to reflect current exports.
+- [ ] 38.7.3 Update `packages/react/CLAUDE.md`: remove the `useNavigation` hook section if the hook was removed in 38.4. Remove the `useHAI3` example that shows `app.screensetRegistry.getAll()`. Update with MFE-era hook documentation (`useMfeBridge`, `useSharedProperty`, `useHostAction`, `useDomainExtensions`). Update the "Re-exports" section.
+- [ ] 38.7.4 Search all CLAUDE.md files in the repository for remaining references to `screensetRegistry`, `ScreensetDefinition`, `ScreensetCategory`, `createScreensetRegistry`, `navigateToScreen`, `navigateToScreenset`. Fix any found.
+
+**Traceability**: Documentation must reflect the actual public API. After removing legacy types and plugins, the documentation must be updated to prevent confusion.
+
+### 38.8 Update Package Documentation (llms.txt)
+
+Update all package-level llms.txt files to document MFE as the primary architecture.
+
+- [ ] 38.8.1 Rewrite `packages/screensets/llms.txt`: the current content references `@hai3/layout` (deprecated name), `ScreensetDefinition`, `ScreensetCategory`, legacy selectors, and legacy patterns. Replace with MFE-focused content: document `ScreensetsRegistry`, `ExtensionDomain`, `Extension`, action constants, shared property constants, GTS type system, and the MFE lifecycle pattern. Include a Quick Start example showing domain registration, extension registration, and mounting.
+- [ ] 38.8.2 Rewrite `packages/framework/llms.txt`: the current content references `screensetRegistry`, `navigation()`, `routing()`, legacy plugin table. Replace with MFE-focused content: document `microfrontends()` plugin, `screensetsRegistry`, MFE action functions (`loadExtension`, `mountExtension`, etc.), domain constants, and the plugin composition pattern with MFE support.
+- [ ] 38.8.3 Check if `packages/react/llms.txt` exists. If yes, update it to remove legacy references and document MFE hooks. If it does not exist, no action needed.
+- [ ] 38.8.4 Search all llms.txt files for remaining references to `screensetRegistry`, `ScreensetDefinition`, `ScreensetCategory`, `navigateToScreen`. Fix any found.
+
+**Traceability**: llms.txt files are used by AI assistants for context. They must accurately describe the current API to prevent generation of legacy code patterns.
+
+### 38.9 Remove Legacy Navigation Types from HAI3Actions
+
+Clean up the `HAI3Actions` interface and related event type declarations that reference legacy navigation.
+
+- [ ] 38.9.1 Verify that the `packages/framework/src/plugins/navigation.ts` module augmentation for `@hai3/state` EventPayloadMap (`'navigation/screen/navigated'` and `'navigation/screenset/navigated'`) has been removed by task 38.2.1. If the module augmentation was in a separate file, search for it and remove it.
+- [ ] 38.9.2 Search the codebase for any eventBus listeners or emitters using `'navigation/screen/navigated'` or `'navigation/screenset/navigated'` event names. Remove any found (expected: none outside the deleted navigation plugin).
+- [ ] 38.9.3 Verify `HAI3Actions.navigateToScreen` and `HAI3Actions.navigateToScreenset` have been removed (by task 38.3.6). If the `HAI3Actions` interface still references `NavigateToScreenPayload` or `NavigateToScreensetPayload`, remove those type imports.
+- [ ] 38.9.4 Run `npm run type-check` to confirm all event and action type references are clean.
+
+**Traceability**: The legacy navigation plugin declared event types via module augmentation. Removing the plugin without cleaning up the augmentation would leave orphaned type declarations.
+
+### 38.10 Final Codebase Sweep
+
+Comprehensive search for any remaining legacy screensets API references across the entire codebase.
+
+- [ ] 38.10.1 Search the entire codebase (excluding `openspec/`, `node_modules/`, `.git/`, `dist/`) for the string `screensetRegistry` (case-sensitive). Expected result: zero matches. Fix any found.
+- [ ] 38.10.2 Search for `ScreensetDefinition` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
+- [ ] 38.10.3 Search for `ScreensetCategory` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
+- [ ] 38.10.4 Search for `MenuScreenItem` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
+- [ ] 38.10.5 Search for `createScreensetRegistry` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
+- [ ] 38.10.6 Search for `createRouteRegistry` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
+- [ ] 38.10.7 Search for `navigateToScreenset` (case-sensitive) in source code (not openspec/). If found in `@hai3/react` types or hooks that haven't been updated yet, fix them. Expected: zero matches.
+- [ ] 38.10.8 Search for `'screensets'` as a plugin dependency string (e.g., `dependencies: ['screensets']`). The `microfrontends()` plugin may depend on `'screensets'` -- verify this is still valid since the `screensets()` plugin is being kept for layout state. If the legacy `navigation` and `routing` plugins' dependency on `'screensets'` was the only reason for that dependency string, verify the `screensets()` plugin is still meaningful.
+
+**Traceability**: Phase 36.9.8 performed a similar sweep but explicitly excluded legacy plugins. This sweep is the definitive final pass after all legacy code has been removed.
+
+### 38.11 Validation
+
+Standard validation suite confirming all Phase 38 changes compile, test, build, and function correctly.
+
+- [ ] 38.11.1 Run `npm run type-check` -- must pass with zero errors. No broken imports from removed legacy types, plugins, or CLI generators.
+- [ ] 38.11.2 Run `npm run test` -- all existing tests pass. No test regressions from plugin/type removal. Expected test count: same as post-Phase 37 (no new tests in this phase, but no regressions).
+- [ ] 38.11.3 Run `npm run build` -- must pass. Host builds. Demo-mfe remote builds. CLI package builds (if it has a build step).
+- [ ] 38.11.4 Run `npm run lint` -- must pass with zero errors across all packages.
+- [ ] 38.11.5 Verify the CLI still works: run `npx hai3 --help` (or equivalent) and confirm `screenset:create` and `screenset:copy` commands are no longer listed. Confirm other CLI commands still work.
+- [ ] 38.11.6 Manual E2E: start demo-mfe dev server + host. All 4 menu items render. Extension mounting works. Theme/language propagation works. Studio panel shows only ApiModeToggle, ThemeSelector, LanguageSelector (no screenset selector).
+- [ ] 38.11.7 Verify CLAUDE.md files are accurate: spot-check that `packages/screensets/CLAUDE.md`, `packages/framework/CLAUDE.md`, and `packages/react/CLAUDE.md` contain zero references to removed APIs and accurately describe the current MFE-era public API.

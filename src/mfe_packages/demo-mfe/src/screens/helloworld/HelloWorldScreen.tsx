@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
-import { HAI3_ACTION_MOUNT_EXT, HAI3_SCREEN_DOMAIN } from '@hai3/react';
+import { HAI3_ACTION_MOUNT_EXT, HAI3_SCREEN_DOMAIN, HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
 import { Card, CardContent, Button, Skeleton } from '@hai3/uikit';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
 import { THEME_EXTENSION_ID } from '../../shared/extension-ids';
@@ -40,14 +40,14 @@ export const HelloWorldScreen: React.FC<HelloWorldScreenProps> = ({ bridge }) =>
 
   useEffect(() => {
     // Subscribe to theme domain property
-    const themeUnsubscribe = bridge.subscribeToProperty('theme', (value) => {
+    const themeUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_THEME, (value) => {
       if (typeof value === 'string') {
         setTheme(value);
       }
     });
 
     // Subscribe to language domain property
-    const languageUnsubscribe = bridge.subscribeToProperty('language', (value) => {
+    const languageUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (value) => {
       if (typeof value === 'string') {
         setLanguage(value);
         const rootNode = containerRef.current?.getRootNode();

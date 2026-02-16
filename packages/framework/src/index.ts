@@ -55,12 +55,16 @@ export {
   overlayDomain,
 } from './plugins';
 
+// MFE Type Constants (re-exported from @hai3/screensets for convenience)
+export {
+  HAI3_SCREEN_EXTENSION_TYPE,
+} from '@hai3/screensets';
+
 // MFE Action Constants (re-exported from @hai3/screensets for convenience)
 export {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
-  HAI3_ACTION_NOTIFY_USER,
 } from '@hai3/screensets';
 
 // MFE Shared Property Constants (re-exported from @hai3/screensets for convenience)
@@ -74,6 +78,7 @@ export type {
   ChildMfeBridge,
   ParentMfeBridge,
   Extension,
+  ScreenExtension,
   ExtensionPresentation,
   ExtensionDomain,
   ActionsChain,

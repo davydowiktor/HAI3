@@ -268,11 +268,11 @@ The system SHALL provide query methods on ScreensetsRegistry for querying regist
 ```typescript
 // Query extension by type ID (extension uses derived type with domain-specific fields)
 // Note: Instance IDs do NOT end with ~ (only schema/type IDs do)
-const ANALYTICS_EXTENSION = 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1';
+const ANALYTICS_EXTENSION = 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~acme.analytics.screens.dashboard.v1';
 const extension = runtime.getExtension(ANALYTICS_EXTENSION);
 console.log(extension?.domain);     // Domain type ID
 console.log(extension?.entry);      // Entry type ID (MfeEntryMF)
-console.log(extension?.title);      // Domain-specific field from derived Extension type
+console.log(extension?.presentation.label);  // Screen-domain-specific field from derived ScreenExtension type
 
 // Query domain by type ID
 const SCREEN_DOMAIN = 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1';

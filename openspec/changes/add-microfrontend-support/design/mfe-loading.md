@@ -237,29 +237,7 @@ Since MFEs mount inside Shadow DOM boundaries (enforced by `MfeHandlerMF`), host
 
 #### Shadow DOM Mount Flow (Default Handler)
 
-When `DefaultMountManager` mounts an MFE using `MfeHandlerMF`, the mount flow enforces Shadow DOM isolation:
-
-1. `ContainerProvider.getContainer(extensionId)` returns the host `Element`
-2. `DefaultMountManager` creates a Shadow DOM boundary: `const shadowRoot = container.attachShadow({ mode: 'open' })`
-3. The MFE's `lifecycle.mount(shadowRoot, bridge)` receives the **shadow root**, NOT the host element
-4. The MFE renders its UI inside the shadow root and initializes its own styles (Tailwind, UIKit)
-
-```
-Host Element (from ContainerProvider)
-  |
-  +-- Shadow DOM Boundary (created by DefaultMountManager)
-       |
-       +-- [MFE content rendered here by lifecycle.mount()]
-       |    - MFE initializes its own Tailwind CSS
-       |    - MFE initializes its own UIKit styles
-       |    - MFE sets CSS variables from domain properties (theme, language)
-       |
-       (Host CSS variables do NOT penetrate -- see principles.md)
-```
-
-**Key**: The Shadow DOM creation is performed by `DefaultMountManager` (internal to the registry), NOT by `MfeHandlerMF.load()`. The handler only loads the bundle; the mount manager handles DOM isolation. This separation means custom handlers can override loading behavior without affecting the mount isolation strategy.
-
-**Note**: Only `MfeHandlerMF` (via `DefaultMountManager`) enforces Shadow DOM. Custom handler implementations may use different isolation strategies. See [Principles - Shadow DOM Style Isolation](./principles.md#shadow-dom-style-isolation-default-handler) for the complete policy.
+Shadow DOM isolation for the default handler is defined in [Principles - Shadow DOM Style Isolation](./principles.md#shadow-dom-style-isolation-default-handler). The key loading-specific detail: Shadow DOM creation is performed by `DefaultMountManager` (internal to the registry), NOT by `MfeHandlerMF.load()`. The handler only loads the bundle; the mount manager handles DOM isolation. This separation means custom handlers can override loading behavior without affecting the mount isolation strategy.
 
 #### Loading Algorithm
 
@@ -320,11 +298,11 @@ When the load operation is triggered (via `HAI3_ACTION_LOAD_EXT` action, routed 
 // Application registers extension (manifest info is embedded in MfeEntryMF)
 // Extension using derived type that includes domain-specific fields
 runtime.registerExtension({
-  id: 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1',
+  id: 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~acme.analytics.screens.dashboard.v1',
   domain: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1',
   entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
-  // Domain-specific fields from derived Extension type (no uiMeta wrapper)
-  title: 'Analytics Dashboard',
+  // Domain-specific fields from derived ScreenExtension type (no uiMeta wrapper)
+  presentation: { label: 'Analytics Dashboard', route: '/analytics', icon: 'lucide:chart-bar', order: 50 },
 });
 
 // Loading and mounting are handled via actions chains (not direct registry methods).
@@ -368,7 +346,7 @@ When an MFE package contains multiple entries (e.g., a consolidated screenset wi
   ],
   "extensions": [
     {
-      "id": "gts.hai3.mfes.ext.extension.v1~acme.demo.screens.helloworld.v1",
+      "id": "gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~acme.demo.screens.helloworld.v1",
       "domain": "gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1",
       "entry": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.demo.mfe.helloworld.v1",
       "presentation": { "label": "Hello World", "icon": "lucide:globe", "route": "/hello-world", "order": 10 }
