@@ -3,6 +3,7 @@ import {
   useHAI3,
   useRegisteredPackages,
   useActivePackage,
+  eventBus,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_SCREEN_DOMAIN,
   type ScreenExtension,
@@ -18,6 +19,7 @@ import {
 } from '@hai3/uikit';
 import { useStudioContext } from '../StudioProvider';
 import { useTranslation } from '@hai3/react';
+import { StudioEvents } from '../events/studioEvents';
 
 /**
  * Type guard to check if an extension is a ScreenExtension.
@@ -76,6 +78,7 @@ export const MfePackageSelector: React.FC<MfePackageSelectorProps> = ({
         payload: { extensionId: firstExtension.id },
       },
     });
+    eventBus.emit(StudioEvents.ActivePackageChanged, { activePackageId: selectedPackageId });
   };
 
   return (

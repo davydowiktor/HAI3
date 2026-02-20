@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { I18nRegistry, Language, i18nRegistry } from '@hai3/react';
+import { I18nRegistry, Language, i18nRegistry, useHAI3 } from '@hai3/react';
 import { saveStudioState, loadStudioState } from './utils/persistence';
 import { STORAGE_KEYS } from './types';
 import { initPersistenceEffects } from './effects/persistenceEffects';
+import { useRestoreStudioSettings, useRestoreGtsPackage } from './hooks/useRestoreStudioSettings';
 
 /**
  * Studio Translation Loader
@@ -63,6 +64,16 @@ interface StudioContextValue {
 
 const StudioContext = createContext<StudioContextValue | undefined>(undefined);
 
+/**
+ * Runs GTS Package restore when registry is available.
+ * Must be mounted inside StudioProvider and under HAI3Provider (useHAI3).
+ */
+const RestoreGtsPackageOnMount: React.FC = () => {
+  const app = useHAI3();
+  useRestoreGtsPackage(app.screensetsRegistry);
+  return null;
+};
+
 export const useStudioContext = () => {
   const context = useContext(StudioContext);
   if (!context) {
@@ -87,6 +98,9 @@ export const StudioProvider: React.FC<StudioProviderProps> = ({ children }) => {
     return cleanup;
   }, []);
 
+  // Restore theme, language, mock from localStorage
+  useRestoreStudioSettings();
+
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {
       const newValue = !prev;
@@ -104,6 +118,7 @@ export const StudioProvider: React.FC<StudioProviderProps> = ({ children }) => {
         setPortalContainer,
       }}
     >
+      <RestoreGtsPackageOnMount />
       {children}
     </StudioContext.Provider>
   );

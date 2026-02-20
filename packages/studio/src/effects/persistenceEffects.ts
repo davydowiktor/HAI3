@@ -5,8 +5,8 @@ import { STORAGE_KEYS } from '../types';
 
 /**
  * Persistence Effects
- * Listen to Studio UI events and update localStorage
- * Treats localStorage as a "slice" for Studio UI state
+ * Listen to Studio UI events and framework events; update localStorage.
+ * Treats localStorage as a "slice" for Studio UI state and control panel settings.
  */
 
 /**
@@ -38,10 +38,37 @@ export const initPersistenceEffects = (): (() => void) => {
     }
   );
 
+  // Theme changed (framework event)
+  const themeSubscription = eventBus.on('theme/changed', (payload) => {
+    saveStudioState(STORAGE_KEYS.THEME, payload.themeId);
+  });
+
+  // Language changed (framework event)
+  const languageSubscription = eventBus.on('i18n/language/changed', (payload) => {
+    saveStudioState(STORAGE_KEYS.LANGUAGE, payload.language);
+  });
+
+  // Mock toggle (framework event)
+  const mockSubscription = eventBus.on('mock/toggle', (payload) => {
+    saveStudioState(STORAGE_KEYS.MOCK_ENABLED, payload.enabled);
+  });
+
+  // GTS Package selection (Studio-only event)
+  const activePackageSubscription = eventBus.on(
+    StudioEvents.ActivePackageChanged,
+    ({ activePackageId }) => {
+      saveStudioState(STORAGE_KEYS.ACTIVE_PACKAGE_ID, activePackageId);
+    }
+  );
+
   // Return cleanup function to unsubscribe all listeners
   return () => {
     positionSubscription.unsubscribe();
     sizeSubscription.unsubscribe();
     buttonPositionSubscription.unsubscribe();
+    themeSubscription.unsubscribe();
+    languageSubscription.unsubscribe();
+    mockSubscription.unsubscribe();
+    activePackageSubscription.unsubscribe();
   };
 };
