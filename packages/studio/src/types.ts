@@ -56,4 +56,8 @@ export const STORAGE_KEYS = {
   SIZE: `${STORAGE_PREFIX}size`,
   COLLAPSED: `${STORAGE_PREFIX}collapsed`,
   BUTTON_POSITION: `${STORAGE_PREFIX}buttonPosition`,
+  THEME: `${STORAGE_PREFIX}theme`,
+  LANGUAGE: `${STORAGE_PREFIX}language`,
+  MOCK_ENABLED: `${STORAGE_PREFIX}mockEnabled`,
+  ACTIVE_PACKAGE_ID: `${STORAGE_PREFIX}activePackageId`,
 } as const;
