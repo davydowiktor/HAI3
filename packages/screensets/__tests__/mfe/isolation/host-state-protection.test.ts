@@ -12,7 +12,8 @@ import { ScreensetsRegistry } from '../../../src/mfe/runtime';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import { DefaultMfeStateContainer } from '../../../src/mfe/state';
-import { SharedPropertiesProvider } from '../../../src/mfe/properties';
+import { ChildMfeBridgeImpl } from '../../../src/mfe/bridge/ChildMfeBridge';
+import { ParentMfeBridgeImpl } from '../../../src/mfe/bridge/ParentMfeBridge';
 import { WeakMapRuntimeCoordinator } from '../../../src/mfe/coordination/weak-map-runtime-coordinator';
 import type { RuntimeConnection } from '../../../src/mfe/coordination/types';
 import type { ParentMfeBridge } from '../../../src/mfe/handler/types';
@@ -169,24 +170,30 @@ describe('Host State Protection', () => {
       );
     });
 
-    it('should enforce property flow boundary via SharedPropertiesProvider', () => {
-      const provider = new SharedPropertiesProvider();
+    it('should enforce property flow boundary via bridge API', () => {
+      // Use bridge-based property management (the production approach)
+      const childBridge = new ChildMfeBridgeImpl('domain', 'instance-1');
+      const parentBridge = new ParentMfeBridgeImpl(childBridge);
+      childBridge.setParentBridge(parentBridge);
 
-      // Host updates property (allowed)
-      provider.receivePropertyUpdate(
+      // Host (parent) updates property via ParentMfeBridge (the production boundary)
+      parentBridge.receivePropertyUpdate(
         'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
         'dark'
       );
 
-      // MFE can READ property
-      const theme = provider.getProperty(
+      // MFE can READ property via ChildMfeBridge (controlled interface)
+      const theme = childBridge.getProperty(
         'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1'
       );
-      expect(theme).toBe('dark');
+      expect(theme).toEqual({
+        id: 'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
+        value: 'dark',
+      });
 
-      // MFE CANNOT call receivePropertyUpdate
-      // (it's marked @internal and not exposed via ChildMfeBridge)
-      // This boundary is enforced by not exposing the method
+      // MFE CANNOT call receivePropertyUpdate directly
+      // (receivePropertyUpdate is INTERNAL and not exposed via ChildMfeBridge interface)
+      // This boundary is enforced at the type level
     });
 
     it('should verify coordination is module-private', () => {
@@ -229,9 +236,13 @@ describe('Host State Protection', () => {
         },
       });
 
-      // Host creates shared properties provider for MFE
-      const sharedProps = new SharedPropertiesProvider();
-      sharedProps.receivePropertyUpdate(
+      // Host creates bridge pair for MFE communication
+      const childBridgeA = new ChildMfeBridgeImpl('domain', 'instance-a');
+      const parentBridgeA = new ParentMfeBridgeImpl(childBridgeA);
+      childBridgeA.setParentBridge(parentBridgeA);
+
+      // Host sends property to MFE via parent bridge
+      parentBridgeA.receivePropertyUpdate(
         'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
         'dark'
       );
@@ -246,11 +257,14 @@ describe('Host State Protection', () => {
         },
       });
 
-      // MFE can only access shared properties (read-only)
-      const theme = sharedProps.getProperty(
+      // MFE can only access shared properties via child bridge (read-only)
+      const theme = childBridgeA.getProperty(
         'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1'
       );
-      expect(theme).toBe('dark');
+      expect(theme).toEqual({
+        id: 'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
+        value: 'dark',
+      });
 
       // === VERIFY ISOLATION ===
 
@@ -262,7 +276,7 @@ describe('Host State Protection', () => {
       }).not.toThrow();
 
       // MFE cannot modify shared properties
-      // (receivePropertyUpdate is @internal, not exposed via bridge)
+      // (receivePropertyUpdate is @internal, not exposed via ChildMfeBridge)
 
       // Host and MFE states are completely independent
       hostState.setState((state) => ({
@@ -281,7 +295,7 @@ describe('Host State Protection', () => {
       // Cleanup
       hostState.dispose();
       mfeState.dispose();
-      sharedProps.dispose();
+      parentBridgeA.dispose();
     });
 
     it('should demonstrate multiple MFE instances cannot access each other', () => {
@@ -290,8 +304,10 @@ describe('Host State Protection', () => {
         initialState: { data: 'A' },
       });
 
-      const sharedPropsA = new SharedPropertiesProvider();
-      sharedPropsA.receivePropertyUpdate(
+      const childBridgeA = new ChildMfeBridgeImpl('domain', 'instance-a');
+      const parentBridgeA = new ParentMfeBridgeImpl(childBridgeA);
+      childBridgeA.setParentBridge(parentBridgeA);
+      parentBridgeA.receivePropertyUpdate(
         'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
         'dark'
       );
@@ -301,15 +317,17 @@ describe('Host State Protection', () => {
         initialState: { data: 'B' },
       });
 
-      const sharedPropsB = new SharedPropertiesProvider();
-      sharedPropsB.receivePropertyUpdate(
+      const childBridgeB = new ChildMfeBridgeImpl('domain', 'instance-b');
+      const parentBridgeB = new ParentMfeBridgeImpl(childBridgeB);
+      childBridgeB.setParentBridge(parentBridgeB);
+      parentBridgeB.receivePropertyUpdate(
         'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
         'light'
       );
 
       // Update A
       mfeStateA.setState((state) => ({ ...state, data: 'A-modified' }));
-      sharedPropsA.receivePropertyUpdate(
+      parentBridgeA.receivePropertyUpdate(
         'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
         'auto'
       );
@@ -317,10 +335,13 @@ describe('Host State Protection', () => {
       // B should be unchanged
       expect(mfeStateB.getState().data).toBe('B');
       expect(
-        sharedPropsB.getProperty(
+        childBridgeB.getProperty(
           'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1'
         )
-      ).toBe('light');
+      ).toEqual({
+        id: 'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
+        value: 'light',
+      });
 
       // Update B
       mfeStateB.setState((state) => ({ ...state, data: 'B-modified' }));
@@ -331,8 +352,8 @@ describe('Host State Protection', () => {
       // Complete isolation verified
       mfeStateA.dispose();
       mfeStateB.dispose();
-      sharedPropsA.dispose();
-      sharedPropsB.dispose();
+      parentBridgeA.dispose();
+      parentBridgeB.dispose();
     });
   });
 
@@ -342,8 +363,11 @@ describe('Host State Protection', () => {
         initialState: { data: 'test' },
       });
 
-      const sharedProps = new SharedPropertiesProvider();
-      sharedProps.receivePropertyUpdate(
+      const childBridge = new ChildMfeBridgeImpl('domain', 'instance-cleanup');
+      const parentBridge = new ParentMfeBridgeImpl(childBridge);
+      childBridge.setParentBridge(parentBridge);
+
+      parentBridge.receivePropertyUpdate(
         'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
         'dark'
       );
@@ -353,7 +377,7 @@ describe('Host State Protection', () => {
         instanceId: 'test-instance-3',
         dispose: () => {
           mfeState.dispose();
-          sharedProps.dispose();
+          parentBridge.dispose();
         },
       };
 
@@ -370,7 +394,8 @@ describe('Host State Protection', () => {
 
       // All resources should be cleaned up
       expect(mfeState.disposed).toBe(true);
-      expect(sharedProps.isDisposed()).toBe(true);
+      // After parentBridge.dispose(), child bridge is cleaned — getProperty returns undefined
+      expect(childBridge.getProperty('gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1')).toBeUndefined();
       expect(coordinator.get(_container)).toBeUndefined();
     });
   });

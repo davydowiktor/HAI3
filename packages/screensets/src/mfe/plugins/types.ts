@@ -99,9 +99,16 @@ export interface TypeSystemPlugin {
    * Register any GTS entity (schema or instance) with the type system.
    * For instances, the entity must have an `id` field containing the instance ID.
    *
-   * gts-ts uses the instance ID to automatically determine the schema:
-   * - Instance ID: `gts.hai3.mfes.ext.extension.v1~acme.widget.v1`
-   * - Schema ID:   `gts.hai3.mfes.ext.extension.v1~` (extracted automatically)
+   * All instances use the **named instance pattern** — the schema is extracted from
+   * the chained instance ID automatically. No explicit `type` field is needed or supported.
+   *
+   * - Example: `{ id: "gts.hai3.mfes.ext.extension.v1~acme.widget.v1", ... }`
+   * - Schema resolved: `gts.hai3.mfes.ext.extension.v1~`
+   *
+   * For ephemeral runtime validation (e.g., shared property values), construct a
+   * chained instance ID that encodes the schema:
+   * - Example: `{ id: "${propertyTypeId}hai3.mfes.comm.runtime.v1", value: "dark" }`
+   * - Schema resolved: `${propertyTypeId}` (the derived shared property schema)
    *
    * @param entity - The GTS entity to register (must have an `id` field)
    */
@@ -111,7 +118,8 @@ export interface TypeSystemPlugin {
    * Validate a registered instance by its instance ID.
    * The instance must be registered first via register().
    *
-   * gts-ts extracts the schema ID from the instance ID automatically:
+   * gts-ts extracts the schema from the chained instance ID automatically
+   * (named instance pattern — see register() for details):
    * - Instance ID: `gts.hai3.mfes.ext.extension.v1~acme.widget.v1`
    * - Schema ID:   `gts.hai3.mfes.ext.extension.v1~`
    *

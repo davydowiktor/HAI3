@@ -27,12 +27,13 @@ describe('Runtime Bridge Factory', () => {
 
     domainState = {
       domain,
-      properties: new Map([
-        ['prop1', { id: 'prop1', value: 'value1' }],
-        ['prop2', { id: 'prop2', value: 'value2' }],
+      properties: new Map<string, unknown>([
+        ['prop1', 'value1'],
+        ['prop2', 'value2'],
       ]),
       extensions: new Set(),
       propertySubscribers: new Map(),
+      mountedExtension: undefined,
     };
 
     bridgeFactory = new DefaultRuntimeBridgeFactory();
@@ -106,22 +107,21 @@ describe('Runtime Bridge Factory', () => {
         () => {}
       );
 
-      // Subscribe to property updates on child
+      // Subscribe to property updates on child (child receives SharedProperty)
       const updates: SharedProperty[] = [];
       childBridge.subscribeToProperty('prop1', (value) => updates.push(value));
 
-      // Simulate domain property update by notifying subscribers
-      const newValue: SharedProperty = { id: 'prop1', value: 'new-value1' };
+      // Simulate domain property update by notifying subscribers with (propertyTypeId, value)
       const subscribers = domainState.propertySubscribers.get('prop1');
       if (subscribers) {
         for (const subscriber of subscribers) {
-          subscriber(newValue);
+          subscriber('prop1', 'new-value1');
         }
       }
 
-      // Child should receive the update
+      // Child should receive the update wrapped as SharedProperty
       expect(updates).toHaveLength(1);
-      expect(updates[0]).toEqual(newValue);
+      expect(updates[0]).toEqual({ id: 'prop1', value: 'new-value1' });
     });
   });
 

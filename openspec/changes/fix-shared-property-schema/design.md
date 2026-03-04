@@ -10,7 +10,9 @@ The property propagation path wraps/unwraps `SharedProperty` objects redundantly
 
 ### GTS ID mechanics (reference)
 
-GTS type IDs end with `~` (schemas). Instance IDs do not end with `~`. gts-ts resolves which schema to validate an instance against by extracting the **rightmost type segment** (longest prefix ending with `~`) from the instance ID.
+GTS type IDs end with `~` (schemas). Instance IDs do not end with `~`.
+
+gts-ts uses **named instances**: The instance ID is a valid chained GTS ID that encodes the schema — gts-ts extracts the rightmost type segment (longest prefix ending with `~`) from the ID. This is the pattern used by actions chains and property validation alike.
 
 GTS type derivation uses `allOf: [$ref base]` + additional properties. For example, `extension_screen.v1~` derives from `extension.v1~`:
 
@@ -115,27 +117,37 @@ HAI3_SHARED_PROPERTY_LANGUAGE = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes
 
 All code that references these constants (domains, entries, bridges, hooks) automatically picks up the new values. Hardcoded literal strings of the old values must be found and updated.
 
-### D4: Runtime validation using ephemeral GTS instances
+### D4: Runtime validation using the named instance pattern (same as actions chains)
 
-No new `TypeSystemPlugin` method is needed. Validation uses the same `register()` + `validateInstance()` flow already used for domains and extensions — purely through gts-ts, no custom mechanisms.
+No new `TypeSystemPlugin` method is needed. Validation uses the same `register()` + `validateInstance()` flow already used for domains, extensions, and actions chains — purely through gts-ts, no custom mechanisms.
+
+The pattern is identical to how actions chains validate actions in `DefaultActionsChainsMediator`:
+
+```typescript
+// Actions chains pattern (actions-chains-mediator.ts line 159):
+this.typeSystem.register({ ...action, id: action.type });
+const validation = this.typeSystem.validateInstance(action.type);
+```
 
 When `updateDomainProperty(domainId, propertyTypeId, value)` is called:
 
-1. Construct an ephemeral GTS instance with a generated ID under the derived schema:
+1. Construct a valid **chained GTS instance ID** by appending a deterministic instance segment to the property's schema ID:
    ```typescript
-   const ephemeralId = `${propertyTypeId}runtime.${Date.now()}`;
-   // e.g., "gts...theme.v1~runtime.1709571234"
-   // gts-ts extracts rightmost type: "gts...theme.v1~" → validates against derived schema
+   const ephemeralId = `${propertyTypeId}hai3.mfes.comm.runtime.v1`;
+   // e.g., "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~hai3.mfes.comm.runtime.v1"
+   // This is a valid chained GTS instance ID:
+   //   - Schema prefix: everything up to the rightmost `~` = the property's derived schema
+   //   - Instance segment: "hai3.mfes.comm.runtime.v1" (no trailing ~, marks it as an instance)
    ```
-2. Call `typeSystem.register({ id: ephemeralId, value })` — registers the ephemeral instance
-3. Call `typeSystem.validateInstance(ephemeralId)` — gts-ts extracts the schema from the ID prefix (the derived schema), resolves `allOf` base, and validates the `value` field against the constraint
+2. Call `typeSystem.register({ id: ephemeralId, value })` — registers the named instance. gts-ts extracts the schema automatically from the chained ID (the rightmost `~`-terminated prefix is the derived schema, e.g., `gts...theme.v1~`). No `type` field is needed.
+3. Call `typeSystem.validateInstance(ephemeralId)` — gts-ts looks up the instance, extracts the schema from the chained ID, resolves the derived schema (including `allOf` base), and validates the `value` field against the schema's constraint.
 4. If validation fails, throw with the validation errors. If it passes, proceed to store and propagate.
 
-The ephemeral instance's ID is not known in advance — it's generated at each call. gts-ts overwrites any previous instance with the same ID (though in practice each call generates a unique ID).
+The ephemeral ID is **deterministic per property type** (`${propertyTypeId}hai3.mfes.comm.runtime.v1`), so each call overwrites the previous instance for that property. No GTS store growth.
 
-This is the exact same `register()` + `validateInstance()` pattern used in `DefaultExtensionManager.registerDomain()` and `registerExtension()`. No new TypeSystemPlugin methods, no custom Ajv logic.
+This is the exact same `register()` + `validateInstance()` pattern used in `DefaultExtensionManager.registerDomain()`, `registerExtension()`, and `DefaultActionsChainsMediator.executeChainRecursive()`. No new TypeSystemPlugin methods, no custom Ajv logic.
 
-**Alternative considered**: Using the property type ID directly as the instance ID (re-registering on each update). Rejected because the property type ID is now a schema ID (ends with `~`) — gts-ts treats it as a schema, not an instance. Ephemeral instance IDs are the correct GTS approach.
+**Alternative considered**: Using an opaque/UUID-based instance ID with an explicit `type` field (anonymous instance pattern). Rejected because gts-ts's `validateInstance()` calls `parseGtsID()` which requires a valid GTS ID format (`gts.` prefix, proper 5-token segments). Opaque IDs like `${propertyTypeId}__runtime` fail parsing. The named instance pattern with a valid chained GTS ID is the correct approach — it is the same pattern used by actions chains and works with gts-ts out of the box.
 
 ### D5: Remove `SharedPropertiesProvider` (dead code)
 
@@ -166,8 +178,8 @@ The `supportedValues` field never existed in the TypeScript interface — it onl
 
 **[Breaking constant values]** → `HAI3_SHARED_PROPERTY_THEME` and `HAI3_SHARED_PROPERTY_LANGUAGE` gain a trailing `~`. All code using the constant names works automatically, but any hardcoded literal strings of the old values break. Mitigation: Search for all literal occurrences and update. No 3rd-party consumers exist yet (pre-release).
 
-**[Validation strictness]** → `updateDomainProperty()` will now throw on invalid values where it previously accepted anything. Mitigation: Only validates when `typeSystem` has a schema for the property type ID. If no schema is found (e.g., custom properties not yet registered), the value passes through unvalidated. This is a graceful degradation — validation is additive, not blocking.
+**[Validation strictness]** → `updateDomainProperty()` will now throw on invalid values where it previously accepted anything. This applies to both schema constraint violations (e.g., `"neon"` for theme) and missing schemas (e.g., a domain declares a property type that has no schema registered in the GTS store). A missing schema is a configuration error -- the domain declared a property type without registering the corresponding derived schema. In both cases, `typeSystem.validateInstance()` returns a failure and `updateDomainProperty()` throws. There is no graceful degradation: all declared property types must have registered schemas. Mitigation: This is pre-release, and all built-in property types (theme, language) ship with their schemas. Custom property types must register their derived schemas before use.
 
-**[Ephemeral instance accumulation]** → Each `updateDomainProperty` call registers an ephemeral instance in the GTS store with a unique generated ID. Mitigation: Use a deterministic ephemeral ID per property type (e.g., `${propertyTypeId}__runtime`) so each call overwrites the previous ephemeral instance for that property. No store growth.
+**[Ephemeral instance accumulation]** → Each `updateDomainProperty` call registers a named instance in the GTS store. Mitigation: The ephemeral ID is deterministic per property type (`${propertyTypeId}hai3.mfes.comm.runtime.v1`). Each call overwrites the previous instance for that property. No store growth.
 
 **[Test churn]** → Multiple test files assert `supportedValues` behavior and old constant values. Mitigation: These tests need updating regardless — they're testing the wrong contract. The new tests will validate the correct behavior (derived schemas, value validation).

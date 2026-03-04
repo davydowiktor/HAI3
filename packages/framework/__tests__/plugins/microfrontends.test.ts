@@ -363,8 +363,8 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(domain).toMatchObject({
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
         sharedProperties: [
-          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
-          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1',
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~',
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~',
         ],
         actions: [
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
@@ -384,8 +384,8 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(domain).toMatchObject({
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1',
         sharedProperties: [
-          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
-          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1',
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~',
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~',
         ],
         actions: [
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
@@ -405,8 +405,8 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(domain).toMatchObject({
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1',
         sharedProperties: [
-          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
-          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1',
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~',
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~',
         ],
         actions: [
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
@@ -428,8 +428,8 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(domain).toMatchObject({
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1',
         sharedProperties: [
-          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
-          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1',
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~',
+          'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~',
         ],
         actions: [
           'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',

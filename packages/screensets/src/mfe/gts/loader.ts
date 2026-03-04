@@ -23,6 +23,10 @@ import lifecycleHookSchema from './hai3.mfes/schemas/lifecycle/hook.v1.json';
 import manifestSchema from './hai3.mfes/schemas/mfe/mf_manifest.v1.json';
 import entryMfSchema from './hai3.mfes/schemas/mfe/entry_mf.v1.json';
 
+// Import derived shared property schemas
+import themeSharedPropertySchema from './hai3.mfes/schemas/comm/theme.v1.json';
+import languageSharedPropertySchema from './hai3.mfes/schemas/comm/language.v1.json';
+
 // Import lifecycle stage instances
 import lifecycleInitInstance from './hai3.mfes/instances/lifecycle/init.v1.json';
 import lifecycleActivatedInstance from './hai3.mfes/instances/lifecycle/activated.v1.json';
@@ -34,13 +38,9 @@ import loadExtActionInstance from './hai3.mfes/instances/ext/load_ext.v1.json';
 import mountExtActionInstance from './hai3.mfes/instances/ext/mount_ext.v1.json';
 import unmountExtActionInstance from './hai3.mfes/instances/ext/unmount_ext.v1.json';
 
-// Import shared property instances
-import themeSharedPropertyInstance from './hai3.mfes/instances/comm/theme.v1.json';
-import languageSharedPropertyInstance from './hai3.mfes/instances/comm/language.v1.json';
-
 /**
  * Load all core MFE schema JSON files.
- * These are the 11 first-class citizen schemas (8 core + 2 MF-specific + 1 built-in derived).
+ * These are the 13 first-class citizen schemas (8 core + 2 MF-specific + 3 built-in derived).
  *
  * @returns Array of JSON schemas for core MFE types
  */
@@ -58,8 +58,10 @@ export function loadSchemas(): JSONSchema[] {
     // MF-specific types (2)
     manifestSchema as JSONSchema,
     entryMfSchema as JSONSchema,
-    // Built-in derived types (1)
+    // Built-in derived types (3)
     extensionScreenSchema as JSONSchema,
+    themeSharedPropertySchema as JSONSchema,
+    languageSharedPropertySchema as JSONSchema,
   ];
 }
 
@@ -90,14 +92,4 @@ export function loadBaseActions(): Action[] {
     mountExtActionInstance,
     unmountExtActionInstance,
   ] as Action[];
-}
-
-/**
- * Load default shared property instances.
- * These are the 2 built-in shared properties: theme and language.
- *
- * @returns Array of shared property instances
- */
-export function loadSharedProperties(): unknown[] {
-  return [themeSharedPropertyInstance, languageSharedPropertyInstance];
 }

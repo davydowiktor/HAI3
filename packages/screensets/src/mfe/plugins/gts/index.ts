@@ -4,12 +4,13 @@
  * Implements TypeSystemPlugin using @globaltypesystem/gts-ts.
  * First-class citizen schemas are registered during plugin construction.
  *
- * GTS-Native Validation Model:
+ * GTS-Native Validation Model (named instance pattern):
  * - All runtime entities (schemas AND instances) must be registered with gtsStore
  * - Validation happens on registered instances by their instance ID
  * - Schema IDs end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~`)
  * - Instance IDs do NOT end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~acme.widget.v1`)
  * - gts-ts extracts the schema ID from the chained instance ID automatically
+ * - No `type` field is needed or supported — the schema is always resolved from the chained ID
  * - gts-ts uses Ajv INTERNALLY - we do NOT need Ajv as a direct dependency
  *
  * @packageDocumentation
@@ -26,7 +27,7 @@ import type {
   ValidationResult,
   JSONSchema,
 } from '../types';
-import { loadSchemas, loadLifecycleStages, loadBaseActions, loadSharedProperties } from '../../gts/loader';
+import { loadSchemas, loadLifecycleStages, loadBaseActions } from '../../gts/loader';
 
 /**
  * Concrete GTS plugin class implementing TypeSystemPlugin.
@@ -49,7 +50,7 @@ export class GtsPlugin implements TypeSystemPlugin {
   constructor() {
     this.gtsStore = new GtsStore();
 
-    // Load and register all first-class citizen schemas from JSON files (10 schemas)
+    // Load and register all first-class citizen schemas from JSON files (13 schemas)
     // These schemas are stored in packages/screensets/src/mfe/gts/hai3.mfe/schemas/
     const schemas = loadSchemas();
     for (const schema of schemas) {
@@ -73,13 +74,6 @@ export class GtsPlugin implements TypeSystemPlugin {
       this.gtsStore.register(entity);
     }
 
-    // Load and register default shared property instances from JSON files (2 instances)
-    // These instances are stored in packages/screensets/src/mfe/gts/hai3.mfe/instances/comm/
-    const sharedProperties = loadSharedProperties();
-    for (const property of sharedProperties) {
-      const entity: JsonEntity = createJsonEntity(property);
-      this.gtsStore.register(entity);
-    }
   }
 
   // === Schema Registry ===
@@ -115,21 +109,23 @@ export class GtsPlugin implements TypeSystemPlugin {
   // === Validation ===
 
   validateInstance(instanceId: string): ValidationResult {
-    // GtsStore.validateInstance takes the instance ID (NOT schema ID)
-    // gts-ts extracts the schema ID from the chained instance ID:
+    // GtsStore.validateInstance takes the instance ID (NOT schema ID).
+    // gts-ts extracts the schema ID from the chained instance ID automatically:
     // - Instance ID: gts.hai3.mfes.ext.extension.v1~acme.widget.v1
     // - Schema ID:   gts.hai3.mfes.ext.extension.v1~ (extracted automatically)
+    // All callers must use the named instance pattern (chained GTS IDs only).
     const result: GtsValidationResult = this.gtsStore.validateInstance(instanceId);
+    if (result.ok) {
+      return {
+        valid: result.valid ?? false,
+        errors: [],
+      };
+    }
+
     return {
-      valid: result.ok && (result.valid ?? false),
+      valid: false,
       errors: result.error
-        ? [
-            {
-              path: '',
-              message: result.error,
-              keyword: 'validation',
-            },
-          ]
+        ? [{ path: '', message: result.error, keyword: 'validation' }]
         : [],
     };
   }

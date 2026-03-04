@@ -6,12 +6,7 @@
     "id": {
       "x-gts-ref": "/$id"
     },
-    "supportedValues": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    }
+    "value": {}
   },
-  "required": ["id", "supportedValues"]
+  "required": ["id"]
 }

@@ -10,7 +10,7 @@
  */
 
 import type { ParentMfeBridge, ChildMfeBridge } from '../handler/types';
-import type { SharedProperty, ActionsChain } from '../types';
+import type { ActionsChain } from '../types';
 import type { ActionHandler } from '../mediator/types';
 import type { ExtensionDomainState } from './extension-manager';
 import { RuntimeBridgeFactory } from './runtime-bridge-factory';
@@ -79,9 +79,9 @@ export class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
 
     childBridge.setChildDomainCallbacks(registerChildDomainCallback, unregisterChildDomainCallback);
 
-    // Populate initial properties from domain state
-    for (const [propertyTypeId, sharedProperty] of domainState.properties) {
-      childBridge.receivePropertyUpdate(propertyTypeId, sharedProperty);
+    // Populate initial properties from domain state (raw values)
+    for (const [propertyTypeId, rawValue] of domainState.properties) {
+      parentBridgeImpl.receivePropertyUpdate(propertyTypeId, rawValue);
     }
 
     // Subscribe to domain property updates and track subscribers for cleanup
@@ -89,8 +89,8 @@ export class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
       if (!domainState.propertySubscribers.has(propertyTypeId)) {
         domainState.propertySubscribers.set(propertyTypeId, new Set());
       }
-      const subscriber = (value: SharedProperty) => {
-        parentBridgeImpl.receivePropertyUpdate(value.id, value.value);
+      const subscriber = (receivedPropertyTypeId: string, value: unknown) => {
+        parentBridgeImpl.receivePropertyUpdate(receivedPropertyTypeId, value);
       };
       domainState.propertySubscribers.get(propertyTypeId)!.add(subscriber);
 

@@ -124,48 +124,159 @@ describe('GTS Plugin', () => {
     });
   });
 
-  describe('shared property instances', () => {
-    it('validates theme shared property instance', () => {
-      const result = gtsPlugin.validateInstance(HAI3_SHARED_PROPERTY_THEME);
+  describe('shared property base schema', () => {
+    it('base schema has value property (unconstrained)', () => {
+      const schema = gtsPlugin.getSchema('gts.hai3.mfes.comm.shared_property.v1~');
+      expect(schema).toBeDefined();
+      const properties = schema?.properties as Record<string, unknown>;
+      expect(properties).toHaveProperty('value');
+      expect(properties.value).toEqual({});
+    });
+
+    it('base schema does NOT have supportedValues property', () => {
+      const schema = gtsPlugin.getSchema('gts.hai3.mfes.comm.shared_property.v1~');
+      expect(schema).toBeDefined();
+      const properties = schema?.properties as Record<string, unknown>;
+      expect(properties).not.toHaveProperty('supportedValues');
+    });
+
+    it('base schema requires only id', () => {
+      const schema = gtsPlugin.getSchema('gts.hai3.mfes.comm.shared_property.v1~');
+      expect(schema).toBeDefined();
+      expect(schema?.required).toEqual(['id']);
+      expect(schema?.required).not.toContain('supportedValues');
+      expect(schema?.required).not.toContain('value');
+    });
+  });
+
+  describe('derived theme shared property schema', () => {
+    it('theme schema is registered as a schema (type ID ending with ~)', () => {
+      const schema = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_THEME);
+      expect(schema).toBeDefined();
+      expect(HAI3_SHARED_PROPERTY_THEME.endsWith('~')).toBe(true);
+    });
+
+    it('theme schema has $id ending with ~', () => {
+      const schema = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_THEME);
+      expect(schema?.$id).toBe(`gts://${HAI3_SHARED_PROPERTY_THEME}`);
+    });
+
+    it('theme schema constrains value to 5 enum strings', () => {
+      const schema = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_THEME);
+      expect(schema).toBeDefined();
+      const properties = schema?.properties as Record<string, { type?: string; enum?: string[] }>;
+      expect(properties.value).toBeDefined();
+      expect(properties.value.type).toBe('string');
+      expect(properties.value.enum).toHaveLength(5);
+      expect(properties.value.enum).toEqual(['default', 'light', 'dark', 'dracula', 'dracula-large']);
+    });
+
+    it('theme schema uses allOf derivation from base', () => {
+      const schema = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_THEME);
+      expect(schema).toBeDefined();
+      expect(Array.isArray((schema as Record<string, unknown>).allOf)).toBe(true);
+    });
+
+    it('theme schema does NOT have supportedValues', () => {
+      const schema = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_THEME);
+      const properties = schema?.properties as Record<string, unknown>;
+      expect(properties).not.toHaveProperty('supportedValues');
+    });
+  });
+
+  describe('derived language shared property schema', () => {
+    it('language schema is registered as a schema (type ID ending with ~)', () => {
+      const schema = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_LANGUAGE);
+      expect(schema).toBeDefined();
+      expect(HAI3_SHARED_PROPERTY_LANGUAGE.endsWith('~')).toBe(true);
+    });
+
+    it('language schema has $id ending with ~', () => {
+      const schema = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_LANGUAGE);
+      expect(schema?.$id).toBe(`gts://${HAI3_SHARED_PROPERTY_LANGUAGE}`);
+    });
+
+    it('language schema constrains value to 36 enum strings', () => {
+      const schema = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_LANGUAGE);
+      expect(schema).toBeDefined();
+      const properties = schema?.properties as Record<string, { type?: string; enum?: string[] }>;
+      expect(properties.value).toBeDefined();
+      expect(properties.value.type).toBe('string');
+      expect(properties.value.enum).toHaveLength(36);
+    });
+
+    it('language schema uses allOf derivation from base', () => {
+      const schema = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_LANGUAGE);
+      expect(schema).toBeDefined();
+      expect(Array.isArray((schema as Record<string, unknown>).allOf)).toBe(true);
+    });
+
+    it('language schema does NOT have supportedValues', () => {
+      const schema = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_LANGUAGE);
+      const properties = schema?.properties as Record<string, unknown>;
+      expect(properties).not.toHaveProperty('supportedValues');
+    });
+  });
+
+  describe('shared property runtime validation via named instances', () => {
+    const plugin = new GtsPlugin();
+
+    it('valid theme value passes validation using named instance pattern', () => {
+      // Named instance: chained GTS ID encodes the schema, no type field
+      const ephemeralId = `${HAI3_SHARED_PROPERTY_THEME}hai3.mfes.comm.runtime.v1`;
+      plugin.register({ id: ephemeralId, value: 'dark' });
+      const result = plugin.validateInstance(ephemeralId);
       expect(result.valid).toBe(true);
       expect(result.errors).toEqual([]);
     });
 
-    it('validates language shared property instance', () => {
-      const result = gtsPlugin.validateInstance(HAI3_SHARED_PROPERTY_LANGUAGE);
+    it('invalid theme value fails validation using named instance pattern', () => {
+      // 'neon' is not in the theme enum
+      const ephemeralId = `${HAI3_SHARED_PROPERTY_THEME}hai3.mfes.comm.runtime.v1`;
+      plugin.register({ id: ephemeralId, value: 'neon' });
+      const result = plugin.validateInstance(ephemeralId);
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('valid language value passes validation using named instance pattern', () => {
+      const ephemeralId = `${HAI3_SHARED_PROPERTY_LANGUAGE}hai3.mfes.comm.runtime.v1`;
+      plugin.register({ id: ephemeralId, value: 'fr' });
+      const result = plugin.validateInstance(ephemeralId);
       expect(result.valid).toBe(true);
       expect(result.errors).toEqual([]);
     });
 
-    it('theme instance has supportedValues with 5 theme IDs', () => {
-      // Access instance via getSchema (GtsStore returns both schemas and instances)
-      const instance = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_THEME);
-      expect(instance).toBeDefined();
-      expect((instance as { supportedValues?: string[] })?.supportedValues).toBeDefined();
-      expect((instance as { supportedValues?: string[] })?.supportedValues).toHaveLength(5);
-      expect((instance as { supportedValues?: string[] })?.supportedValues).toEqual(['default', 'light', 'dark', 'dracula', 'dracula-large']);
+    it('invalid language value fails validation using named instance pattern', () => {
+      // 'klingon' is not a valid language code
+      const ephemeralId = `${HAI3_SHARED_PROPERTY_LANGUAGE}hai3.mfes.comm.runtime.v1`;
+      plugin.register({ id: ephemeralId, value: 'klingon' });
+      const result = plugin.validateInstance(ephemeralId);
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    it('language instance has supportedValues with 36 language codes', () => {
-      // Access instance via getSchema (GtsStore returns both schemas and instances)
-      const instance = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_LANGUAGE);
-      expect(instance).toBeDefined();
-      expect((instance as { supportedValues?: string[] })?.supportedValues).toBeDefined();
-      expect((instance as { supportedValues?: string[] })?.supportedValues).toHaveLength(36);
+    it('re-registering same ephemeral ID overwrites previous named instance', () => {
+      // First call with invalid value
+      const ephemeralId = `${HAI3_SHARED_PROPERTY_THEME}hai3.mfes.comm.runtime.v1`;
+      plugin.register({ id: ephemeralId, value: 'neon' });
+      const firstResult = plugin.validateInstance(ephemeralId);
+      expect(firstResult.valid).toBe(false);
+
+      // Second call overwrites with valid value
+      plugin.register({ id: ephemeralId, value: 'light' });
+      const secondResult = plugin.validateInstance(ephemeralId);
+      expect(secondResult.valid).toBe(true);
     });
 
-    it('theme instance does not have value field', () => {
-      // Access instance via getSchema (GtsStore returns both schemas and instances)
-      const instance = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_THEME);
-      expect(instance).toBeDefined();
-      expect(instance).not.toHaveProperty('value');
-    });
-
-    it('language instance does not have value field', () => {
-      // Access instance via getSchema (GtsStore returns both schemas and instances)
-      const instance = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_LANGUAGE);
-      expect(instance).toBeDefined();
-      expect(instance).not.toHaveProperty('value');
+    it('schema is extracted from the chained ID — no type field used', () => {
+      // Confirm that registration without a type field succeeds for valid values
+      const ephemeralId = `${HAI3_SHARED_PROPERTY_THEME}hai3.mfes.comm.runtime.v1`;
+      const entity: Record<string, unknown> = { id: ephemeralId, value: 'dark' };
+      expect(entity).not.toHaveProperty('type');
+      plugin.register(entity);
+      const result = plugin.validateInstance(ephemeralId);
+      expect(result.valid).toBe(true);
     });
   });
 
@@ -191,32 +302,6 @@ describe('GTS Plugin', () => {
         required: ['label', 'route'],
       });
       expect(schema?.required).toContain('presentation');
-    });
-  });
-
-  describe('shared property schema design', () => {
-    it('shared property schema requires supportedValues', () => {
-      const schema = gtsPlugin.getSchema('gts.hai3.mfes.comm.shared_property.v1~');
-      expect(schema).toBeDefined();
-      expect(schema?.required).toContain('supportedValues');
-    });
-
-    it('shared property schema does NOT require value', () => {
-      const schema = gtsPlugin.getSchema('gts.hai3.mfes.comm.shared_property.v1~');
-      expect(schema).toBeDefined();
-      expect(schema?.required).not.toContain('value');
-    });
-
-    it('shared property schema supportedValues is array of strings', () => {
-      const schema = gtsPlugin.getSchema('gts.hai3.mfes.comm.shared_property.v1~');
-      expect(schema).toBeDefined();
-      const properties = schema?.properties as Record<string, unknown>;
-      expect(properties.supportedValues).toMatchObject({
-        type: 'array',
-        items: {
-          type: 'string',
-        },
-      });
     });
   });
 });

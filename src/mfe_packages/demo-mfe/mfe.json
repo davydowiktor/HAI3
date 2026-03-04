@@ -22,8 +22,8 @@
     {
       "id": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.demo.mfe.helloworld.v1",
       "requiredProperties": [
-        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1",
-        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1"
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~",
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~"
       ],
       "actions": [],
       "domainActions": [],
@@ -33,8 +33,8 @@
     {
       "id": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.demo.mfe.profile.v1",
       "requiredProperties": [
-        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1",
-        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1"
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~",
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~"
       ],
       "actions": [],
       "domainActions": [],
@@ -44,8 +44,8 @@
     {
       "id": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.demo.mfe.theme.v1",
       "requiredProperties": [
-        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1",
-        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1"
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~",
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~"
       ],
       "actions": [],
       "domainActions": [],
@@ -55,8 +55,8 @@
     {
       "id": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.demo.mfe.uikit.v1",
       "requiredProperties": [
-        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1",
-        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1"
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~",
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~"
       ],
       "actions": [],
       "domainActions": [],

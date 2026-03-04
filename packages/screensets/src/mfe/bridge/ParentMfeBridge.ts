@@ -12,6 +12,8 @@ import type { ActionsChain, SharedProperty } from '../types';
 import type { ChildMfeBridgeImpl } from './ChildMfeBridge';
 import { BridgeDisposedError } from '../errors';
 
+type PropertySubscriber = (propertyTypeId: string, value: unknown) => void;
+
 /**
  * Internal implementation of ParentMfeBridge.
  * Used by the host to manage a child MFE instance.
@@ -37,7 +39,7 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
    * Maps propertyTypeId to the subscriber callback, so we can remove them on disposal.
    * INTERNAL: Set by bridge factory during creation.
    */
-  private readonly propertySubscribers = new Map<string, (value: SharedProperty) => void>();
+  private readonly propertySubscribers = new Map<string, PropertySubscriber>();
 
   /**
    * Unique instance ID for the child MFE.
@@ -102,7 +104,7 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
    */
   registerPropertySubscriber(
     propertyTypeId: string,
-    subscriber: (value: SharedProperty) => void
+    subscriber: PropertySubscriber
   ): void {
     this.propertySubscribers.set(propertyTypeId, subscriber);
   }
@@ -113,7 +115,7 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
    *
    * @returns Map of propertyTypeId to subscriber callbacks
    */
-  getPropertySubscribers(): Map<string, (value: SharedProperty) => void> {
+  getPropertySubscribers(): Map<string, PropertySubscriber> {
     return this.propertySubscribers;
   }
 

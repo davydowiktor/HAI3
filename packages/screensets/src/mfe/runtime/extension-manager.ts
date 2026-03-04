@@ -12,7 +12,6 @@ import type {
   ExtensionDomain,
   Extension,
   MfeEntry,
-  SharedProperty,
 } from '../types';
 import type { ParentMfeBridge } from '../handler/types';
 
@@ -22,9 +21,9 @@ import type { ParentMfeBridge } from '../handler/types';
  */
 export interface ExtensionDomainState {
   domain: ExtensionDomain;
-  properties: Map<string, SharedProperty>;
+  properties: Map<string, unknown>;
   extensions: Set<string>;
-  propertySubscribers: Map<string, Set<(value: SharedProperty) => void>>;
+  propertySubscribers: Map<string, Set<(propertyTypeId: string, value: unknown) => void>>;
   /** Currently mounted extension ID (single extension per domain invariant) */
   mountedExtension: string | undefined;
 }

@@ -12,7 +12,6 @@ import type {
   ExtensionDomain,
   Extension,
   MfeEntry,
-  SharedProperty,
 } from '../types';
 import type { TypeSystemPlugin } from '../plugins/types';
 import {
@@ -371,15 +370,29 @@ export class DefaultExtensionManager extends ExtensionManager {
       throw new Error(`Property '${propertyTypeId}' not declared in domain '${domainId}'`);
     }
 
-    // Store as SharedProperty { id, value } to preserve type ID alongside value
-    const sharedProperty: SharedProperty = { id: propertyTypeId, value };
-    domainState.properties.set(propertyTypeId, sharedProperty);
+    // GTS runtime validation: register a named instance and validate against the derived schema.
+    // The ephemeral ID is a valid chained GTS instance ID — gts-ts extracts the schema from
+    // the chained ID automatically (same named instance pattern as actions chains).
+    // The deterministic ephemeralId ensures each call overwrites the previous instance (no store growth).
+    // No `type` field needed: the schema is resolved from the chained ID structure.
+    const ephemeralId = `${propertyTypeId}hai3.mfes.comm.runtime.v1`;
+    this.typeSystem.register({ id: ephemeralId, value });
+    const validation = this.typeSystem.validateInstance(ephemeralId);
+    if (!validation.valid) {
+      throw new Error(
+        `Property value for '${propertyTypeId}' failed validation: ` +
+        validation.errors.map(e => e.message).join(', ')
+      );
+    }
 
-    // Notify property subscribers
+    // Store raw value in domain state
+    domainState.properties.set(propertyTypeId, value);
+
+    // Notify property subscribers with (propertyTypeId, value)
     const subscribers = domainState.propertySubscribers.get(propertyTypeId);
     if (subscribers) {
       for (const callback of subscribers) {
-        callback(sharedProperty);
+        callback(propertyTypeId, value);
       }
     }
   }
@@ -397,8 +410,7 @@ export class DefaultExtensionManager extends ExtensionManager {
       throw new Error(`Domain '${domainId}' not registered`);
     }
 
-    const sharedProperty = domainState.properties.get(propertyTypeId);
-    return sharedProperty?.value;
+    return domainState.properties.get(propertyTypeId);
   }
 
   /**
