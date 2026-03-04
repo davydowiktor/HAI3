@@ -104,26 +104,32 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
       {/* Menu items */}
       <SidebarContent>
         <SidebarMenu>
-          {extensions.map((ext) => {
-            const isActive = ext.id === mountedId;
-            const pres = ext.presentation;
-            return (
-              <SidebarMenuItem key={ext.id}>
-                <SidebarMenuButton
-                  isActive={isActive}
-                  onClick={() => handleMenuItemClick(ext.id)}
-                  tooltip={collapsed ? pres.label : undefined}
-                >
-                  {pres.icon && (
-                    <SidebarMenuIcon>
-                      <Icon icon={pres.icon} className="w-4 h-4" />
-                    </SidebarMenuIcon>
-                  )}
-                  <span>{pres.label}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
+          {extensions.length === 0 ? (
+            <div className="px-3 py-4 text-sm text-muted-foreground">
+              No screens yet. Create a screenset with <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">hai3 screenset create</code> or add MFE packages.
+            </div>
+          ) : (
+            extensions.map((ext) => {
+              const isActive = ext.id === mountedId;
+              const pres = ext.presentation;
+              return (
+                <SidebarMenuItem key={ext.id}>
+                  <SidebarMenuButton
+                    isActive={isActive}
+                    onClick={() => handleMenuItemClick(ext.id)}
+                    tooltip={collapsed ? pres.label : undefined}
+                  >
+                    {pres.icon && (
+                      <SidebarMenuIcon>
+                        <Icon icon={pres.icon} className="w-4 h-4" />
+                      </SidebarMenuIcon>
+                    )}
+                    <span>{pres.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })
+          )}
         </SidebarMenu>
       </SidebarContent>
 

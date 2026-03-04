@@ -22,7 +22,7 @@ import {
 } from './commands/index.js';
 
 // CLI version
-const VERSION = '0.1.0';
+const VERSION = '0.1.0@test';
 
 // Register all commands
 registry.register(createCommand);
@@ -52,6 +52,7 @@ program
   .option('--no-studio', 'Exclude Studio package')
   .option('--uikit <type>', "UI kit to use ('hai3' for @hai3/uikit, 'none' for no UI kit)")
   .option('-l, --layer <type>', 'Create a package for a specific SDK layer (sdk, framework, react)')
+  .option('--local', 'Use local @hai3 packages from monorepo (file:) instead of npm')
   .action(async (projectName: string, options: Record<string, unknown>) => {
     const result = await executeCommand(
       createCommand,
@@ -60,6 +61,7 @@ program
         studio: options.studio as boolean | undefined,
         uikit: options.uikit as 'hai3' | 'none' | undefined,
         layer: options.layer as 'sdk' | 'framework' | 'react' | 'app' | undefined,
+        local: options.local as boolean | undefined,
       },
       { interactive: true }
     );

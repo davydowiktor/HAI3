@@ -34,13 +34,18 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
     // Step 1: Store shadow root reference safely
     this.shadowRoot = container instanceof ShadowRoot ? container : null;
 
-    // Step 2: Initialize base styles (Tailwind utilities, NO CSS variables)
+    // Step 2: Adopt host document styles into shadow root so Tailwind + uikit CSS apply
+    if (this.shadowRoot) {
+      this.adoptHostStylesIntoShadowRoot(this.shadowRoot);
+    }
+
+    // Step 3: Initialize base styles (Tailwind utilities, NO CSS variables)
     this.initializeStyles(container);
 
-    // Step 3: Read initial theme ID from bridge
+    // Step 4: Read initial theme ID from bridge
     const initialProperty = bridge.getProperty(HAI3_SHARED_PROPERTY_THEME);
 
-    // Step 4: Apply initial theme via applyThemeToShadowRoot
+    // Step 5: Apply initial theme via applyThemeToShadowRoot
     if (initialProperty && typeof initialProperty.value === 'string' && this.shadowRoot) {
       const theme = resolveTheme(initialProperty.value);
       if (theme) {
@@ -48,7 +53,7 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
       }
     }
 
-    // Step 5: Subscribe to future theme changes
+    // Step 6: Subscribe to future theme changes
     this.unsubscribeTheme = bridge.subscribeToProperty(
       HAI3_SHARED_PROPERTY_THEME,
       (property: SharedProperty) => {
@@ -61,10 +66,10 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
       }
     );
 
-    // Step 6: Create React root AFTER theme vars exist
+    // Step 7: Create React root AFTER theme vars exist
     this.root = createRoot(container);
 
-    // Step 7: Render with HAI3Provider wrapping
+    // Step 8: Render with HAI3Provider wrapping
     this.root.render(
       <HAI3Provider app={mfeApp}>
         {this.renderContent(bridge)}
@@ -86,6 +91,25 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
     if (this.root) {
       this.root.unmount();
       this.root = null;
+    }
+  }
+
+  /**
+   * Copy all inline &lt;style&gt; and &lt;link rel="stylesheet"&gt; from the host document
+   * into the shadow root so that Tailwind and @hai3/uikit styles apply inside the MFE.
+   * Called automatically when mounting into a ShadowRoot.
+   */
+  protected adoptHostStylesIntoShadowRoot(shadowRoot: ShadowRoot): void {
+    const styleElements = document.head.querySelectorAll('style');
+    for (const el of styleElements) {
+      const clone = document.createElement('style');
+      clone.textContent = el.textContent ?? '';
+      shadowRoot.appendChild(clone);
+    }
+    const linkElements = document.head.querySelectorAll('link[rel="stylesheet"]');
+    for (const el of linkElements) {
+      const clone = el.cloneNode(true) as HTMLLinkElement;
+      shadowRoot.appendChild(clone);
     }
   }
 

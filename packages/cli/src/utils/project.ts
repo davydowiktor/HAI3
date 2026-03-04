@@ -103,3 +103,59 @@ export async function screensetExists(
   const screensetPath = path.join(getScreensetsDir(projectRoot), screensetId);
   return fs.pathExists(screensetPath);
 }
+
+/**
+ * Find HAI3 monorepo root by walking up from a given path.
+ * A directory is the monorepo root if it has packages/ and a root package.json
+ * with workspaces that include "packages/*".
+ * Use when the CLI runs from a linked copy (npm link) so generated projects
+ * can reference local packages via file:.
+ */
+export async function findMonorepoRoot(fromPath: string): Promise<string | null> {
+  const envRoot = process.env.HAI3_MONOREPO_ROOT;
+  if (envRoot && (await fs.pathExists(path.join(envRoot, 'packages', 'react', 'package.json')))) {
+    return path.resolve(envRoot);
+  }
+
+  let currentDir = path.resolve(fromPath);
+  const { root } = path.parse(currentDir);
+
+  while (currentDir !== root) {
+    const pkgPath = path.join(currentDir, 'package.json');
+    const reactPkgPath = path.join(currentDir, 'packages', 'react', 'package.json');
+    if ((await fs.pathExists(pkgPath)) && (await fs.pathExists(reactPkgPath))) {
+      try {
+        const pkg = await fs.readJson(pkgPath);
+        const workspaces = pkg.workspaces as string[] | undefined;
+        if (Array.isArray(workspaces) && workspaces.some((w: string) => w.startsWith('packages/'))) {
+          return currentDir;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    currentDir = path.dirname(currentDir);
+  }
+
+  return null;
+}
+
+/**
+ * Resolve a @hai3 package name to a file: URL path relative to projectPath.
+ * e.g. '@hai3/react' with monorepoRoot /repo and projectPath /repo/app
+ * returns 'file:../packages/react'.
+ */
+export function getLocalPackageRef(
+  packageName: string,
+  monorepoRoot: string,
+  projectPath: string
+): string {
+  if (!packageName.startsWith('@hai3/')) {
+    return packageName;
+  }
+  const subPackage = packageName.slice('@hai3/'.length);
+  const packageDir = path.join(monorepoRoot, 'packages', subPackage);
+  const relativePath = path.relative(projectPath, packageDir);
+  const normalized = relativePath.split(path.sep).join('/');
+  return `file:${normalized}`;
+}

@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import type { GeneratedFile, Hai3Config, LayerType } from '../core/types.js';
 import { getTemplatesDir } from '../core/templates.js';
 import { isTargetApplicableToLayer, selectCommandVariant } from '../core/layers.js';
+import { getLocalPackageRef } from '../utils/project.js';
 
 /**
  * Input for project generation
@@ -16,6 +17,12 @@ export interface ProjectGeneratorInput {
   uikit?: 'hai3' | 'none';
   /** Project layer (SDK architecture tier) */
   layer?: LayerType;
+  /** Use local monorepo packages via file: (for linked CLI development) */
+  useLocalPackages?: boolean;
+  /** Monorepo root path when useLocalPackages is true */
+  monorepoRoot?: string;
+  /** Absolute path where the project will be written (for file: relative paths) */
+  projectPath?: string;
 }
 
 /**
@@ -55,7 +62,15 @@ async function readDirRecursive(
 export async function generateProject(
   input: ProjectGeneratorInput
 ): Promise<GeneratedFile[]> {
-  const { projectName, studio, uikit = 'hai3', layer = 'app' } = input;
+  const {
+    projectName,
+    studio,
+    uikit = 'hai3',
+    layer = 'app',
+    useLocalPackages = false,
+    monorepoRoot,
+    projectPath,
+  } = input;
   const templatesDir = getTemplatesDir();
   const files: GeneratedFile[] = [];
 
@@ -115,7 +130,7 @@ export async function generateProject(
     if (uikit === 'none') {
       const uikitDependentFiles = [
         'tailwind.config.ts',
-        'postcss.config.ts',
+        'postcss.config.js',
       ];
       if (uikitDependentFiles.includes(file)) {
         continue;
@@ -344,6 +359,7 @@ export async function generateProject(
   const devDependencies: Record<string, string> = {
     '@hai3/cli': 'alpha',
     '@j178/prek': '0.2.25',
+    '@originjs/vite-plugin-federation': '^1.4.1',
     '@types/lodash': '4.17.20',
     '@types/react': '19.0.8',
     '@types/react-dom': '19.0.3',
@@ -371,6 +387,20 @@ export async function generateProject(
   // Conditionally add @hai3/uikit dependency
   if (uikit === 'hai3') {
     dependencies['@hai3/uikit'] = 'alpha';
+  }
+
+  // When using local packages (linked CLI), replace @hai3/* with file: refs
+  if (useLocalPackages && monorepoRoot && projectPath) {
+    const toLocalRefs = (deps: Record<string, string>): Record<string, string> => {
+      const out: Record<string, string> = {};
+      for (const [name, value] of Object.entries(deps)) {
+        out[name] =
+          name.startsWith('@hai3/') ? getLocalPackageRef(name, monorepoRoot, projectPath) : value;
+      }
+      return out;
+    };
+    Object.assign(dependencies, toLocalRefs(dependencies));
+    Object.assign(devDependencies, toLocalRefs(devDependencies));
   }
 
   const packageJson = {

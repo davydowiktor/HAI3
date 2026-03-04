@@ -2,10 +2,12 @@ import fs from 'fs-extra';
 import path from 'path';
 import type { CommandDefinition } from '../../core/command.js';
 import { validationOk, validationError, type LayerType } from '../../core/types.js';
+import { getTemplatesDir } from '../../core/templates.js';
 import { generateProject } from '../../generators/project.js';
 import { generateLayerPackage } from '../../generators/layerPackage.js';
 import { writeGeneratedFiles } from '../../utils/fs.js';
 import { isValidPackageName } from '../../utils/validation.js';
+import { findMonorepoRoot } from '../../utils/project.js';
 import { aiSyncCommand } from '../ai/sync.js';
 
 /**
@@ -16,6 +18,8 @@ export interface CreateCommandArgs {
   studio?: boolean;
   uikit?: 'hai3' | 'none';
   layer?: LayerType;
+  /** Use local monorepo packages (file:) instead of npm registry */
+  local?: boolean;
 }
 
 /**
@@ -60,6 +64,11 @@ export const createCommand: CommandDefinition<
       description: 'Create a package for a specific SDK layer (sdk, framework, react)',
       type: 'string',
       choices: ['sdk', 'framework', 'react', 'app'],
+    },
+    {
+      name: 'local',
+      description: 'Use local @hai3 packages from monorepo (file:) instead of npm; requires CLI run from linked monorepo or HAI3_MONOREPO_ROOT',
+      type: 'boolean',
     },
   ],
 
@@ -219,12 +228,29 @@ export const createCommand: CommandDefinition<
     logger.info(`Creating project '${args.projectName}'...`);
     logger.newline();
 
+    // Resolve local packages when --local or HAI3_USE_LOCAL
+    const useLocal = args.local ?? (process.env.HAI3_USE_LOCAL === '1' || process.env.HAI3_USE_LOCAL === 'true');
+    let monorepoRoot: string | null = null;
+    if (useLocal) {
+      monorepoRoot = await findMonorepoRoot(getTemplatesDir());
+      if (!monorepoRoot) {
+        logger.warn(
+          'Local packages requested but HAI3 monorepo root not found. Set HAI3_MONOREPO_ROOT or run from a linked CLI inside the monorepo. Using registry versions.'
+        );
+      } else {
+        logger.info('Using local @hai3 packages from monorepo (file:).');
+      }
+    }
+
     // Generate project files (async - reads from templates)
     const files = await generateProject({
       projectName: args.projectName,
       studio: studio!,
       uikit: uikit || 'hai3',
       layer,
+      useLocalPackages: Boolean(monorepoRoot),
+      monorepoRoot: monorepoRoot ?? undefined,
+      projectPath,
     });
 
     // Write files

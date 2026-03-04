@@ -709,6 +709,14 @@ async function copyTemplates() {
     }
   }
 
+  // Overwrite MFE bootstrap with standalone version (no mfe_packages — new projects have no demo/blank MFEs)
+  const standaloneBootstrapSrc = path.join(CLI_ROOT, 'template-sources', 'standalone-mfe-bootstrap.ts');
+  const mfeBootstrapDest = path.join(TEMPLATES_DIR, 'src/app/mfe/bootstrap.ts');
+  if (await fs.pathExists(standaloneBootstrapSrc)) {
+    await fs.copy(standaloneBootstrapSrc, mfeBootstrapDest);
+    console.log('  ✓ src/app/mfe/bootstrap.ts (standalone template)');
+  }
+
   // Copy screensets from manifest
   for (const screenset of manifest.root.screensets) {
     const src = path.join(PROJECT_ROOT, 'src/screensets', screenset);

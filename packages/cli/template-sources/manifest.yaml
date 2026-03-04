@@ -38,7 +38,7 @@ root:
   description: "Files copied from monorepo root that serve both dev and template purposes"
   files:
     - index.html
-    - postcss.config.ts
+    - postcss.config.js
     - tailwind.config.ts
     - tsconfig.node.json
     - vite.config.ts
@@ -56,6 +56,7 @@ root:
     - src/app/icons       # Icon definitions
     - src/app/api         # API services (AccountsApiService)
     - src/app/components  # Reusable components (TextLoader)
+    - src/app/mfe         # MFE screen container and bootstrap
     - src/app/actions     # Bootstrap actions
     - src/app/effects     # Bootstrap effects
     - src/app/events      # Bootstrap events
