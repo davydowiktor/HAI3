@@ -13,7 +13,10 @@
     "react-dom": "19.2.4",
     "@hai3/react": "file:../../../packages/react",
     "tailwindcss": "^3.4.17",
-    "@hai3/uikit": "file:../../../packages/uikit"
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.0",
+    "class-variance-authority": "^0.7.1",
+    "@radix-ui/react-slot": "^1.1.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "4.3.4",

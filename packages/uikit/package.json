@@ -1,6 +1,7 @@
 {
   "name": "@hai3/uikit",
   "version": "0.3.0-alpha.1",
+  "deprecated": "Use locally owned shadcn components instead. See migration guide.",
   "description": "HAI3 UI Kit - Reusable React components built on shadcn/ui",
   "type": "module",
   "main": "./dist/index.cjs",

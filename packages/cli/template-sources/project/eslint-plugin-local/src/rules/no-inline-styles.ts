@@ -11,6 +11,7 @@ import type { JSXAttribute, Literal } from 'estree-jsx';
  * Allowed locations:
  * - packages/uikit/src/base/ (global base primitives)
  * - screensets/{name}/uikit/base/ (screenset base primitives - rare, needs justification)
+ * - mfe_packages/{name}/src/components/ui/ (MFE-owned shadcn components, same category as uikit/src/base)
  */
 function isInBaseUikitFolder(filename: string): boolean {
   // Global uikit base folder
@@ -21,6 +22,12 @@ function isInBaseUikitFolder(filename: string): boolean {
   // Screenset uikit base folder (pattern: screensets/*/uikit/base/)
   const screensetBasePattern = /[/\\]screensets[/\\][^/\\]+[/\\]uikit[/\\]base[/\\]/;
   if (screensetBasePattern.test(filename)) {
+    return true;
+  }
+
+  // MFE-owned shadcn base components (pattern: mfe_packages/*/src/components/ui/)
+  const mfeComponentsPattern = /[/\\]mfe_packages[/\\][^/\\]+[/\\]src[/\\]components[/\\]ui[/\\]/;
+  if (mfeComponentsPattern.test(filename)) {
     return true;
   }
 

@@ -310,34 +310,16 @@ export interface ThemeConfig {
 }
 
 /**
- * UIKit Theme type (from @hai3/uikit)
- * Used for themes that require custom apply functions (e.g., @hai3/uikit's applyTheme).
- * Using 'unknown' as the base type to accept any theme structure.
- */
-export type UikitTheme = unknown;
-
-/**
- * Theme apply function type
- * Generic to accept any theme type from UI kit implementations.
- * @internal - uses generic function signature for compatibility with various theme implementations
- */
-export interface ThemeApplyFn {
-  (theme: unknown, themeName?: string): void;
-}
-
-/**
  * Theme Registry Interface
  * Registry for managing themes.
  */
 export interface ThemeRegistry {
   /**
    * Register a theme.
-   * Supports both config-based API and UIKit theme API.
    *
-   * @param configOrId - ThemeConfig or theme ID (for UIKit themes)
-   * @param uikitTheme - UIKit Theme object (optional, for @hai3/uikit themes)
+   * @param config - Theme configuration with CSS variable map
    */
-  register(configOrId: ThemeConfig | string, uikitTheme?: UikitTheme): void;
+  register(config: ThemeConfig): void;
 
   /** Get theme by ID */
   get(id: string): ThemeConfig | undefined;
@@ -503,22 +485,7 @@ export interface ScreensetsConfig {
  * Themes Plugin Configuration
  * Configuration options for the themes plugin.
  */
-export interface ThemesConfig {
-  /**
-   * Custom apply function for UIKit themes.
-   * Called when a theme is applied to execute theme-specific logic.
-   *
-   * @example
-   * ```typescript
-   * import { applyTheme } from '@hai3/uikit';
-   *
-   * const app = createHAI3()
-   *   .use(themes({ applyFn: applyTheme }))
-   *   .build();
-   * ```
-   */
-  applyFn?: ThemeApplyFn;
-}
+export type ThemesConfig = Record<string, never>;
 
 // ============================================================================
 // Action Payloads

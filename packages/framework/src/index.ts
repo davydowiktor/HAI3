@@ -155,8 +155,6 @@ export type {
   PluginLifecycle,
   ThemeRegistry,
   ThemeConfig,
-  ThemeApplyFn,
-  UikitTheme,
   RouterMode,
   Preset,
   Presets,

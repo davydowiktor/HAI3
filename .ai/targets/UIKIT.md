@@ -1,41 +1,25 @@
 
-# UI Kit Guidelines
+# UI Kit Guidelines (DEPRECATED)
+
+> **DEPRECATED**: `@hai3/uikit` is deprecated. MFEs own their UI components locally using copy-owned shadcn/ui components in a `components/ui/` directory. Theme CSS variables are delivered automatically via CSS inheritance from `:root`.
 
 ## AI WORKFLOW (REQUIRED)
-1) Summarize 3-6 rules from this file before proposing changes.
-2) STOP if you add Redux or business logic, create custom base components, or bypass contracts.
+1) This package is deprecated. No new components should be added.
+2) STOP if asked to add new components to `@hai3/uikit`.
 
 ## SCOPE
-- All code under packages/uikit/**.
-- UI Kit is presentational only; no state management, no business logic.
-- All types and contracts are defined within the configured UI kit.
+- All code under packages/uikit/** is in maintenance-only mode.
+- No new features, components, or capabilities will be added.
+- Existing components remain as-is during the deprecation window.
 
-## CRITICAL RULES
-- Base components come from the configured UI kit; composites are built from base components.
-- No custom base components; if missing, add via the UI kit's component system.
-- All component types, props, and IDs must follow UiKitComponent enum and contract types.
-- Icons live in icons/ and are exported as React components (tree-shakeable); direct imports only.
-- FORBIDDEN: Registry patterns, runtime registration, or icon lookups.
-- Loading states must use Skeleton from base; no custom animated div skeletons.
-
-## STOP CONDITIONS
-- Adding Redux, effects, slice logic, or app-level state.
-- Implementing a component that does not match the contract type.
-- Writing manual skeletons instead of Skeleton.
+## MIGRATION
+- MFEs should copy needed components from `packages/uikit/src/base/` to their own `components/ui/` directory.
+- MFEs should add `clsx`, `tailwind-merge`, `class-variance-authority` as local dependencies.
+- Remove `@hai3/uikit` from `package.json` and `vite.config.ts` shared dependencies.
+- See the blank-MFE template (`src/mfe_packages/_blank-mfe/`) for the recommended pattern.
 
 ## FILE STRUCTURE RULES
-- Base components: packages/uikit/src/base/**.
-- Composites: packages/uikit/src/composite/**.
-- Icons: packages/uikit/src/icons/**.
-- Theme utilities: packages/uikit/src/theme/**.
-
-## COMPOSITE RULES
-- Composites accept value, onChange, and props; no side effects.
-- Composites must be reusable across screensets; screenset-only components stay in the screenset, not UI Kit.
-
-## PRE-DIFF CHECKLIST
-- [ ] Base or composite placement is correct.
-- [ ] Component props and types match the configured UI kit contracts.
-- [ ] No Redux, effects, or business logic added.
-- [ ] Icons exported from icons/, no string literal IDs.
-- [ ] Skeleton used for loading states where needed.
+- Base components: packages/uikit/src/base/**. (frozen)
+- Composites: packages/uikit/src/composite/**. (frozen)
+- Icons: packages/uikit/src/icons/**. (frozen)
+- Theme utilities: packages/uikit/src/theme/**. (frozen)

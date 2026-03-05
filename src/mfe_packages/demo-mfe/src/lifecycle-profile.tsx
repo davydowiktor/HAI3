@@ -37,6 +37,8 @@ class ProfileLifecycle extends ThemeAwareReactLifecycle {
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        color: hsl(var(--foreground));
+        background-color: hsl(var(--background));
       }
       .p-8 { padding: 2rem; } .p-4 { padding: 1rem; } .px-4 { padding-left: 1rem; padding-right: 1rem; }
       .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
@@ -49,7 +51,7 @@ class ProfileLifecycle extends ThemeAwareReactLifecycle {
       .gap-2 { gap: 0.5rem; } .gap-3 { gap: 0.75rem; } .gap-4 { gap: 1rem; }
       .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .border { border-width: 1px; } .border-gray-200 { border-color: rgb(229 231 235); }
+      .border { border-width: 1px; } .border-gray-200 { border-color: hsl(var(--border)); }
       .rounded-lg { border-radius: calc(var(--radius-lg)); } .rounded { border-radius: calc(var(--radius-md)); }
       .rounded-md { border-radius: calc(var(--radius-md)); }
       .text-3xl { font-size: 1.875rem; line-height: 2.25rem; } .text-2xl { font-size: 1.5rem; line-height: 2rem; }
@@ -59,6 +61,7 @@ class ProfileLifecycle extends ThemeAwareReactLifecycle {
       .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
       .text-gray-600 { color: hsl(var(--muted-foreground)); }
       .text-gray-500 { color: hsl(var(--muted-foreground)); }
+      .text-muted-foreground { color: hsl(var(--muted-foreground)); }
       .bg-background { background-color: hsl(var(--background)); }
       .bg-muted { background-color: hsl(var(--muted)); }
       .bg-primary { background-color: hsl(var(--primary)); }

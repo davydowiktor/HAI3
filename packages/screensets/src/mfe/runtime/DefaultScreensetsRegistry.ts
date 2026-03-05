@@ -620,6 +620,13 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
 
 
   /**
+   * Delegate theme CSS variable delivery to the mount manager.
+   */
+  setTheme(cssVars: Record<string, string>): void {
+    this.mountManager.setTheme(cssVars);
+  }
+
+  /**
    * Dispose the registry and clean up resources.
    * Cleans up all bridges, runtime connections, and internal state.
    */

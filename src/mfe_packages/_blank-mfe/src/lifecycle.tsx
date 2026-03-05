@@ -44,6 +44,8 @@ class BlankMfeLifecycle extends ThemeAwareReactLifecycle {
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        color: hsl(var(--foreground));
+        background-color: hsl(var(--background));
       }
 
       /* Tailwind utilities - layout */
@@ -67,7 +69,7 @@ class BlankMfeLifecycle extends ThemeAwareReactLifecycle {
 
       /* Tailwind utilities - borders */
       .border { border-width: 1px; }
-      .border-gray-200 { border-color: rgb(229 231 235); }
+      .border-gray-200 { border-color: hsl(var(--border)); }
       .rounded-lg { border-radius: calc(var(--radius-lg)); }
       .rounded { border-radius: calc(var(--radius-md)); }
 
@@ -85,6 +87,7 @@ class BlankMfeLifecycle extends ThemeAwareReactLifecycle {
       /* Tailwind utilities - colors (theme-aware) */
       .text-gray-600 { color: hsl(var(--muted-foreground)); }
       .text-gray-700 { color: hsl(var(--foreground) / 0.9); }
+      .text-muted-foreground { color: hsl(var(--muted-foreground)); }
       .bg-background { background-color: hsl(var(--background)); }
       .text-foreground { color: hsl(var(--foreground)); }
       .border-border { border-color: hsl(var(--border)); }

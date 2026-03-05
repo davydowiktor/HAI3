@@ -142,7 +142,7 @@ export function microfrontends(config: MicrofrontendsConfig = {}): HAI3Plugin {
       },
     },
 
-    onInit(): void {
+    onInit(app): void {
       // Wire the registry reference into actions module
       setMfeRegistry(screensetsRegistry);
 
@@ -151,12 +151,19 @@ export function microfrontends(config: MicrofrontendsConfig = {}): HAI3Plugin {
 
       // Set up theme propagation
       const themeUnsub = eventBus.on('theme/changed', (payload) => {
+        // Propagate theme name to domain properties
         for (const domainId of [HAI3_SCREEN_DOMAIN, HAI3_SIDEBAR_DOMAIN, HAI3_POPUP_DOMAIN, HAI3_OVERLAY_DOMAIN]) {
           try {
             screensetsRegistry.updateDomainProperty(domainId, HAI3_SHARED_PROPERTY_THEME, payload.themeId);
           } catch {
             // Domain may not be registered yet -- skip silently
           }
+        }
+
+        // Deliver CSS variables to mount manager for non-inheriting isolation contexts
+        const themeConfig = app.themeRegistry.get(payload.themeId);
+        if (themeConfig) {
+          screensetsRegistry.setTheme(themeConfig.variables);
         }
       });
 

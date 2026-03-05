@@ -168,6 +168,12 @@
 - Plugin guide: `packages/screensets/docs/mfe/plugin-interface.md`
 - GTS usage: `packages/screensets/docs/mfe/gts-plugin.md`
 
+## MFE BUILD CONFIGURATION
+- REQUIRED: `build.modulePreload: false` in every MFE vite.config.ts. Vite's modulePreload injects a `__vitePreload` helper that resolves chunk URLs against the page origin (host), not the MFE server origin, causing 404s in cross-origin MFE loading.
+- REQUIRED: `build.target: 'esnext'` for top-level await support (federation runtime uses it).
+- REQUIRED: `build.cssCodeSplit: false` for single CSS output in MFE bundles.
+- REFERENCE: See `src/mfe_packages/_blank-mfe/vite.config.ts` for canonical MFE vite configuration.
+
 ## MFE LIFECYCLE ARCHITECTURE
 - REQUIRED: MFE entries are lifecycle files exporting MfeEntryLifecycle (mount/unmount).
 - REQUIRED: ThemeAwareReactLifecycle abstract base class for React-based MFE entries.

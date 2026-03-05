@@ -1,5 +1,7 @@
 # @hai3/uikit
 
+> **DEPRECATED**: This package is deprecated. MFEs should own their UI components locally using copy-owned shadcn/ui components in a `components/ui/` directory. Theme CSS variables are delivered automatically via CSS inheritance from `:root`. See the blank-MFE template for the recommended pattern.
+
 Production-ready React component library for the HAI3 framework.
 
 ## Overview

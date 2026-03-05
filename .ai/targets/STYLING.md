@@ -15,7 +15,7 @@
 - Units: use rem-based tokens; px allowed only for border width.
 - Hierarchy: Tokens -> Themes -> Base -> Composite -> Core.
 - Dark mode: CSS variables via [data-theme].
-- Inline styles allowed ONLY in screensets/*/uikit/base/ (local base primitives).
+- Inline styles allowed ONLY in base UI component files (components/ui/ or uikit/base/).
 - No hardcoded colors or inline style={{}} elsewhere.
 
 ## STOP CONDITIONS

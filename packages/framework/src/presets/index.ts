@@ -4,7 +4,7 @@
  * Framework Layer: L2
  */
 
-import type { HAI3Plugin, Presets, ThemesConfig } from '../types';
+import type { HAI3Plugin, Presets } from '../types';
 import { screensets } from '../plugins/screensets';
 import { themes } from '../plugins/themes';
 import { layout } from '../plugins/layout';
@@ -17,8 +17,6 @@ import { microfrontends, type MicrofrontendsConfig } from '../plugins/microfront
  * Full preset configuration.
  */
 export interface FullPresetConfig {
-  /** Configuration for themes plugin */
-  themes?: ThemesConfig;
   /** Configuration for microfrontends plugin */
   microfrontends?: MicrofrontendsConfig;
 }
@@ -40,13 +38,11 @@ export interface FullPresetConfig {
  *
  * @example
  * ```typescript
- * import { applyTheme } from '@hai3/uikit';
  * import { MfeHandlerMF } from '@hai3/screensets/mfe/handler';
  * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
  *
  * const app = createHAI3()
  *   .use(full({
- *     themes: { applyFn: applyTheme },
  *     microfrontends: { mfeHandlers: [new MfeHandlerMF(gtsPlugin)] }
  *   }))
  *   .build();
@@ -56,7 +52,7 @@ export function full(config?: FullPresetConfig): HAI3Plugin[] {
   return [
     effects(),
     screensets({ autoDiscover: true }),
-    themes(config?.themes),
+    themes(),
     layout(),
     i18n(),
     mock(),
