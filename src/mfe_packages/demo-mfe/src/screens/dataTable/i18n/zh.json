@@ -1,0 +1,21 @@
+{
+  "title": "数据表格",
+  "description": "带有筛选、排序和分页功能的演示数据表格。",
+  "filter_placeholder": "筛选任务...",
+  "reset": "重置",
+  "toggle_columns": "切换列",
+  "view": "查看",
+  "no_results": "未找到结果。",
+  "col_id": "编号",
+  "col_title": "标题",
+  "col_status": "状态",
+  "col_priority": "优先级",
+  "col_created": "创建时间",
+  "status_todo": "待办",
+  "status_in_progress": "进行中",
+  "status_done": "已完成",
+  "status_cancelled": "已取消",
+  "priority_low": "低",
+  "priority_medium": "中",
+  "priority_high": "高"
+}

@@ -1,0 +1,21 @@
+{
+  "title": "Tabella Dati",
+  "description": "Una tabella dati demo con filtro, ordinamento e paginazione.",
+  "filter_placeholder": "Filtra attività...",
+  "reset": "Ripristina",
+  "toggle_columns": "Attiva/Disattiva colonne",
+  "view": "Visualizza",
+  "no_results": "Nessun risultato trovato.",
+  "col_id": "ID",
+  "col_title": "Titolo",
+  "col_status": "Stato",
+  "col_priority": "Priorità",
+  "col_created": "Creato",
+  "status_todo": "Da fare",
+  "status_in_progress": "In corso",
+  "status_done": "Completato",
+  "status_cancelled": "Annullato",
+  "priority_low": "Bassa",
+  "priority_medium": "Media",
+  "priority_high": "Alta"
+}

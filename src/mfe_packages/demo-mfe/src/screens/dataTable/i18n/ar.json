@@ -1,0 +1,21 @@
+{
+  "title": "جدول البيانات",
+  "description": "عرض توضيحي لجدول بيانات مع التصفية والفرز والتقسيم.",
+  "filter_placeholder": "تصفية المهام...",
+  "reset": "إعادة تعيين",
+  "toggle_columns": "تبديل الأعمدة",
+  "view": "عرض",
+  "no_results": "لم يتم العثور على نتائج.",
+  "col_id": "المعرف",
+  "col_title": "العنوان",
+  "col_status": "الحالة",
+  "col_priority": "الأولوية",
+  "col_created": "تاريخ الإنشاء",
+  "status_todo": "قيد الانتظار",
+  "status_in_progress": "قيد التنفيذ",
+  "status_done": "مكتمل",
+  "status_cancelled": "ملغى",
+  "priority_low": "منخفض",
+  "priority_medium": "متوسط",
+  "priority_high": "مرتفع"
+}

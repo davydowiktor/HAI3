@@ -1,0 +1,21 @@
+{
+  "title": "Datentabelle",
+  "description": "Eine Demo-Datentabelle mit Filterung, Sortierung und Paginierung.",
+  "filter_placeholder": "Aufgaben filtern...",
+  "reset": "Zurücksetzen",
+  "toggle_columns": "Spalten umschalten",
+  "view": "Ansicht",
+  "no_results": "Keine Ergebnisse gefunden.",
+  "col_id": "ID",
+  "col_title": "Titel",
+  "col_status": "Status",
+  "col_priority": "Priorität",
+  "col_created": "Erstellt",
+  "status_todo": "Offen",
+  "status_in_progress": "In Bearbeitung",
+  "status_done": "Erledigt",
+  "status_cancelled": "Abgebrochen",
+  "priority_low": "Niedrig",
+  "priority_medium": "Mittel",
+  "priority_high": "Hoch"
+}

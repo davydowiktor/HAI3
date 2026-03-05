@@ -480,11 +480,20 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     chunkFilename: string
   ): string[] {
     const filenames: string[] = [];
-    const regex = /from\s+['"](\.\.?\/[^'"]+)['"]/g;
+
+    // Named imports: import { x } from './dep.js'  /  export { x } from './dep.js'
+    const namedRegex = /from\s+['"](\.\.?\/[^'"]+)['"]/g;
     let match;
-    while ((match = regex.exec(source)) !== null) {
+    while ((match = namedRegex.exec(source)) !== null) {
       filenames.push(this.resolveRelativePath(chunkFilename, match[1]));
     }
+
+    // Bare side-effect imports: import './dep.js'
+    const bareRegex = /(?:^|;|\n)\s*import\s+['"](\.\.?\/[^'"]+)['"]\s*;/g;
+    while ((match = bareRegex.exec(source)) !== null) {
+      filenames.push(this.resolveRelativePath(chunkFilename, match[1]));
+    }
+
     return [...new Set(filenames)];
   }
 
@@ -525,6 +534,16 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     result = result.replace(
       /import\(\s*"(\.\.?\/[^"]+)"\s*\)/g,
       (_match, relPath: string) => `import("${resolve(relPath)}")`
+    );
+
+    // Bare side-effect imports: import './dep.js'
+    result = result.replace(
+      /import\s+'(\.\.?\/[^']+)'\s*;/g,
+      (_match, relPath: string) => `import '${resolve(relPath)}';`
+    );
+    result = result.replace(
+      /import\s+"(\.\.?\/[^"]+)"\s*;/g,
+      (_match, relPath: string) => `import "${resolve(relPath)}";`
     );
 
     return result;
