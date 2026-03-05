@@ -1,0 +1,21 @@
+{
+  "title": "Tableau de Données",
+  "description": "Un tableau de données démo avec filtrage, tri et pagination.",
+  "filter_placeholder": "Filtrer les tâches...",
+  "reset": "Réinitialiser",
+  "toggle_columns": "Basculer les colonnes",
+  "view": "Voir",
+  "no_results": "Aucun résultat trouvé.",
+  "col_id": "ID",
+  "col_title": "Titre",
+  "col_status": "Statut",
+  "col_priority": "Priorité",
+  "col_created": "Créé",
+  "status_todo": "À faire",
+  "status_in_progress": "En cours",
+  "status_done": "Terminé",
+  "status_cancelled": "Annulé",
+  "priority_low": "Faible",
+  "priority_medium": "Moyen",
+  "priority_high": "Élevé"
+}

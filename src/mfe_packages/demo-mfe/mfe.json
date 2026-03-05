@@ -62,6 +62,17 @@
       "domainActions": [],
       "manifest": "gts.hai3.mfes.mfe.mf_manifest.v1~hai3.demo.mfe.manifest.v1",
       "exposedModule": "./lifecycle-uikit"
+    },
+    {
+      "id": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.demo.mfe.datatable.v1",
+      "requiredProperties": [
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1",
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1"
+      ],
+      "actions": [],
+      "domainActions": [],
+      "manifest": "gts.hai3.mfes.mfe.mf_manifest.v1~hai3.demo.mfe.manifest.v1",
+      "exposedModule": "./lifecycle-datatable"
     }
   ],
   "extensions": [
@@ -107,6 +118,17 @@
         "icon": "lucide:component",
         "route": "/uikit-elements",
         "order": 40
+      }
+    },
+    {
+      "id": "gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.datatable.v1",
+      "domain": "gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1",
+      "entry": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.demo.mfe.datatable.v1",
+      "presentation": {
+        "label": "Data Table",
+        "icon": "lucide:table",
+        "route": "/data-table",
+        "order": 50
       }
     }
   ]

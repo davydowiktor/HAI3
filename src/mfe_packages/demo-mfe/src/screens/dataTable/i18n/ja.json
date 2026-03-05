@@ -1,0 +1,21 @@
+{
+  "title": "データテーブル",
+  "description": "フィルタリング、ソート、ページネーション機能付きのデモデータテーブル。",
+  "filter_placeholder": "タスクをフィルター...",
+  "reset": "リセット",
+  "toggle_columns": "列の切り替え",
+  "view": "表示",
+  "no_results": "結果が見つかりません。",
+  "col_id": "ID",
+  "col_title": "タイトル",
+  "col_status": "ステータス",
+  "col_priority": "優先度",
+  "col_created": "作成日",
+  "status_todo": "未着手",
+  "status_in_progress": "進行中",
+  "status_done": "完了",
+  "status_cancelled": "キャンセル",
+  "priority_low": "低",
+  "priority_medium": "中",
+  "priority_high": "高"
+}

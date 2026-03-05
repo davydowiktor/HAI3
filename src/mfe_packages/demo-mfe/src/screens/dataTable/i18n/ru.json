@@ -1,0 +1,21 @@
+{
+  "title": "Таблица данных",
+  "description": "Демо таблица данных с фильтрацией, сортировкой и пагинацией.",
+  "filter_placeholder": "Фильтр задач...",
+  "reset": "Сбросить",
+  "toggle_columns": "Переключить столбцы",
+  "view": "Вид",
+  "no_results": "Результатов не найдено.",
+  "col_id": "ID",
+  "col_title": "Название",
+  "col_status": "Статус",
+  "col_priority": "Приоритет",
+  "col_created": "Создано",
+  "status_todo": "К выполнению",
+  "status_in_progress": "В процессе",
+  "status_done": "Выполнено",
+  "status_cancelled": "Отменено",
+  "priority_low": "Низкий",
+  "priority_medium": "Средний",
+  "priority_high": "Высокий"
+}

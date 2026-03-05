@@ -28,6 +28,7 @@ export default defineConfig({
         './lifecycle-profile': './src/lifecycle-profile.tsx',
         './lifecycle-theme': './src/lifecycle-theme.tsx',
         './lifecycle-uikit': './src/lifecycle-uikit.tsx',
+        './lifecycle-datatable': './src/lifecycle-datatable.tsx',
       },
       shared: sharedDeps,
     }),

@@ -1,0 +1,21 @@
+{
+  "title": "Tabla de Datos",
+  "description": "Una tabla de datos demo con filtrado, ordenamiento y paginación.",
+  "filter_placeholder": "Filtrar tareas...",
+  "reset": "Restablecer",
+  "toggle_columns": "Alternar columnas",
+  "view": "Ver",
+  "no_results": "No se encontraron resultados.",
+  "col_id": "ID",
+  "col_title": "Título",
+  "col_status": "Estado",
+  "col_priority": "Prioridad",
+  "col_created": "Creado",
+  "status_todo": "Pendiente",
+  "status_in_progress": "En Progreso",
+  "status_done": "Completado",
+  "status_cancelled": "Cancelado",
+  "priority_low": "Baja",
+  "priority_medium": "Media",
+  "priority_high": "Alta"
+}
