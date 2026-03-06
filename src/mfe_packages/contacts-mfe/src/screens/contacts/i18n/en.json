@@ -1,0 +1,9 @@
+{
+  "title": "Contacts",
+  "description": "Browse and search your team contacts.",
+  "search_placeholder": "Search contacts...",
+  "no_contacts": "No contacts found.",
+  "total_count": "Total",
+  "status_active": "Active",
+  "status_inactive": "Inactive"
+}
