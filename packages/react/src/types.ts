@@ -15,6 +15,7 @@ import type {
   Language,
   Formatters,
 } from '@hai3/framework';
+import type { QueryClientConfig } from '@tanstack/react-query';
 import type { MfeContextValue } from './mfe/MfeContext';
 
 // Re-export imported types for convenience
@@ -65,6 +66,13 @@ export interface HAI3ProviderProps {
   app?: HAI3App;
   /** MFE bridge context (for MFE components) */
   mfeBridge?: MfeContextValue;
+  /**
+   * Optional overrides for the QueryClient defaults.
+   * HAI3 sets staleTime=30s, gcTime=5m, retry=0, refetchOnWindowFocus=true.
+   * Pass this to tune per-app. Retry should remain 0 unless the HAI3 plugin
+   * retry chain is disabled — enabling both causes double retries.
+   */
+  queryClientConfig?: QueryClientConfig;
 }
 
 // ============================================================================

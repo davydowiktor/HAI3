@@ -122,6 +122,10 @@
     - [Mock Mode Toggle](#mock-mode-toggle)
   - [5.20 Microfrontend Plugin](#520-microfrontend-plugin)
     - [MFE Lifecycle Plugin](#mfe-lifecycle-plugin)
+  - [5.21 Request Lifecycle & Data Management](#521-request-lifecycle-data-management)
+    - [Request Cancellation](#request-cancellation)
+    - [Declarative Query Hooks](#declarative-query-hooks)
+    - [Query Client Isolation](#query-client-isolation)
 - [6. Non-Functional Requirements](#6-non-functional-requirements)
   - [6.1 NFR Inclusions](#61-nfr-inclusions)
     - [Lazy Loading Performance](#lazy-loading-performance)
@@ -1059,6 +1063,35 @@ The system MUST provide a `microfrontends()` framework plugin with actions (`loa
 
 **Rationale**: Core orchestration plugin that integrates MFE lifecycle management, theme/i18n propagation, and shared property bridging into the framework's plugin chain.
 **Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-framework-plugin`
+
+### 5.21 Request Lifecycle & Data Management
+
+#### Request Cancellation
+
+- [ ] `p1` - **ID**: `cpt-hai3-fr-api-request-cancellation`
+
+`RestProtocol` HTTP methods (`get`, `post`, `put`, `patch`, `delete`) MUST accept an optional `AbortSignal` via a `RestRequestOptions` parameter. When the signal is aborted, the in-flight Axios request MUST be canceled and the error MUST NOT enter the `onError` plugin chain or trigger retries.
+
+**Rationale**: Enables callers to cancel requests on component unmount, navigation, or user action — preventing wasted bandwidth, state updates on unmounted components, and memory leaks.
+**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
+
+#### Declarative Query Hooks
+
+- [ ] `p2` - **ID**: `cpt-hai3-fr-react-query-hooks`
+
+`@hai3/react` MUST export `useApiQuery` and `useApiMutation` hooks that wrap `@tanstack/react-query` and integrate with existing `BaseApiService` instances. `useApiQuery` MUST provide automatic caching, request deduplication, stale-while-revalidate, background refetch on window focus, and request cancellation on unmount. `useApiMutation` MUST support optimistic updates via `onMutate` with rollback on error, and cache invalidation via `queryClient.invalidateQueries`.
+
+**Rationale**: Eliminates per-endpoint boilerplate (action, event, effect, slice) for component-level reads and writes while preserving the plugin chain, mock mode, and service registry.
+**Actors**: `cpt-hai3-actor-screenset-author`, `cpt-hai3-actor-developer`
+
+#### Query Client Isolation
+
+- [ ] `p2` - **ID**: `cpt-hai3-fr-react-query-client-isolation`
+
+`HAI3Provider` MUST create and provide a `QueryClient` with configurable defaults (`staleTime`, `gcTime`, `retry: 0`). In MFE mode, each micro-frontend MUST receive its own isolated `QueryClient` via `MfeProvider` to prevent cache key collisions between independently developed extensions.
+
+**Rationale**: Per-MFE isolation mirrors the existing Redux slice namespace pattern and prevents unintended cache sharing across extension boundaries.
+**Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-runtime`
 
 ## 6. Non-Functional Requirements
 

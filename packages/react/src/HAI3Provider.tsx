@@ -7,14 +7,42 @@
 // @cpt-algo:cpt-hai3-algo-react-bindings-resolve-app:p1
 // @cpt-algo:cpt-hai3-algo-react-bindings-build-provider-tree:p1
 // @cpt-dod:cpt-hai3-dod-react-bindings-provider:p1
+// @cpt-dod:cpt-hai3-dod-request-lifecycle-query-provider:p2
+// @cpt-flow:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2
+// @cpt-algo:cpt-hai3-algo-request-lifecycle-query-client-defaults:p2
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createHAI3App } from '@hai3/framework';
 import type { HAI3App } from '@hai3/framework';
 import { HAI3Context } from './HAI3Context';
 import { MfeProvider } from './mfe/MfeProvider';
 import type { HAI3ProviderProps } from './types';
+
+// @cpt-begin:cpt-hai3-algo-request-lifecycle-query-client-defaults:p2:inst-build-defaults
+/**
+ * Builds a QueryClient with HAI3 defaults merged with optional caller overrides.
+ *
+ * retry: 0 because HAI3's RestProtocol plugin chain handles retry internally.
+ * Enabling TanStack retry on top would cause double retries for every failed request.
+ */
+function buildQueryClient(config?: ConstructorParameters<typeof QueryClient>[0]): QueryClient {
+  return new QueryClient({
+    ...config,
+    defaultOptions: {
+      ...config?.defaultOptions,
+      queries: {
+        staleTime: 30_000,
+        gcTime: 300_000,
+        retry: 0,
+        refetchOnWindowFocus: true,
+        ...config?.defaultOptions?.queries,
+      },
+    },
+  });
+}
+// @cpt-end:cpt-hai3-algo-request-lifecycle-query-client-defaults:p2:inst-build-defaults
 
 /**
  * HAI3 Provider Component
@@ -48,12 +76,21 @@ import type { HAI3ProviderProps } from './types';
  */
 // @cpt-begin:cpt-hai3-flow-react-bindings-bootstrap-provider:p1:inst-render-provider
 // @cpt-begin:cpt-hai3-dod-react-bindings-provider:p1:inst-render-provider
+// @cpt-begin:cpt-hai3-dod-request-lifecycle-query-provider:p2:inst-render-provider
 export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
   children,
   config,
   app: providedApp,
   mfeBridge,
+  queryClientConfig,
 }) => {
+  // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-create-query-client
+  // useState with initializer ensures a single QueryClient per mount, not per render.
+  // queryClientConfig is read once at mount; runtime changes are intentionally ignored
+  // because recreating the client would drop the entire cache unexpectedly.
+  const [queryClient] = useState(() => buildQueryClient(queryClientConfig));
+  // @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-create-query-client
+
   // @cpt-begin:cpt-hai3-flow-react-bindings-bootstrap-provider:p1:inst-resolve-app
   // @cpt-begin:cpt-hai3-algo-react-bindings-resolve-app:p1:inst-use-provided-app
   // @cpt-begin:cpt-hai3-algo-react-bindings-resolve-app:p1:inst-create-app
@@ -91,11 +128,17 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
   // @cpt-begin:cpt-hai3-flow-react-bindings-bootstrap-provider:p1:inst-set-hai3-context
   // @cpt-begin:cpt-hai3-flow-react-bindings-bootstrap-provider:p1:inst-set-redux-provider
   // @cpt-begin:cpt-hai3-flow-react-bindings-bootstrap-provider:p1:inst-render-children
-  // Render content
+  // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-render-query-provider
+  // Provider order (outer to inner):
+  //   HAI3Context -> ReduxProvider -> QueryClientProvider -> children
+  // QueryClientProvider is innermost so MFE overrides (from MfeProvider) can shadow it
+  // when a component tree is wrapped by both HAI3Provider and MfeProvider.
   const content = (
     <HAI3Context.Provider value={app}>
       <ReduxProvider store={app.store as Parameters<typeof ReduxProvider>[0]['store']}>
-        {children}
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
       </ReduxProvider>
     </HAI3Context.Provider>
   );
@@ -105,6 +148,7 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
   // @cpt-end:cpt-hai3-flow-react-bindings-bootstrap-provider:p1:inst-set-hai3-context
   // @cpt-end:cpt-hai3-flow-react-bindings-bootstrap-provider:p1:inst-set-redux-provider
   // @cpt-end:cpt-hai3-flow-react-bindings-bootstrap-provider:p1:inst-render-children
+  // @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-render-query-provider
 
   // @cpt-begin:cpt-hai3-algo-react-bindings-build-provider-tree:p1:inst-wrap-mfe-conditional
   // @cpt-begin:cpt-hai3-flow-react-bindings-bootstrap-provider:p2:inst-wrap-mfe-provider
@@ -123,3 +167,4 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
 };
 // @cpt-end:cpt-hai3-flow-react-bindings-bootstrap-provider:p1:inst-render-provider
 // @cpt-end:cpt-hai3-dod-react-bindings-provider:p1:inst-render-provider
+// @cpt-end:cpt-hai3-dod-request-lifecycle-query-provider:p2:inst-render-provider

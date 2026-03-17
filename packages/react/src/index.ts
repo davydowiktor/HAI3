@@ -27,7 +27,14 @@ export {
   useScreenTranslations,
   useFormatters,
   useTheme,
+  useApiQuery,
+  queryOptions,
+  useApiMutation,
+  useQueryClient,
 } from './hooks';
+
+export type { UseApiQueryOptions } from './hooks/useApiQuery';
+export type { UseApiMutationOptions } from './hooks/useApiMutation';
 
 // ============================================================================
 // MFE Context and Hooks
