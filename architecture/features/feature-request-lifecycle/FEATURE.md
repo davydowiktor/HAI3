@@ -34,7 +34,7 @@
   - [TanStack Query Retry Disabled by Default](#tanstack-query-retry-disabled-by-default)
   - [Event-Driven Pattern Coexistence](#event-driven-pattern-coexistence)
   - [AbortSignal in Short-Circuit Path](#abortsignal-in-short-circuit-path)
-  - [Per-MFE QueryClient Isolation](#per-mfe-queryclient-isolation)
+  - [Shared QueryClient Across MFEs](#shared-queryclient-across-mfes)
 
 <!-- /toc -->
 
@@ -155,7 +155,7 @@ Success criteria: A developer can fetch data with `useApiQuery` and submit chang
 
 1. [ ] - `p2` - `HAI3Provider` creates a `QueryClient` instance with default options during mount — `inst-create-query-client`
 2. [ ] - `p2` - `HAI3Provider` renders `QueryClientProvider` wrapping children, making the client available to all query hooks — `inst-render-query-provider`
-3. [ ] - `p2` - IF MFE mode, each MFE receives its own `QueryClient` via `MfeProvider` for isolation — `inst-mfe-query-client`
+3. [ ] - `p2` - IF MFE mode, MFEs inherit the host's `QueryClient` from `HAI3Provider` — shared cache across all MFEs, each using its own `apiRegistry` as `queryFn` — `inst-mfe-query-client`
 4. [ ] - `p2` - On `HAI3Provider` unmount, `QueryClient` is cleared and garbage-collected — `inst-cleanup-query-client`
 
 ---
@@ -308,13 +308,13 @@ The system **MUST** support request cancellation via `AbortSignal` in `RestProto
 
 - [ ] `p2` - **ID**: `cpt-hai3-dod-request-lifecycle-query-provider`
 
-The system **MUST** create and provide a `QueryClient` instance via `QueryClientProvider` inside `HAI3Provider`, with sensible defaults and per-MFE isolation.
+The system **MUST** create and provide a single `QueryClient` instance via `QueryClientProvider` inside `HAI3Provider`, shared across all MFEs.
 
 **Implementation details**:
 
 - Package: `@tanstack/react-query` added as peer dependency of `@hai3/react`
 - Component: `HAI3Provider` in `packages/react/src/HAI3Provider.tsx` — wrap children with `QueryClientProvider`
-- Component: `MfeProvider` in `packages/react/src/mfe/MfeProvider.tsx` — create per-MFE `QueryClient` for isolation
+- Component: `MfeProvider` in `packages/react/src/mfe/MfeProvider.tsx` — does NOT create its own `QueryClient`; MFEs inherit the host's client from `HAI3Provider`
 - Config: Default `staleTime: 30_000`, `gcTime: 300_000`, `retry: 0`, `refetchOnWindowFocus: true`
 - Props: `HAI3ProviderProps.queryClientConfig` for override
 
@@ -390,7 +390,7 @@ The system **MUST** export a `useApiMutation` hook from `@hai3/react` that wraps
 - [ ] Canceled requests do NOT enter the `onError` plugin chain and are NOT retried
 - [ ] Existing callers without `signal` option continue to work unchanged (backward compatible)
 - [ ] `HAI3Provider` renders `QueryClientProvider` with default configuration
-- [ ] Each MFE receives its own isolated `QueryClient` instance
+- [ ] All MFEs share the host's `QueryClient` — overlapping query keys are deduplicated across MFE boundaries
 - [ ] `useApiQuery` returns `{ data, isLoading, error }` and automatically cancels on unmount
 - [ ] Two components with the same `queryKey` result in a single HTTP request (deduplication)
 - [ ] Stale data is returned immediately on re-mount, with background refetch
@@ -422,6 +422,6 @@ The existing event-driven Flux pattern (action → event → effect → reducer)
 
 When a mock plugin short-circuits a request, the `AbortSignal` is ignored because no HTTP call is made. This is correct behavior — there is nothing to abort. The short-circuit response is returned synchronously to the plugin chain.
 
-### Per-MFE QueryClient Isolation
+### Shared QueryClient Across MFEs
 
-Each MFE gets its own `QueryClient` to prevent cache key collisions between independently developed micro-frontends. This mirrors the existing pattern where each MFE has its own Redux store slice namespace. MFEs cannot share cache entries, which is intentional for isolation.
+All MFEs share the host's `QueryClient` from `HAI3Provider`. Cache is keyed by query key and is decoupled from which service instance fetches the data. When two MFEs use the same query key (e.g., `['accounts', 'current-user']`), only one HTTP request fires — the second MFE receives the cached result. Each MFE still uses its own `apiRegistry` and service instances in `queryFn`. This is safe because all MFEs share the same auth and base URL for overlapping endpoints. `MfeProvider` does not create its own `QueryClient`.

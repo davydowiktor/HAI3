@@ -16,6 +16,7 @@ date: 2026-03-17
   - [Confirmation](#confirmation)
 - [Pros and Cons of the Options](#pros-and-cons-of-the-options)
   - [Adopt @tanstack/react-query at L3](#adopt-tanstackreact-query-at-l3)
+  - [Adopt RTK Query leveraging the existing Redux store](#adopt-rtk-query-leveraging-the-existing-redux-store)
   - [Build a custom query/cache layer inside @hai3/react](#build-a-custom-querycache-layer-inside-hai3react)
   - [Keep Flux-only pattern with CLI boilerplate generators](#keep-flux-only-pattern-with-cli-boilerplate-generators)
 - [More Information](#more-information)
@@ -33,17 +34,18 @@ These are solved problems in the React ecosystem. The question is whether to bui
 
 ## Decision Drivers
 
-* Eliminate per-endpoint boilerplate (action → event → effect → slice) for both reads and writes
 * Provide request deduplication, caching, and stale-while-revalidate out of the box
+* Enable a shared cache across MFEs so overlapping queries (e.g., current user) are fetched once, while each MFE retains its own API service instances and plugin chains
 * Support optimistic updates with rollback for mutations
 * Preserve the existing plugin chain, mock mode, and service registry at L1
 * Respect the layer hierarchy: no new dependencies below L3
-* Minimize bundle size impact for MFE isolation (each MFE bundles its own dependencies)
+* Minimize bundle size impact
 * Maintain the event-driven Flux pattern as an escape hatch for cross-feature orchestration
 
 ## Considered Options
 
 * Adopt `@tanstack/react-query` at L3 as the default for reads and writes
+* Adopt RTK Query (`@reduxjs/toolkit/query`) leveraging the existing Redux store
 * Build a custom query/cache layer inside `@hai3/react`
 * Keep the current Flux-only pattern and add per-feature boilerplate generators via CLI
 
@@ -51,16 +53,18 @@ These are solved problems in the React ecosystem. The question is whether to bui
 
 Chosen option: **Adopt `@tanstack/react-query` at L3**, because it provides caching, deduplication, optimistic updates, and cache invalidation with zero runtime dependencies in its core package, sits cleanly at the React layer without violating the L1/L2 boundary, and avoids rebuilding ~500 lines of battle-tested, race-condition-sensitive code (cache GC, structural sharing, stale tracking, subscriber lifecycle).
 
+RTK Query was evaluated as a natural candidate given HAI3's existing Redux dependency, but was rejected primarily because its `createApi` requires defining endpoints statically at build time with a single `baseQuery`, which conflicts with HAI3's architecture where each MFE has its own isolated `apiRegistry` and service instances. Wrapping per-MFE services into a shared `createApi` would require a service-bridge abstraction that negates the simplicity RTK Query is meant to provide. Additionally, RTK Query does not support automatic request cancellation on unmount, infinite queries, or structural sharing.
+
 The existing Flux pattern (action → event → effect → reducer) is retained as an escape hatch for cross-feature orchestration — mutations that must trigger effects across multiple screen-sets or update shared Redux state. For all other reads and writes, TanStack Query hooks are the default.
 
 ### Consequences
 
-* Good, because per-endpoint boilerplate drops from 5 files to a single `useApiQuery` or `useApiMutation` call with automatic loading/error/data states
 * Good, because request deduplication and stale-while-revalidate caching are automatic with no custom code
+* Good, because a single host-level `QueryClient` can be shared across all MFEs — cache is keyed by query key, decoupled from which service instance fetches the data, so overlapping queries across MFEs are deduplicated and cached once
 * Good, because optimistic updates and rollback are supported via the `onMutate`/`onError` callback pattern
 * Good, because `@tanstack/query-core` has zero runtime dependencies and ~12kB gzipped bundle size
+* Good, because each MFE retains its own `apiRegistry` and service instances — `queryFn` wraps the local service, but the cache layer is shared
 * Bad, because two data-fetching patterns coexist (TanStack hooks for component-level operations, Flux for cross-feature orchestration), requiring a clear decision rule for authors
-* Bad, because each MFE needs its own `QueryClient` instance for isolation, adding ~12kB per MFE bundle
 * Bad, because TanStack Query's built-in retry must be disabled (set to 0) to avoid double-retry with the existing `onError` plugin chain
 
 ### Confirmation
@@ -69,9 +73,9 @@ Confirmed when:
 
 * `@tanstack/react-query` is declared as a peer dependency of `@hai3/react` (not bundled)
 * `HAI3Provider` renders `QueryClientProvider` with `retry: 0` and configurable `staleTime`/`gcTime`
-* `MfeProvider` creates an isolated `QueryClient` per MFE
+* `MfeProvider` inherits the host's `QueryClient` (no per-MFE `QueryClient`) so all MFEs share a single cache
 * `useApiQuery` and `useApiMutation` hooks are exported from `@hai3/react`
-* The demo MFE (`src/mfe_packages/demo-mfe`) is migrated from the Flux pattern to TanStack Query hooks, demonstrating both reads and mutations with cache invalidation
+* The demo MFE (`src/mfe_packages/demo-mfe`) demonstrates shared cache across MFEs — a query fetched by one MFE is available to another via the same query key
 
 ## Pros and Cons of the Options
 
@@ -81,11 +85,28 @@ Confirmed when:
 
 * Good, because battle-tested for 5+ years across thousands of production React applications
 * Good, because zero runtime dependencies in `@tanstack/query-core`; ~13kB gzipped total for `@tanstack/react-query`
-* Good, because `queryFn` accepts any `() => Promise<T>`, wrapping existing service methods with no adapter code
+* Good, because `queryFn` accepts any `() => Promise<T>`, wrapping existing service methods with no adapter code — each MFE uses its own service instances while sharing the cache
+* Good, because cache is decoupled from the fetch implementation — a single `QueryClient` shared across MFEs deduplicates overlapping queries, while each MFE retains its own `apiRegistry` and plugin chains
 * Good, because `AbortSignal` is automatically created per query and passed to `queryFn` for cancellation on unmount
 * Good, because structural sharing preserves referential equality for unchanged data, reducing unnecessary React re-renders
 * Bad, because it introduces a new peer dependency that all MFE consumers must install
 * Bad, because developers must learn TanStack Query's mental model (query keys, stale time, invalidation)
+
+### Adopt RTK Query leveraging the existing Redux store
+
+RTK Query (`@reduxjs/toolkit/query`) is Redux Toolkit's built-in data-fetching solution. It auto-generates React hooks from `createApi` endpoint definitions and stores all cached data in the Redux store. Since HAI3 already depends on `@reduxjs/toolkit` via `@hai3/state`, RTK Query adds no new package — only incremental bundle size (~11kB gzipped on top of existing RTK).
+
+* Good, because no new dependency — RTK Query ships inside `@reduxjs/toolkit`, which HAI3 already uses
+* Good, because cache state lives in the Redux store, visible in Redux DevTools alongside client state
+* Good, because `createApi` auto-generates typed hooks (`useGetUserQuery`, `usePatchUserMutation`) from endpoint definitions, reducing manual hook authoring
+* Good, because tag-based cache invalidation (`providesTags` / `invalidatesTags`) is declarative and colocated with endpoint definitions
+* Good, because supports OpenAPI codegen for endpoint generation
+* Bad, because `createApi` requires defining all endpoints statically at build time with a single `baseQuery`, which conflicts with HAI3's architecture where each MFE has its own isolated `apiRegistry` and service instances — a shared `createApi` would need a service-bridge abstraction to resolve the correct service instance per MFE, negating RTK Query's simplicity
+* Bad, because cache is coupled to the Redux store, conflicting with HAI3's dynamic slice registration pattern (`registerSlice` at runtime vs. RTK Query's static reducer injection)
+* Bad, because does not automatically cancel in-flight requests on component unmount — `AbortSignal` is available in `baseQuery` but auto-cancellation requires manual implementation
+* Bad, because does not support infinite queries (`useInfiniteQuery` equivalent) — pagination must be implemented manually
+* Bad, because does not support structural sharing — all cache updates trigger re-renders even when data is deeply equal, unlike TanStack Query's `replaceEqualDeep`
+* Bad, because no React Suspense integration
 
 ### Build a custom query/cache layer inside @hai3/react
 

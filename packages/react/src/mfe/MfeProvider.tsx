@@ -4,39 +4,20 @@
  * Wraps MFE components with bridge and metadata.
  * Used by the MFE mounting system.
  *
- * Each MFE gets its own QueryClient so cache key collisions between independently
- * developed micro-frontends are impossible. This mirrors the per-MFE Redux namespace
- * isolation pattern already in use.
+ * MFEs inherit the host's QueryClient from HAI3Provider so that overlapping
+ * queries (same query key) are deduplicated and cached once across MFE
+ * boundaries. Each MFE still uses its own apiRegistry and service instances
+ * in queryFn — the shared cache works because all MFEs share the same auth
+ * and base URL for overlapping endpoints.
  *
  * React Layer: L3 (Depends on @hai3/framework)
  */
 // @cpt-flow:cpt-hai3-flow-react-bindings-mfe-provider:p1
 // @cpt-dod:cpt-hai3-dod-react-bindings-mfe-hooks:p1
 // @cpt-flow:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2
-// @cpt-algo:cpt-hai3-algo-request-lifecycle-query-client-defaults:p2
 
-import React, { useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 import { MfeContext, type MfeContextValue } from './MfeContext';
-
-// @cpt-begin:cpt-hai3-algo-request-lifecycle-query-client-defaults:p2:inst-mfe-build-defaults
-/**
- * Creates a per-MFE QueryClient with the same HAI3 defaults as HAI3Provider.
- * Defined here to keep MfeProvider self-contained without coupling to HAI3Provider internals.
- */
-function buildMfeQueryClient(): QueryClient {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 30_000,
-        gcTime: 300_000,
-        retry: 0,
-        refetchOnWindowFocus: true,
-      },
-    },
-  });
-}
-// @cpt-end:cpt-hai3-algo-request-lifecycle-query-client-defaults:p2:inst-mfe-build-defaults
 
 // ============================================================================
 // Provider Props
@@ -74,14 +55,11 @@ export interface MfeProviderProps {
 // @cpt-begin:cpt-hai3-dod-react-bindings-mfe-hooks:p1:inst-render-mfe-provider
 // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-query-client
 export const MfeProvider: React.FC<MfeProviderProps> = ({ value, children }) => {
-  // One QueryClient per MFE mount — prevents cross-MFE cache key collisions.
-  const [queryClient] = useState(buildMfeQueryClient);
-
+  // MFEs inherit the host's QueryClient from HAI3Provider — no per-MFE
+  // QueryClient is created. Cache is shared across all MFEs by query key.
   return (
     <MfeContext.Provider value={value}>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
+      {children}
     </MfeContext.Provider>
   );
 };

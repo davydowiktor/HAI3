@@ -131,8 +131,8 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
   // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-render-query-provider
   // Provider order (outer to inner):
   //   HAI3Context -> ReduxProvider -> QueryClientProvider -> children
-  // QueryClientProvider is innermost so MFE overrides (from MfeProvider) can shadow it
-  // when a component tree is wrapped by both HAI3Provider and MfeProvider.
+  // All MFEs share this QueryClient — MfeProvider does not create its own.
+  // Cache is shared across MFE boundaries by query key.
   const content = (
     <HAI3Context.Provider value={app}>
       <ReduxProvider store={app.store as Parameters<typeof ReduxProvider>[0]['store']}>

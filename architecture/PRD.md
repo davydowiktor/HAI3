@@ -1084,13 +1084,13 @@ The system MUST provide a `microfrontends()` framework plugin with actions (`loa
 **Rationale**: Eliminates per-endpoint boilerplate (action, event, effect, slice) for component-level reads and writes while preserving the plugin chain, mock mode, and service registry.
 **Actors**: `cpt-hai3-actor-screenset-author`, `cpt-hai3-actor-developer`
 
-#### Query Client Isolation
+#### Query Client Shared Cache
 
 - [ ] `p2` - **ID**: `cpt-hai3-fr-react-query-client-isolation`
 
-`HAI3Provider` MUST create and provide a `QueryClient` with configurable defaults (`staleTime`, `gcTime`, `retry: 0`). In MFE mode, each micro-frontend MUST receive its own isolated `QueryClient` via `MfeProvider` to prevent cache key collisions between independently developed extensions.
+`HAI3Provider` MUST create and provide a single `QueryClient` with configurable defaults (`staleTime`, `gcTime`, `retry: 0`). All MFEs MUST share this host-level `QueryClient` so that overlapping queries (same query key) are deduplicated and cached once across MFE boundaries. Each MFE retains its own `apiRegistry` and service instances — the `queryFn` uses the local service, but the cache layer is shared.
 
-**Rationale**: Per-MFE isolation mirrors the existing Redux slice namespace pattern and prevents unintended cache sharing across extension boundaries.
+**Rationale**: MFEs share the same auth and base URL for overlapping endpoints. A shared cache eliminates redundant requests when multiple MFEs fetch the same data (e.g., current user profile). TanStack Query's cache is keyed by query key, decoupled from which service instance performs the fetch.
 **Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-runtime`
 
 ## 6. Non-Functional Requirements

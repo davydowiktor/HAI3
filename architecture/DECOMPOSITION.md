@@ -725,7 +725,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - `AbortSignal` threading through `RestProtocol` and plugin chain
   - `RestRequestOptions` pattern for HTTP method extensibility
   - `CanceledError` detection and plugin chain bypass
-  - `QueryClientProvider` in `HAI3Provider` with per-MFE isolation
+  - `QueryClientProvider` in `HAI3Provider` with shared cache across MFEs
   - `useApiQuery` hook for declarative reads with caching and deduplication
   - `useApiMutation` hook for declarative writes with optimistic updates and cache invalidation
   - Flux escape hatch for cross-feature orchestration

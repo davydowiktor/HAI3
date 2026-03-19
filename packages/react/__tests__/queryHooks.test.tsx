@@ -5,7 +5,7 @@
  *   - useApiQuery: data, loading, and error states
  *   - useApiMutation: mutationFn invocation and onSuccess callback
  *   - QueryClientProvider availability inside HAI3Provider
- *   - Per-MFE QueryClient cache isolation via MfeProvider
+ *   - Shared QueryClient across MFEs via inherited host cache
  *
  * @packageDocumentation
  * @vitest-environment jsdom
@@ -210,10 +210,10 @@ describe('HAI3Provider provides QueryClient to descendants', () => {
 });
 
 // ============================================================================
-// Per-MFE QueryClient isolation
+// Shared QueryClient across MFEs
 // ============================================================================
 
-describe('MfeProvider provides isolated QueryClient per MFE', () => {
+describe('MfeProvider shares host QueryClient across MFEs', () => {
   // Minimal bridge stub — only the fields that MfeContext types require.
   function makeMockBridge(): ChildMfeBridge {
     return {
@@ -233,45 +233,65 @@ describe('MfeProvider provides isolated QueryClient per MFE', () => {
     };
   }
 
-  // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-test-mfe-isolation
-  it('two MfeProviders with the same queryKey return independent cached values', async () => {
-    // MfeProvider wraps children in its own QueryClientProvider, so each
-    // MFE tree has a private cache. Both hooks use the same queryKey but
-    // different queryFns — isolation means they never share a result.
+  // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-test-mfe-shared-cache
+  it('two MfeProviders sharing a QueryClient return the same cached value for the same queryKey', async () => {
+    // MfeProvider does NOT create its own QueryClient — it inherits the
+    // host's. Both MFEs share the same cache. The first queryFn populates
+    // the cache; the second MFE receives the cached result.
+    //
+    // gcTime must be > 0 so the cache entry survives between the two
+    // independent renderHook calls (the first observer unmounts before
+    // the second mounts).
+    const sharedClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: 0, gcTime: 300_000, staleTime: 300_000 },
+      },
+    });
+    const queryFnAlpha = vi.fn(() => Promise.resolve('data-from-alpha'));
+    const queryFnBeta = vi.fn(() => Promise.resolve('data-from-beta'));
 
     function makeMfeWrapper(contextValue: MfeContextValue) {
       return function MfeWrapper({ children }: { children: React.ReactNode }) {
-        return <MfeProvider value={contextValue}>{children}</MfeProvider>;
+        return (
+          <QueryClientProvider client={sharedClient}>
+            <MfeProvider value={contextValue}>{children}</MfeProvider>
+          </QueryClientProvider>
+        );
       };
     }
 
     const mfe1Value = makeContextValue('mfe-alpha');
     const mfe2Value = makeContextValue('mfe-beta');
 
+    // MFE alpha fetches first — populates the shared cache.
     const { result: result1 } = renderHook(
       () =>
         useApiQuery<string>({
           queryKey: ['shared-key'],
-          queryFn: () => Promise.resolve('data-from-mfe-alpha'),
+          queryFn: queryFnAlpha,
         }),
       { wrapper: makeMfeWrapper(mfe1Value) }
     );
 
+    await waitFor(() => expect(result1.current.isSuccess).toBe(true));
+    expect(result1.current.data).toBe('data-from-alpha');
+    expect(queryFnAlpha).toHaveBeenCalledOnce();
+
+    // MFE beta uses the same queryKey — gets the cached result from alpha.
     const { result: result2 } = renderHook(
       () =>
         useApiQuery<string>({
           queryKey: ['shared-key'],
-          queryFn: () => Promise.resolve('data-from-mfe-beta'),
+          queryFn: queryFnBeta,
         }),
       { wrapper: makeMfeWrapper(mfe2Value) }
     );
 
-    await waitFor(() => expect(result1.current.isSuccess).toBe(true));
     await waitFor(() => expect(result2.current.isSuccess).toBe(true));
-
-    // Each MFE got the result of its own queryFn — caches are not shared.
-    expect(result1.current.data).toBe('data-from-mfe-alpha');
-    expect(result2.current.data).toBe('data-from-mfe-beta');
+    // Both MFEs see the same data — cache is shared.
+    expect(result2.current.data).toBe('data-from-alpha');
+    // Beta's queryFn was NOT called because the cache was already populated.
+    expect(queryFnBeta).not.toHaveBeenCalled();
   });
-  // @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-test-mfe-isolation
+  // @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-test-mfe-shared-cache
 });
