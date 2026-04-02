@@ -25,6 +25,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import yaml from 'js-yaml';
 import {
+  renderStandaloneVitestConfig,
+  renderStandaloneMfeVitestBase,
+  renderStandaloneVitestSetupFile,
+} from '../../../vitest.shared.ts';
+import {
   TARGET_LAYERS,
   isTargetApplicableToLayer,
   type LayerType,
@@ -37,6 +42,17 @@ const CLI_ROOT = path.resolve(__dirname, '..');
 const PROJECT_ROOT = path.resolve(CLI_ROOT, '../..');
 const TEMPLATES_DIR = path.join(CLI_ROOT, 'templates');
 const MANIFEST_PATH = path.join(CLI_ROOT, 'template-sources', 'manifest.yaml');
+
+/** Resolved path under {@link TEMPLATES_DIR}; rejects traversal outside the templates root. */
+function templatesPath(...segments: string[]): string {
+  const base = path.resolve(TEMPLATES_DIR);
+  const full = path.resolve(base, ...segments);
+  const rel = path.relative(base, full);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error(`Invalid templates path (outside ${base}): ${full}`);
+  }
+  return full;
+}
 
 /**
  * Manifest schema (loaded from manifest.yaml)
@@ -641,6 +657,16 @@ async function copyTemplates() {
     console.log('  ⚠ mfe-shared/ (src/mfe_packages/shared not found, skipping)');
   }
 
+  const mfeVitestBaseSrc = path.join(PROJECT_ROOT, 'src/mfe_packages/vitest.mfe.base.ts');
+  const mfeVitestBaseDest = path.join(TEMPLATES_DIR, 'src/mfe_packages/vitest.mfe.base.ts');
+  if (await fs.pathExists(mfeVitestBaseSrc)) {
+    await fs.ensureDir(path.dirname(mfeVitestBaseDest));
+    await fs.copy(mfeVitestBaseSrc, mfeVitestBaseDest);
+    console.log('  ✓ src/mfe_packages/vitest.mfe.base.ts');
+  } else {
+    console.log('  ⚠ src/mfe_packages/vitest.mfe.base.ts (not found, skipping)');
+  }
+
   // Copy layout templates from monorepo source (single source of truth)
   // Source: /src/app/layout/ (monorepo's canonical layout files)
   // Destination: templates/layout/shadcn/ (CLI template with subdirectory structure)
@@ -680,6 +706,20 @@ async function copyTemplates() {
     const layoutOverrideCount = await countFiles(standaloneLayoutDir);
     console.log(`  ✓ layout/ standalone overrides (${layoutOverrideCount} files → shadcn)`);
   }
+
+  await fs.writeFile(templatesPath('vitest.config.ts'), renderStandaloneVitestConfig());
+  console.log('  ✓ vitest.config.ts (generated from vitest.shared.ts)');
+
+  await fs.writeFile(templatesPath('vitest.setup.ts'), renderStandaloneVitestSetupFile());
+  console.log('  ✓ vitest.setup.ts (generated shared test setup)');
+
+  const standaloneMfeVitestBaseDest = templatesPath('src', 'mfe_packages', 'vitest.mfe.base.ts');
+  await fs.ensureDir(path.dirname(standaloneMfeVitestBaseDest));
+  await fs.writeFile(
+    standaloneMfeVitestBaseDest,
+    renderStandaloneMfeVitestBase(),
+  );
+  console.log('  ✓ src/mfe_packages/vitest.mfe.base.ts (generated from vitest.shared.ts)');
 
   // @cpt-end:cpt-frontx-algo-cli-tooling-build-templates:p1:inst-copy-project-sources
 

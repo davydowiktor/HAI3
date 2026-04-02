@@ -12,10 +12,18 @@ import { MfeLoadError } from '../../../src/mfe/errors';
 import {
   setupBlobUrlLoaderMocks,
   createRemoteEntrySource,
+  createMinifiedRemoteEntrySource,
   createExposeChunkSource,
   createChunkWithRelativeImport,
   TEST_BASE_URL,
-} from '../test-utils/mock-blob-url-loader';
+} from '../../../__test-utils__/mock-blob-url-loader';
+
+/** Satisfies {@link MfeEntry} contract fields for minimal handler tests */
+const MFE_ENTRY_CONTRACT = {
+  requiredProperties: [] as string[],
+  actions: [] as string[],
+  domainActions: [] as string[],
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -66,6 +74,15 @@ function createTestManifest(
   return { manifest, registerSources };
 }
 
+async function getLoadError(handler: MfeHandlerMF, entry: MfeEntryMF): Promise<Error> {
+  const error = await handler.load(entry).catch((loadError: unknown) => loadError);
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error(String(error));
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -97,13 +114,13 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       );
       registerSources(mocks.registerSource);
 
-      const entry1: MfeEntryMF = {
+      const entry1: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart1.v1',
         manifest,
         exposedModule: './ChartWidget1',
       };
 
-      const entry2: MfeEntryMF = {
+      const entry2: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart2.v1',
         manifest,
         exposedModule: './ChartWidget2',
@@ -116,6 +133,12 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       const result2 = await handler.load(entry2);
       expect(result2).toBeDefined();
       expect(typeof result2.mount).toBe('function');
+
+      const remoteEntryUrl = `${TEST_BASE_URL}/analyticsRemote/remoteEntry.js`;
+      const remoteEntryFetches = mocks.mockFetch.mock.calls.filter(
+        (call: unknown[]) => call[0] === remoteEntryUrl
+      );
+      expect(remoteEntryFetches).toHaveLength(1);
     });
 
     it('17.1.3 - Manifest caching works across multiple entries', async () => {
@@ -125,13 +148,13 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       );
       registerSources(mocks.registerSource);
 
-      const entry1: MfeEntryMF = {
+      const entry1: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart1.v1',
         manifest,
         exposedModule: './ChartWidget1',
       };
 
-      const entry2: MfeEntryMF = {
+      const entry2: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart2.v1',
         manifest,
         exposedModule: './ChartWidget2',
@@ -142,6 +165,12 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const result2 = await handler.load(entry2);
       expect(result2).toBeDefined();
+      expect(typeof result1.mount).toBe('function');
+      expect(typeof result2.mount).toBe('function');
+
+      const fetchedUrls = mocks.mockFetch.mock.calls.map((call: unknown[]) => call[0]);
+      expect(fetchedUrls).toContain(`${TEST_BASE_URL}/analyticsRemote/expose-ChartWidget1.js`);
+      expect(fetchedUrls).toContain(`${TEST_BASE_URL}/analyticsRemote/expose-ChartWidget2.js`);
     });
 
     it('17.1.4 - Caches manifests resolved from MfeEntryMF during load', async () => {
@@ -151,7 +180,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       );
       registerSources(mocks.registerSource);
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart.v1',
         manifest,
         exposedModule: './ChartWidget',
@@ -161,7 +190,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       expect(result1).toBeDefined();
 
       // Create another entry with same manifest ID (string reference)
-      const entry2: MfeEntryMF = {
+      const entry2: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart2.v1',
         manifest: manifest.id,
         exposedModule: './ChartWidget2',
@@ -169,6 +198,15 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const result2 = await handler.load(entry2);
       expect(result2).toBeDefined();
+
+      const remoteEntryUrl = `${TEST_BASE_URL}/analyticsRemote/remoteEntry.js`;
+      const remoteEntryFetches = mocks.mockFetch.mock.calls.filter(
+        (call: unknown[]) => call[0] === remoteEntryUrl
+      );
+      expect(remoteEntryFetches).toHaveLength(1);
+      expect(mocks.mockFetch.mock.calls.map((call: unknown[]) => call[0])).toContain(
+        `${TEST_BASE_URL}/analyticsRemote/expose-ChartWidget2.js`
+      );
     });
   });
 
@@ -180,7 +218,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       );
       registerSources(mocks.registerSource);
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart.v1',
         manifest,
         exposedModule: './ChartWidget',
@@ -199,7 +237,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       );
       registerSources(mocks.registerSource);
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart.v1',
         manifest,
         exposedModule: './ChartWidget',
@@ -217,7 +255,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       registerSources(mocks.registerSource);
 
       // First, load with inline manifest to cache it
-      const entry1: MfeEntryMF = {
+      const entry1: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart1.v1',
         manifest,
         exposedModule: './ChartWidget1',
@@ -225,7 +263,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       await handler.load(entry1);
 
       // Now use type ID reference
-      const entry2: MfeEntryMF = {
+      const entry2: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart2.v1',
         manifest: manifest.id,
         exposedModule: './ChartWidget2',
@@ -244,16 +282,19 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const entries: MfeEntryMF[] = [
         {
+          ...MFE_ENTRY_CONTRACT,
           id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart1.v1',
           manifest,
           exposedModule: './ChartWidget1',
         },
         {
+          ...MFE_ENTRY_CONTRACT,
           id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart2.v1',
           manifest,
           exposedModule: './ChartWidget2',
         },
         {
+          ...MFE_ENTRY_CONTRACT,
           id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart3.v1',
           manifest,
           exposedModule: './ChartWidget3',
@@ -272,25 +313,27 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         // Missing remoteEntry and remoteName
       } as MfManifest;
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart.v1',
         manifest: invalidManifest,
         exposedModule: './ChartWidget',
       };
 
-      await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
-      await expect(handler.load(entry)).rejects.toThrow('remoteEntry');
+      const error = await getLoadError(handler, entry);
+      expect(error).toBeInstanceOf(MfeLoadError);
+      expect(error.message).toContain('remoteEntry');
     });
 
     it('17.2.4 - Clear error messaging if manifest resolution fails (type ID not found)', async () => {
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart.v1',
         manifest: 'gts.hai3.mfes.mfe.mf_manifest.v1~missing.manifest.v1',
         exposedModule: './ChartWidget',
       };
 
-      await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
-      await expect(handler.load(entry)).rejects.toThrow('not found');
+      const error = await getLoadError(handler, entry);
+      expect(error).toBeInstanceOf(MfeLoadError);
+      expect(error.message).toContain('not found');
     });
 
     it('17.2.4 - Clear error messaging for invalid manifest object (missing id)', async () => {
@@ -300,14 +343,15 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         // Missing id field
       } as MfManifest;
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart.v1',
         manifest: invalidManifest,
         exposedModule: './ChartWidget',
       };
 
-      await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
-      await expect(handler.load(entry)).rejects.toThrow('"id"');
+      const error = await getLoadError(handler, entry);
+      expect(error).toBeInstanceOf(MfeLoadError);
+      expect(error.message).toContain('"id"');
     });
 
     it('17.2.4 - Clear error messaging for invalid manifest object (missing remoteName)', async () => {
@@ -317,14 +361,15 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         // Missing remoteName
       } as MfManifest;
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart.v1',
         manifest: invalidManifest,
         exposedModule: './ChartWidget',
       };
 
-      await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
-      await expect(handler.load(entry)).rejects.toThrow('remoteName');
+      const error = await getLoadError(handler, entry);
+      expect(error).toBeInstanceOf(MfeLoadError);
+      expect(error.message).toContain('remoteName');
     });
   });
 
@@ -338,11 +383,13 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const entries: MfeEntryMF[] = [
         {
+          ...MFE_ENTRY_CONTRACT,
           id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart1.v1',
           manifest,
           exposedModule: './ChartWidget1',
         },
         {
+          ...MFE_ENTRY_CONTRACT,
           id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart2.v1',
           manifest: manifest.id, // Reference by ID
           exposedModule: './ChartWidget2',
@@ -354,6 +401,12 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const result2 = await handler.load(entries[1]);
       expect(result2).toBeDefined();
+
+      const remoteEntryUrl = `${TEST_BASE_URL}/analyticsRemote/remoteEntry.js`;
+      const remoteEntryFetches = mocks.mockFetch.mock.calls.filter(
+        (call: unknown[]) => call[0] === remoteEntryUrl
+      );
+      expect(remoteEntryFetches).toHaveLength(1);
     });
 
     it('17.3.2 - Source text caching avoids redundant fetches for same URL', async () => {
@@ -365,16 +418,19 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const entries: MfeEntryMF[] = [
         {
+          ...MFE_ENTRY_CONTRACT,
           id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart1.v1',
           manifest,
           exposedModule: './Widget1',
         },
         {
+          ...MFE_ENTRY_CONTRACT,
           id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart2.v1',
           manifest,
           exposedModule: './Widget2',
         },
         {
+          ...MFE_ENTRY_CONTRACT,
           id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart3.v1',
           manifest,
           exposedModule: './Widget3',
@@ -402,7 +458,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       );
       registerSources(mocks.registerSource);
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart.v1',
         manifest,
         exposedModule: './ChartWidget',
@@ -421,14 +477,14 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       );
       registerSources(mocks.registerSource);
 
-      const entry1: MfeEntryMF = {
+      const entry1: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart1.v1',
         manifest,
         exposedModule: './ChartWidget1',
       };
       await handler.load(entry1);
 
-      const entry2: MfeEntryMF = {
+      const entry2: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.chart2.v1',
         manifest: manifest.id,
         exposedModule: './ChartWidget2',
@@ -475,7 +531,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         remoteName,
       };
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.scoped.v1',
         manifest,
         exposedModule: './Widget',
@@ -516,7 +572,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         remoteName,
       };
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.flat.v1',
         manifest,
         exposedModule: './Widget',
@@ -557,7 +613,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         remoteName,
       };
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.deep.v1',
         manifest,
         exposedModule: './Widget',
@@ -575,7 +631,9 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       const remoteEntryUrl = `${TEST_BASE_URL}/${remoteName}/remoteEntry.js`;
       const baseUrl = `${TEST_BASE_URL}/${remoteName}/`;
       const exposeChunk = '__federation_expose_Widget-prod.js';
-      const minifiedRemote = `const moduleMap={"./Widget":()=>(E([],!1,"./Widget"),w("./${exposeChunk}").then(e=>e))};`;
+      const minifiedRemote = createMinifiedRemoteEntrySource({
+        './Widget': exposeChunk,
+      });
 
       mocks.registerSource(remoteEntryUrl, minifiedRemote);
       mocks.registerSource(`${baseUrl}${exposeChunk}`, createExposeChunkSource());
@@ -586,7 +644,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         remoteName,
       };
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.prodRemoteEntry.v1',
         manifest,
         exposedModule: './Widget',
@@ -595,6 +653,8 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       const result = await handler.load(entry);
       expect(result).toBeDefined();
       expect(typeof result.mount).toBe('function');
+      expect(mocks.mockFetch).toHaveBeenCalledWith(remoteEntryUrl);
+      expect(mocks.mockFetch).toHaveBeenCalledWith(`${baseUrl}${exposeChunk}`);
     });
 
     it('supports minified static imports during blob rewriting', async () => {
@@ -613,7 +673,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         'export const helper = () => {};'
       );
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.minified.v1',
         manifest,
         exposedModule: './Widget',
@@ -636,7 +696,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       );
       registerSources(mocks.registerSource);
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.styled.v1',
         manifest,
         exposedModule: './Widget',
@@ -651,6 +711,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
+        registerActionHandler: vi.fn(),
       });
 
       const styleElement = shadowRoot.getElementById('__hai3-mfe-runtime-style-0');
@@ -675,7 +736,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       );
       registerSources(mocks.registerSource);
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.styled-repeat.v1',
         manifest,
         exposedModule: './Widget',
@@ -690,6 +751,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
+        registerActionHandler: vi.fn(),
       };
 
       await lifecycle.mount(shadowRoot, bridge);
@@ -720,7 +782,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       );
       registerSources(mocks.registerSource);
 
-      const entry: MfeEntryMF = {
+      const entry: MfeEntryMF = { ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.styled-unmount.v1',
         manifest,
         exposedModule: './Widget',
@@ -736,6 +798,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
+        registerActionHandler: vi.fn(),
       });
 
       expect(

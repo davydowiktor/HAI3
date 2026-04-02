@@ -18,31 +18,19 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MfeHandlerMF } from '../../../src/mfe/handler/mf-handler';
 import { MfeLoadError } from '../../../src/mfe/errors';
 import type { MfeEntryMF, MfManifest } from '../../../src/mfe/types';
-import type { FederationSharedMap } from '../../../src/mfe/handler/federation-types';
 import {
   setupBlobUrlLoaderMocks,
   createRemoteEntrySource,
   createExposeChunkSource,
   TEST_BASE_URL,
-} from '../test-utils/mock-blob-url-loader';
+  clearFederationSharedScope,
+  readFederationSharedScope,
+  writeFederationSharedScope,
+} from '../../../__test-utils__';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const FEDERATION_KEY = '__federation_shared__';
-
-function readFederationShared(): FederationSharedMap | undefined {
-  return (globalThis as unknown as Record<string, FederationSharedMap | undefined>)[FEDERATION_KEY];
-}
-
-function writeFederationShared(value: FederationSharedMap): void {
-  (globalThis as unknown as Record<string, FederationSharedMap | undefined>)[FEDERATION_KEY] = value;
-}
-
-function clearFederationShared(): void {
-  (globalThis as Record<string, undefined>)[FEDERATION_KEY] = undefined;
-}
 
 /**
  * Create a test setup with manifest, source registration, and entry factory.
@@ -83,6 +71,10 @@ function createTestSetup(
     createEntry(exposedModule: string, suffix: string): MfeEntryMF {
       return {
         id: `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.${suffix}.v1`,
+        requiredProperties: [],
+        optionalProperties: [],
+        actions: [],
+        domainActions: [],
         manifest,
         exposedModule,
       };
@@ -97,22 +89,15 @@ function createTestSetup(
 describe('MfeHandlerMF - share scope construction and blob URL isolation', () => {
   let handler: MfeHandlerMF;
   let mocks: ReturnType<typeof setupBlobUrlLoaderMocks>;
-  let savedGlobal: FederationSharedMap | undefined;
 
   beforeEach(() => {
     handler = new MfeHandlerMF('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~', { timeout: 5000, retries: 0 });
     mocks = setupBlobUrlLoaderMocks();
-    savedGlobal = readFederationShared();
-    clearFederationShared();
+    clearFederationSharedScope();
   });
 
   afterEach(() => {
     mocks.cleanup();
-    if (savedGlobal !== undefined) {
-      writeFederationShared(savedGlobal);
-    } else {
-      clearFederationShared();
-    }
     vi.restoreAllMocks();
   });
 
@@ -139,7 +124,7 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
       const entry = setup.createEntry('./Widget1', 'react.entry');
       await handler.load(entry);
 
-      const shared = readFederationShared();
+      const shared = readFederationSharedScope();
       expect(shared).toBeDefined();
       expect(shared!['default']).toBeDefined();
       expect(shared!['default']['react']).toBeDefined();
@@ -150,7 +135,7 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
     it('creates blob URL get() regardless of existing global scope entries', async () => {
       // Pre-populate global scope with an existing entry
       const originalGet = async () => () => ({ __host: true }) as unknown;
-      writeFederationShared({
+      writeFederationSharedScope({
         default: {
           react: {
             '19.2.4': { get: originalGet, loaded: 1 },
@@ -177,7 +162,7 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
       await handler.load(entry);
 
       // The new entry is written under '*' key (always fresh blob URL get)
-      const shared = readFederationShared();
+      const shared = readFederationSharedScope();
       expect(shared!['default']['react']['*']).toBeDefined();
       expect(shared!['default']['react']['*'].get).not.toBe(originalGet);
       // The pre-existing 19.2.4 entry is preserved
@@ -212,7 +197,7 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
       const entry = setup.createEntry('./Widget1', 'multideps.entry');
       await handler.load(entry);
 
-      const shared = readFederationShared();
+      const shared = readFederationSharedScope();
       expect(shared!['default']['react']).toBeDefined();
       expect(shared!['default']['react-dom']).toBeDefined();
       expect(typeof shared!['default']['react']['*'].get).toBe('function');
@@ -236,11 +221,9 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
       const entry = setup.createEntry('./Widget1', 'nochunk.entry');
       await handler.load(entry);
 
-      const shared = readFederationShared();
-      // react should NOT have been written to global scope (no chunkPath)
-      if (shared?.['default']) {
-        expect(shared['default']['react']).toBeUndefined();
-      }
+      const shared = readFederationSharedScope();
+      expect(shared).toEqual({});
+      expect(shared?.['default']).toBeUndefined();
     });
 
     it('creates get() only for deps WITH chunkPath in a mixed list', async () => {
@@ -259,7 +242,7 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
       const entry = setup.createEntry('./Widget1', 'mixed.entry');
       await handler.load(entry);
 
-      const shared = readFederationShared();
+      const shared = readFederationSharedScope();
       // react has chunkPath → present
       expect(shared!['default']['react']).toBeDefined();
       // lodash has no chunkPath → absent
@@ -286,10 +269,9 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
       const entry = setup.createEntry('./Widget1', 'emptydeps.entry');
       await handler.load(entry);
 
-      const shared = readFederationShared();
-      if (shared?.['default']) {
-        expect(Object.keys(shared['default'])).toHaveLength(0);
-      }
+      const shared = readFederationSharedScope();
+      expect(shared).toEqual({});
+      expect(Object.keys(shared?.['default'] ?? {})).toHaveLength(0);
     });
   });
 
@@ -314,14 +296,14 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
       const entry1 = setup.createEntry('./Widget1', 'iso1.entry');
       await handler.load(entry1);
 
-      const shared1 = readFederationShared();
+      const shared1 = readFederationSharedScope();
       const get1 = shared1!['default']['react']['*'].get;
 
       // Load second entry (same manifest, different exposed module)
       const entry2 = setup.createEntry('./Widget2', 'iso2.entry');
       await handler.load(entry2);
 
-      const shared2 = readFederationShared();
+      const shared2 = readFederationSharedScope();
       const get2 = shared2!['default']['react']['*'].get;
 
       // Each load() creates a NEW get() function (per-load isolation)
@@ -351,14 +333,14 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
       await handler.load(entry1);
 
       // Extract get() from first load and invoke it
-      const shared1 = readFederationShared();
+      const shared1 = readFederationSharedScope();
       const get1 = shared1!['default']['react']['*'].get;
       await get1();
 
       await handler.load(entry2);
 
       // Extract get() from second load and invoke it
-      const shared2 = readFederationShared();
+      const shared2 = readFederationSharedScope();
       const get2 = shared2!['default']['react']['*'].get;
       await get2();
 
@@ -387,7 +369,7 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
       await handler.load(entry);
 
       // The get() was stored but not invoked yet
-      const shared = readFederationShared();
+      const shared = readFederationSharedScope();
       const blobGet = shared!['default']['react']['*'].get;
 
       // Invoking get() triggers fetch of the chunk → 404 → MfeLoadError
@@ -412,14 +394,17 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
 
       const entry: MfeEntryMF = {
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.missingexpose.v1',
+        requiredProperties: [],
+        optionalProperties: [],
+        actions: [],
+        domainActions: [],
         manifest,
         exposedModule: './NonExistent',
       };
 
-      await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
-      await expect(handler.load(entry)).rejects.toThrow(
-        'Cannot resolve expose metadata'
-      );
+      const error = await handler.load(entry).catch((loadError: unknown) => loadError);
+      expect(error).toBeInstanceOf(MfeLoadError);
+      expect((error as Error).message).toContain('Cannot resolve expose metadata');
     });
   });
 });

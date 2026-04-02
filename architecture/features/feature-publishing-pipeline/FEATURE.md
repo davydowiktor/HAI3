@@ -77,7 +77,7 @@ exactly one publish of that version; subsequent re-runs of the same workflow ski
 
 ### 1.4 References
 
-- DECOMPOSITION: [feature #11 — Publishing Pipeline](../../DECOMPOSITION.md#211-publishing-pipeline)
+- DECOMPOSITION: [section 2.10 — Publishing Pipeline](../../DECOMPOSITION.md#210-publishing-pipeline--medium)
 - DESIGN: [Layer Isolation principle](../../DESIGN.md#layer-isolation), [ESM-First constraint](../../DESIGN.md#esm-first-module-format)
 - PRD: [PRD.md](../../PRD.md) — section 5.16 (Publishing)
 - ADR: `cpt-frontx-adr-automated-layer-ordered-publishing`, `cpt-frontx-adr-esm-first-module-format`, `cpt-frontx-adr-channel-aware-version-locking`

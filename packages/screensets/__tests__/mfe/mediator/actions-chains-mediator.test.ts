@@ -12,13 +12,13 @@
  *
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../src/mfe/plugins/types';
 import type { ActionsChain, ExtensionDomain } from '../../../src/mfe/types';
 import { ActionHandler } from '../../../src/mfe/mediator';
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
-import { MockContainerProvider } from '../test-utils';
+import { TestContainerProvider } from '../../../__test-utils__';
 
 /**
  * Test-only ActionHandler that delegates to a vitest mock function.
@@ -48,7 +48,16 @@ function failingHandler(error: Error): MockActionHandler {
   return h;
 }
 
-/** Convenience factory — mirrors vi.fn().mockImplementation(...) */
+/**
+ * Convenience factory for a handler that resolves after `delayMs`.
+ *
+ * IMPORTANT: this factory wraps a real `setTimeout`, so every test that uses
+ * `slowHandler` MUST activate fake timers (via `vi.useFakeTimers()`) before
+ * the handler fires.  Vitest replaces the global `setTimeout` when fake timers
+ * are active, making the delay fully synchronous-controllable via
+ * `vi.advanceTimersByTimeAsync()`.  Using `slowHandler` under real timers will
+ * introduce genuine wall-clock waits and make the test sensitive to CI load.
+ */
 function slowHandler(delayMs: number): MockActionHandler {
   const h = new MockActionHandler();
   h.mock.mockImplementation(() => new Promise(resolve => setTimeout(resolve, delayMs)));
@@ -79,8 +88,6 @@ function createMockPlugin(): TypeSystemPlugin {
   return {
     name: 'MockPlugin',
     version: '1.0.0',
-    isValidTypeId: (id: string) => id.includes('gts.') && id.endsWith('~'),
-    parseTypeId: (id: string) => ({ id, segments: id.split('.') }),
     registerSchema: (schema: JSONSchema) => {
       if (schema.$id) {
         const typeId = schema.$id.replace('gts://', '');
@@ -110,23 +117,9 @@ function createMockPlugin(): TypeSystemPlugin {
         ],
       };
     },
-    query: (pattern: string, limit?: number) => {
-      const results = Array.from(schemas.keys()).filter(id => id.includes(pattern));
-      return limit ? results.slice(0, limit) : results;
-    },
     isTypeOf: (typeId: string, baseTypeId: string) => {
       return typeId === baseTypeId || typeId.startsWith(baseTypeId);
     },
-    checkCompatibility: () => ({
-      compatible: true,
-      breaking: false,
-      changes: [],
-    }),
-    getAttribute: (typeId: string, path: string) => ({
-      typeId,
-      path,
-      resolved: false,
-    }),
   };
 }
 
@@ -134,12 +127,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
   let plugin: TypeSystemPlugin;
   let mediator: DefaultActionsChainsMediator;
   let registry: DefaultScreensetsRegistry;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
 
   beforeEach(() => {
     plugin = createMockPlugin();
     registry = new DefaultScreensetsRegistry({ typeSystem: plugin });
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
     mediator = new DefaultActionsChainsMediator({
       typeSystem: plugin,
       getDomainState: (domainId) => registry.getDomainState(domainId),
@@ -518,7 +511,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
       expect(handler.mock).toHaveBeenCalled();
     });
 
-    it('should unregister extension handler', () => {
+    it('should unregister extension handler — invoke after unregister is a no-op', async () => {
       const handler = mockHandler();
 
       mediator.registerHandler(
@@ -530,20 +523,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
       mediator.unregisterAllHandlers('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
 
-      // Handler should no longer be registered
-      // (Will result in no-op execution)
-    });
-
-    it('should throw error when unregistering extension with pending actions', async () => {
-      const handler = slowHandler(100);
-
-      mediator.registerHandler(
-        'gts.hai3.mfes.ext.extension.v1~test.ext.v1~',
-        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
-        handler,
-        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~'
-      );
-
+      // Register the domain so timeout resolution does not throw.
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
         sharedProperties: [],
@@ -562,24 +542,69 @@ describe('ActionsChainsMediator - Phase 9', () => {
         },
       };
 
-      // Start action execution (don't await yet)
-      const executionPromise = mediator.executeActionsChain(chain);
+      // No handler is registered; the mediator treats this as a successful
+      // no-op rather than an error, and the original handler must not fire.
+      const result = await mediator.executeActionsChain(chain);
+      expect(result.completed).toBe(true);
+      expect(handler.mock).not.toHaveBeenCalled();
+    });
 
-      // Wait for next tick to allow tracking to be set up
-      await new Promise(resolve => setTimeout(resolve, 0));
+    it('should throw error when unregistering extension with pending actions', async () => {
+      // Use fake timers so `slowHandler(100)` and the "wait for tracking" yield
+      // are fully controlled by the test — no real wall-clock dependency, so
+      // CI load cannot race the tracking setup with the handler completing.
+      vi.useFakeTimers();
+      try {
+        const handler = slowHandler(100);
 
-      // Try to unregister while action is pending
-      expect(() => {
-        mediator.unregisterAllHandlers('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
-      }).toThrow(/Cannot unregister handlers.*action\(s\) still pending/);
+        mediator.registerHandler(
+          'gts.hai3.mfes.ext.extension.v1~test.ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+          handler,
+          'gts.hai3.mfes.ext.domain.v1~test.domain.v1~'
+        );
 
-      // Wait for action to complete
-      await executionPromise;
+        const domain: ExtensionDomain = {
+          id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+          sharedProperties: [],
+          actions: ['gts.hai3.mfes.comm.action.v1~test.action.v1~'],
+          extensionsActions: [],
+          defaultActionTimeout: 5000,
+          lifecycleStages: [],
+          extensionsLifecycleStages: [],
+        };
+        registry.registerDomain(domain, mockContainerProvider);
 
-      // Now unregistration should succeed
-      expect(() => {
-        mediator.unregisterAllHandlers('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
-      }).not.toThrow();
+        const chain: ActionsChain = {
+          action: {
+            type: 'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+            target: 'gts.hai3.mfes.ext.extension.v1~test.ext.v1~',
+          },
+        };
+
+        // Start action execution (don't await yet)
+        const executionPromise = mediator.executeActionsChain(chain);
+
+        // Flush microtasks so mediator reaches trackPendingAction without
+        // advancing timers past the 100ms slowHandler delay.
+        await vi.advanceTimersByTimeAsync(0);
+
+        // Try to unregister while action is pending
+        expect(() => {
+          mediator.unregisterAllHandlers('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
+        }).toThrow(/Cannot unregister handlers.*action\(s\) still pending/);
+
+        // Drive slowHandler's setTimeout to completion and resolve the chain.
+        await vi.advanceTimersByTimeAsync(100);
+        await executionPromise;
+
+        // Now unregistration should succeed
+        expect(() => {
+          mediator.unregisterAllHandlers('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
+        }).not.toThrow();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('should allow unregistering extension after actions complete', async () => {
@@ -653,50 +678,59 @@ describe('ActionsChainsMediator - Phase 9', () => {
     });
 
     it('should throw error when unregistering domain with pending actions', async () => {
-      const handler = slowHandler(100);
+      // Same rationale as the extension-variant above: drive slowHandler and
+      // tracking-setup with fake timers so CI load cannot flake the race.
+      vi.useFakeTimers();
+      try {
+        const handler = slowHandler(100);
 
-      const domain: ExtensionDomain = {
-        id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
-        sharedProperties: [],
-        actions: ['gts.hai3.mfes.comm.action.v1~test.action.v1~'],
-        extensionsActions: [],
-        defaultActionTimeout: 5000,
-        lifecycleStages: [],
-        extensionsLifecycleStages: [],
-      };
-      registry.registerDomain(domain, mockContainerProvider);
+        const domain: ExtensionDomain = {
+          id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+          sharedProperties: [],
+          actions: ['gts.hai3.mfes.comm.action.v1~test.action.v1~'],
+          extensionsActions: [],
+          defaultActionTimeout: 5000,
+          lifecycleStages: [],
+          extensionsLifecycleStages: [],
+        };
+        registry.registerDomain(domain, mockContainerProvider);
 
-      mediator.registerHandler(
-        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
-        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
-        handler
-      );
+        mediator.registerHandler(
+          'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+          'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+          handler
+        );
 
-      const chain: ActionsChain = {
-        action: {
-          type: 'gts.hai3.mfes.comm.action.v1~test.action.v1~',
-          target: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
-        },
-      };
+        const chain: ActionsChain = {
+          action: {
+            type: 'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+            target: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+          },
+        };
 
-      // Start action execution (don't await yet)
-      const executionPromise = mediator.executeActionsChain(chain);
+        // Start action execution (don't await yet)
+        const executionPromise = mediator.executeActionsChain(chain);
 
-      // Wait for next tick to allow tracking to be set up
-      await new Promise(resolve => setTimeout(resolve, 0));
+        // Flush microtasks so mediator reaches trackPendingAction without
+        // advancing timers past the 100ms slowHandler delay.
+        await vi.advanceTimersByTimeAsync(0);
 
-      // Try to unregister while action is pending
-      expect(() => {
-        mediator.unregisterAllHandlers('gts.hai3.mfes.ext.domain.v1~test.domain.v1~');
-      }).toThrow(/Cannot unregister handlers.*action\(s\) still pending/);
+        // Try to unregister while action is pending
+        expect(() => {
+          mediator.unregisterAllHandlers('gts.hai3.mfes.ext.domain.v1~test.domain.v1~');
+        }).toThrow(/Cannot unregister handlers.*action\(s\) still pending/);
 
-      // Wait for action to complete
-      await executionPromise;
+        // Drive slowHandler's setTimeout to completion and resolve the chain.
+        await vi.advanceTimersByTimeAsync(100);
+        await executionPromise;
 
-      // Now unregistration should succeed
-      expect(() => {
-        mediator.unregisterAllHandlers('gts.hai3.mfes.ext.domain.v1~test.domain.v1~');
-      }).not.toThrow();
+        // Now unregistration should succeed
+        expect(() => {
+          mediator.unregisterAllHandlers('gts.hai3.mfes.ext.domain.v1~test.domain.v1~');
+        }).not.toThrow();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('should allow unregistering domain after actions complete', async () => {
@@ -737,6 +771,14 @@ describe('ActionsChainsMediator - Phase 9', () => {
   });
 
   describe('9.3.7-9.3.9 Timeout handling', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('should use domain defaultActionTimeout when action.timeout not specified', async () => {
       const handler = slowHandler(100);
 
@@ -765,7 +807,9 @@ describe('ActionsChainsMediator - Phase 9', () => {
         },
       };
 
-      const result = await mediator.executeActionsChain(chain);
+      const resultPromise = mediator.executeActionsChain(chain);
+      await vi.advanceTimersByTimeAsync(50);
+      const result = await resultPromise;
 
       expect(result.completed).toBe(false);
       expect(result.error).toBeDefined();
@@ -800,7 +844,9 @@ describe('ActionsChainsMediator - Phase 9', () => {
         },
       };
 
-      const result = await mediator.executeActionsChain(chain);
+      const resultPromise = mediator.executeActionsChain(chain);
+      await vi.advanceTimersByTimeAsync(100);
+      const result = await resultPromise;
 
       // Should succeed because action timeout (200ms) > handler delay (100ms)
       expect(result.completed).toBe(true);
@@ -847,7 +893,10 @@ describe('ActionsChainsMediator - Phase 9', () => {
         },
       };
 
-      const result = await mediator.executeActionsChain(chain);
+      const resultPromise = mediator.executeActionsChain(chain);
+      await vi.advanceTimersByTimeAsync(50);
+      await vi.runAllTimersAsync();
+      const result = await resultPromise;
 
       // Should execute fallback after timeout
       expect(result.completed).toBe(true);
@@ -900,37 +949,44 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
   describe('9.3.10 ChainExecutionOptions', () => {
     it('should accept chainTimeout option', async () => {
-      const handler = slowHandler(100);
+      vi.useFakeTimers();
+      try {
+        const handler = slowHandler(100);
 
-      const domain: ExtensionDomain = {
-        id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
-        sharedProperties: [],
-        actions: ['gts.hai3.mfes.comm.action.v1~test.action.v1~'],
-        extensionsActions: [],
-        defaultActionTimeout: 50,
-        lifecycleStages: [],
-        extensionsLifecycleStages: [],
-      };
-      registry.registerDomain(domain, mockContainerProvider);
+        const domain: ExtensionDomain = {
+          id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+          sharedProperties: [],
+          actions: ['gts.hai3.mfes.comm.action.v1~test.action.v1~'],
+          extensionsActions: [],
+          defaultActionTimeout: 50,
+          lifecycleStages: [],
+          extensionsLifecycleStages: [],
+        };
+        registry.registerDomain(domain, mockContainerProvider);
 
-      mediator.registerHandler(
-        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
-        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
-        handler
-      );
+        mediator.registerHandler(
+          'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+          'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+          handler
+        );
 
-      const chain: ActionsChain = {
-        action: {
-          type: 'gts.hai3.mfes.comm.action.v1~test.action.v1~',
-          target: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
-        },
-      };
+        const chain: ActionsChain = {
+          action: {
+            type: 'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+            target: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+          },
+        };
 
-      // Should fail with short chain timeout
-      const result = await mediator.executeActionsChain(chain, { chainTimeout: 30 });
+        // Should fail with short chain timeout
+        const resultPromise = mediator.executeActionsChain(chain, { chainTimeout: 30 });
+        await vi.advanceTimersByTimeAsync(30);
+        const result = await resultPromise;
 
-      expect(result.timedOut).toBe(true);
-      expect(result.error).toBeDefined();
+        expect(result.timedOut).toBe(true);
+        expect(result.error).toBeDefined();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('should not accept action-level timeout options', () => {

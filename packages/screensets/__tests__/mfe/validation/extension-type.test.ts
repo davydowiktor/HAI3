@@ -25,11 +25,8 @@ function createMockPlugin(
     name: 'mock',
     version: '1.0.0',
 
-    isValidTypeId: () => true,
-    parseTypeId: (id: string) => ({ id }),
     registerSchema: () => {},
     getSchema: () => undefined,
-    query: () => [],
 
     // GTS-native register method
     register: (entity: unknown) => {
@@ -70,13 +67,6 @@ function createMockPlugin(
       // Default GTS behavior: derived types include base type as prefix
       return typeId.startsWith(baseTypeId) || typeId === baseTypeId;
     },
-
-    checkCompatibility: () => ({ compatible: true, breaking: false, changes: [] }),
-    getAttribute: () => ({
-      typeId: '',
-      path: '',
-      resolved: false,
-    }),
   };
 }
 

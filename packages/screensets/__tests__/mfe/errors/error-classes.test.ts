@@ -162,8 +162,8 @@ describe('MFE Error Classes', () => {
     describe('DomainValidationError', () => {
       it('should instantiate with validation errors', () => {
         const validationErrors = [
-          { path: '/id', message: 'Required field missing' },
-          { path: '/actions', message: 'Must be an array' },
+          { path: '/id', message: 'Required field missing', keyword: 'required' },
+          { path: '/actions', message: 'Must be an array', keyword: 'type' },
         ];
 
         const error = new DomainValidationError(
@@ -185,7 +185,7 @@ describe('MFE Error Classes', () => {
     describe('ExtensionValidationError', () => {
       it('should instantiate with validation errors', () => {
         const validationErrors = [
-          { path: '/entry', message: 'Invalid entry reference' },
+          { path: '/entry', message: 'Invalid entry reference', keyword: 'ref' },
         ];
 
         const error = new ExtensionValidationError(
@@ -303,8 +303,8 @@ describe('MFE Error Classes', () => {
 
     it('should format DomainValidationError with validation paths', () => {
       const errors = [
-        { path: '/id', message: 'Required field missing' },
-        { path: '/sharedProperties', message: 'Must be an array' },
+        { path: '/id', message: 'Required field missing', keyword: 'required' },
+        { path: '/sharedProperties', message: 'Must be an array', keyword: 'type' },
       ];
 
       const error = new DomainValidationError(
@@ -320,7 +320,7 @@ describe('MFE Error Classes', () => {
 
     it('should format ExtensionValidationError with validation paths', () => {
       const errors = [
-        { path: '/domain', message: 'Domain reference not found' },
+        { path: '/domain', message: 'Domain reference not found', keyword: 'ref' },
       ];
 
       const error = new ExtensionValidationError(

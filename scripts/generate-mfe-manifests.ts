@@ -52,7 +52,7 @@ function generateManifestRegistry(): void {
     // Generate import statements
     const imports = mfePackages
       .map((pkg, idx) => {
-        return `import mfe${idx} from '@/mfe_packages/${pkg}/mfe.json';`;
+        return `import mfe${idx} from '../../mfe_packages/${pkg}/mfe.json' with { type: 'json' };`;
       })
       .join('\n');
 

@@ -30,6 +30,289 @@ interface ExposedModuleMetadata {
   readonly stylesheetPaths: string[];
 }
 
+// @cpt-algo:cpt-frontx-algo-mfe-isolation-parse-expose-chunk:p1
+function parseExposeChunkFilename(exposeBody: string): string | null {
+  const exposeRef = /['"]\.\/(__federation_expose_[^'"]+\.js)['"]/.exec(exposeBody);
+  if (exposeRef) {
+    return exposeRef[1];
+  }
+  const importMatch = /__federation_import\(\s*['"]\.\/([^'"]+)['"]\s*\)/.exec(
+    exposeBody
+  );
+  return importMatch ? importMatch[1] : null;
+}
+
+function advanceQuotedString(
+  char: string,
+  quote: '"' | "'" | '`',
+  escapedChar: boolean
+): { escapedChar: boolean; exitQuote: boolean } {
+  if (escapedChar) {
+    return { escapedChar: false, exitQuote: false };
+  }
+  if (char === '\\') {
+    return { escapedChar: true, exitQuote: false };
+  }
+  if (char === quote) {
+    return { escapedChar: false, exitQuote: true };
+  }
+  return { escapedChar: false, exitQuote: false };
+}
+
+function parseQuoteStart(char: string): '"' | "'" | '`' | null {
+  if (char === '"' || char === '\'' || char === '`') {
+    return char as '"' | "'" | '`';
+  }
+  return null;
+}
+
+function scanBalancedDelimiter(
+  source: string,
+  startIndex: number,
+  openChar: string,
+  closeChar: string
+): string | null {
+  let depth = 1;
+  let quote: '"' | "'" | '`' | null = null;
+  let escapedChar = false;
+
+  for (let index = startIndex; index < source.length; index++) {
+    const char = source[index];
+
+    if (quote !== null) {
+      const next = advanceQuotedString(char, quote, escapedChar);
+      escapedChar = next.escapedChar;
+      if (next.exitQuote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    const startedQuote = parseQuoteStart(char);
+    if (startedQuote !== null) {
+      quote = startedQuote;
+      continue;
+    }
+    if (char === openChar) {
+      depth += 1;
+      continue;
+    }
+    if (char === closeChar) {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(startIndex, index);
+      }
+    }
+  }
+
+  return null;
+}
+
+function findExposeModuleBody(
+  remoteEntrySource: string,
+  exposedModule: string
+): string | null {
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-find-expose-module-body:p1
+  const escaped = exposedModule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const startRegex = new RegExp(
+    String.raw`["']${escaped}["']\s*:\s*\(\)\s*=>\s*(\{|\()`,
+    'g'
+  );
+  const match = startRegex.exec(remoteEntrySource);
+  if (!match) {
+    return null;
+  }
+
+  const delimiter = match[1] as '{' | '(';
+  const bodyStart = match.index + match[0].length;
+  if (delimiter === '{') {
+    return scanBalancedDelimiter(remoteEntrySource, bodyStart, '{', '}');
+  }
+  return scanBalancedDelimiter(remoteEntrySource, bodyStart, '(', ')');
+}
+
+function extractCssStringPaths(bracketInner: string): string[] {
+  const paths: string[] = [];
+  const stringRegex = /['"]([^'"]+\.css[^'"]*)['"]/g;
+  let match: RegExpExecArray | null;
+  while ((match = stringRegex.exec(bracketInner)) !== null) {
+    paths.push(match[1]);
+  }
+  return paths;
+}
+
+function parseStylesheetPaths(
+  exposeBody: string,
+  exposedModule: string
+): string[] {
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-parse-expose-stylesheets:p1
+  const legacy = /dynamicLoadingCss\(\s*\[([\s\S]*?)\]\s*,/.exec(exposeBody);
+  if (legacy) {
+    return extractCssStringPaths(legacy[1]);
+  }
+
+  const escaped = exposedModule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const minified = new RegExp(
+    String.raw`\[([\s\S]*?)\]\s*,\s*[^,]+\s*,\s*["']` + escaped + String.raw`["']`
+  ).exec(exposeBody);
+  if (!minified) {
+    return [];
+  }
+  return extractCssStringPaths(minified[1]);
+}
+
+export function parseExposeMetadataFromRemoteEntry(
+  remoteEntrySource: string,
+  exposedModule: string
+): ExposedModuleMetadata | null {
+  const body = findExposeModuleBody(remoteEntrySource, exposedModule);
+  if (body === null) {
+    return null;
+  }
+
+  const chunkFilename = parseExposeChunkFilename(body);
+  if (!chunkFilename) {
+    return null;
+  }
+
+  return {
+    chunkFilename,
+    stylesheetPaths: parseStylesheetPaths(body, exposedModule),
+  };
+}
+
+function resolveRelativePath(
+  fromChunkFilename: string,
+  relativeSpecifier: string
+): string {
+  const syntheticBase = 'http://r/';
+  const fromUrl = new URL(fromChunkFilename, syntheticBase);
+  const resolved = new URL(relativeSpecifier, fromUrl);
+  return resolved.pathname.slice(1);
+}
+
+function hasBareImportBoundary(source: string, importIndex: number): boolean {
+  let boundaryIndex = importIndex - 1;
+  while (
+    boundaryIndex >= 0 &&
+    isBareImportWhitespace(source[boundaryIndex])
+  ) {
+    boundaryIndex -= 1;
+  }
+
+  return (
+    boundaryIndex < 0 ||
+    source[boundaryIndex] === ';' ||
+    source[boundaryIndex] === '\n'
+  );
+}
+
+function skipImportWhitespace(source: string, index: number): number {
+  let cursor = index;
+  while (
+    cursor < source.length &&
+    isImportWhitespace(source[cursor])
+  ) {
+    cursor += 1;
+  }
+  return cursor;
+}
+
+function isRelativeImportSpecifier(source: string, index: number): boolean {
+  return (
+    source[index] === '.' &&
+    (
+      source[index + 1] === '/' ||
+      (source[index + 1] === '.' && source[index + 2] === '/')
+    )
+  );
+}
+
+function isBareImportWhitespace(char: string): boolean {
+  return char === ' ' || char === '\t' || char === '\r';
+}
+
+function isImportWhitespace(char: string): boolean {
+  return isBareImportWhitespace(char) || char === '\n';
+}
+
+function parseBareSideEffectImportFilenames(
+  source: string,
+  chunkFilename: string
+): string[] {
+  const filenames: string[] = [];
+  let cursor = 0;
+
+  while (cursor < source.length) {
+    const importIndex = source.indexOf('import', cursor);
+    if (importIndex === -1) {
+      break;
+    }
+
+    if (!hasBareImportBoundary(source, importIndex)) {
+      cursor = importIndex + 'import'.length;
+      continue;
+    }
+
+    let specifierIndex = skipImportWhitespace(
+      source,
+      importIndex + 'import'.length
+    );
+    const quote = source[specifierIndex];
+    if (quote !== '"' && quote !== '\'') {
+      cursor = importIndex + 'import'.length;
+      continue;
+    }
+
+    specifierIndex += 1;
+    if (!isRelativeImportSpecifier(source, specifierIndex)) {
+      cursor = specifierIndex;
+      continue;
+    }
+
+    let specifierEnd = specifierIndex;
+    while (
+      specifierEnd < source.length &&
+      source[specifierEnd] !== quote
+    ) {
+      specifierEnd += 1;
+    }
+
+    if (specifierEnd >= source.length) {
+      break;
+    }
+
+    filenames.push(
+      resolveRelativePath(
+        chunkFilename,
+        source.slice(specifierIndex, specifierEnd)
+      )
+    );
+    cursor = specifierEnd + 1;
+  }
+
+  return filenames;
+}
+
+export function parseStaticImportFilenamesFromChunk(
+  source: string,
+  chunkFilename: string
+): string[] {
+  const filenames: string[] = [];
+
+  const namedRegex = /from\s*['"](\.\.?\/[^'"]+)['"]/g;
+  let match;
+  while ((match = namedRegex.exec(source)) !== null) {
+    filenames.push(resolveRelativePath(chunkFilename, match[1]));
+  }
+
+  filenames.push(
+    ...parseBareSideEffectImportFilenames(source, chunkFilename)
+  );
+
+  return [...new Set(filenames)];
+}
+
 /**
  * A shareScope object written to globalThis.__federation_shared__.
  * Format: { [packageName]: { [version]: { get, loaded?, scope? } } }
@@ -566,174 +849,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     remoteEntrySource: string,
     exposedModule: string
   ): ExposedModuleMetadata | null {
-    const body = this.findExposeModuleBody(remoteEntrySource, exposedModule);
-    if (body === null) {
-      return null;
-    }
-
-    const chunkFilename = this.parseExposeChunkFilename(body);
-    if (!chunkFilename) {
-      return null;
-    }
-
-    const stylesheetPaths = this.parseStylesheetPaths(body, exposedModule);
-    return {
-      chunkFilename,
-      stylesheetPaths,
-    };
-  }
-
-  /**
-   * Resolve the expose chunk file inside the moduleMap callback body.
-   * Prefers stable `__federation_expose_*` paths; falls back to __federation_import().
-   *
-   * Matches patterns inside the callback (dev / pretty-print and minified), e.g.:
-   *   return __federation_import('./__federation_expose_Lifecycle-….js')...
-   *   "./lifecycle":()=>(E([],!1,"./lifecycle"),w("./__federation_expose_….js").then(...))
-   */
-  // @cpt-algo:cpt-frontx-algo-mfe-isolation-parse-expose-chunk:p1
-  private parseExposeChunkFilename(exposeBody: string): string | null {
-    const exposeRef = /['"]\.\/(__federation_expose_[^'"]+\.js)['"]/.exec(exposeBody);
-    if (exposeRef) {
-      return exposeRef[1];
-    }
-    const importMatch = /__federation_import\(\s*['"]\.\/([^'"]+)['"]\s*\)/.exec(
-      exposeBody
-    );
-    return importMatch ? importMatch[1] : null;
-  }
-
-  /**
-   * Find the moduleMap factory body for `exposedModule` in remoteEntry source.
-   * Supports `()=>{...}` and minified `()=>(...)` arrow forms.
-   */
-  // @cpt-algo:cpt-frontx-algo-mfe-isolation-find-expose-module-body:p1
-  private findExposeModuleBody(
-    remoteEntrySource: string,
-    exposedModule: string
-  ): string | null {
-    const escaped = exposedModule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const startRegex = new RegExp(
-      String.raw`["']${escaped}["']\s*:\s*\(\)\s*=>\s*(\{|\()`,
-      'g'
-    );
-    const match = startRegex.exec(remoteEntrySource);
-    if (!match) {
-      return null;
-    }
-
-    const delimiter = match[1] as '{' | '(';
-    const bodyStart = match.index + match[0].length;
-    if (delimiter === '{') {
-      return this.scanBalancedDelimiter(remoteEntrySource, bodyStart, '{', '}');
-    }
-    return this.scanBalancedDelimiter(remoteEntrySource, bodyStart, '(', ')');
-  }
-
-  /**
-   * Slice `source` from `startIndex` up to (but not including) the closing delimiter
-   * that balances the opening `{` or `(` at startIndex-1 context (caller positions
-   * startIndex immediately after the opening delimiter).
-   */
-  private scanBalancedDelimiter(
-    source: string,
-    startIndex: number,
-    openChar: string,
-    closeChar: string
-  ): string | null {
-    let depth = 1;
-    let quote: '"' | "'" | '`' | null = null;
-    let escapedChar = false;
-
-    for (let index = startIndex; index < source.length; index++) {
-      const char = source[index];
-
-      if (quote !== null) {
-        const next = this.advanceQuotedString(char, quote, escapedChar);
-        escapedChar = next.escapedChar;
-        if (next.exitQuote) {
-          quote = null;
-        }
-        continue;
-      }
-
-      const startedQuote = this.parseQuoteStart(char);
-      if (startedQuote !== null) {
-        quote = startedQuote;
-        continue;
-      }
-      if (char === openChar) {
-        depth += 1;
-        continue;
-      }
-      if (char === closeChar) {
-        depth -= 1;
-        if (depth === 0) {
-          return source.slice(startIndex, index);
-        }
-      }
-    }
-
-    return null;
-  }
-
-  private advanceQuotedString(
-    char: string,
-    quote: '"' | "'" | '`',
-    escapedChar: boolean
-  ): { escapedChar: boolean; exitQuote: boolean } {
-    if (escapedChar) {
-      return { escapedChar: false, exitQuote: false };
-    }
-    if (char === '\\') {
-      return { escapedChar: true, exitQuote: false };
-    }
-    if (char === quote) {
-      return { escapedChar: false, exitQuote: true };
-    }
-    return { escapedChar: false, exitQuote: false };
-  }
-
-  private parseQuoteStart(char: string): '"' | "'" | '`' | null {
-    if (char === '"' || char === '\'' || char === '`') {
-      return char as '"' | "'" | '`';
-    }
-    return null;
-  }
-
-  /**
-   * Extract CSS asset paths from the expose callback. Pretty builds call
-   * `dynamicLoadingCss([...], …)`; minified output uses a short alias with the same
-   * argument shape: `([...], <bool>, "<exposeKey>")`.
-   */
-  // @cpt-algo:cpt-frontx-algo-mfe-isolation-parse-expose-stylesheets:p1
-  private parseStylesheetPaths(
-    exposeBody: string,
-    exposedModule: string
-  ): string[] {
-    const legacy = /dynamicLoadingCss\(\s*\[([\s\S]*?)\]\s*,/.exec(exposeBody);
-    if (legacy) {
-      return this.extractCssStringPaths(legacy[1]);
-    }
-
-    const escaped = exposedModule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const minified = new RegExp(
-      `\\[([\\s\\S]*?)\\]\\s*,\\s*[^,]+\\s*,\\s*["']${escaped}["']`
-    ).exec(exposeBody);
-    if (!minified) {
-      return [];
-    }
-    return this.extractCssStringPaths(minified[1]);
-  }
-
-  private extractCssStringPaths(bracketInner: string): string[] {
-    const paths: string[] = [];
-    const stringRegex = /['"]([^'"]+\.css[^'"]*)['"]/g;
-    let match: RegExpExecArray | null;
-    while ((match = stringRegex.exec(bracketInner)) !== null) {
-      paths.push(match[1]);
-    }
-    return paths;
+    return parseExposeMetadataFromRemoteEntry(remoteEntrySource, exposedModule);
   }
 
   /**
@@ -749,123 +865,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     source: string,
     chunkFilename: string
   ): string[] {
-    const filenames: string[] = [];
-
-    // Named imports: import { x } from './dep.js'  /  export { x } from './dep.js'
-    const namedRegex = /from\s*['"](\.\.?\/[^'"]+)['"]/g;
-    let match;
-    while ((match = namedRegex.exec(source)) !== null) {
-      filenames.push(this.resolveRelativePath(chunkFilename, match[1]));
-    }
-
-    filenames.push(
-      ...this.parseBareSideEffectImportFilenames(source, chunkFilename)
-    );
-
-    return [...new Set(filenames)];
-  }
-
-  private parseBareSideEffectImportFilenames(
-    source: string,
-    chunkFilename: string
-  ): string[] {
-    const filenames: string[] = [];
-    let cursor = 0;
-
-    while (cursor < source.length) {
-      const importIndex = source.indexOf('import', cursor);
-      if (importIndex === -1) {
-        break;
-      }
-
-      if (!this.hasBareImportBoundary(source, importIndex)) {
-        cursor = importIndex + 'import'.length;
-        continue;
-      }
-
-      let specifierIndex = this.skipImportWhitespace(
-        source,
-        importIndex + 'import'.length
-      );
-      const quote = source[specifierIndex];
-      if (quote !== '"' && quote !== '\'') {
-        cursor = importIndex + 'import'.length;
-        continue;
-      }
-
-      specifierIndex += 1;
-      if (!this.isRelativeImportSpecifier(source, specifierIndex)) {
-        cursor = specifierIndex;
-        continue;
-      }
-
-      let specifierEnd = specifierIndex;
-      while (
-        specifierEnd < source.length &&
-        source[specifierEnd] !== quote
-      ) {
-        specifierEnd += 1;
-      }
-
-      if (specifierEnd >= source.length) {
-        break;
-      }
-
-      filenames.push(
-        this.resolveRelativePath(
-          chunkFilename,
-          source.slice(specifierIndex, specifierEnd)
-        )
-      );
-      cursor = specifierEnd + 1;
-    }
-
-    return filenames;
-  }
-
-  private hasBareImportBoundary(source: string, importIndex: number): boolean {
-    let boundaryIndex = importIndex - 1;
-    while (
-      boundaryIndex >= 0 &&
-      this.isBareImportWhitespace(source[boundaryIndex])
-    ) {
-      boundaryIndex -= 1;
-    }
-
-    return (
-      boundaryIndex < 0 ||
-      source[boundaryIndex] === ';' ||
-      source[boundaryIndex] === '\n'
-    );
-  }
-
-  private skipImportWhitespace(source: string, index: number): number {
-    let cursor = index;
-    while (
-      cursor < source.length &&
-      this.isImportWhitespace(source[cursor])
-    ) {
-      cursor += 1;
-    }
-    return cursor;
-  }
-
-  private isRelativeImportSpecifier(source: string, index: number): boolean {
-    return (
-      source[index] === '.' &&
-      (
-        source[index + 1] === '/' ||
-        (source[index + 1] === '.' && source[index + 2] === '/')
-      )
-    );
-  }
-
-  private isBareImportWhitespace(char: string): boolean {
-    return char === ' ' || char === '\t' || char === '\r';
-  }
-
-  private isImportWhitespace(char: string): boolean {
-    return this.isBareImportWhitespace(char) || char === '\n';
+    return parseStaticImportFilenamesFromChunk(source, chunkFilename);
   }
 
   /**
@@ -883,7 +883,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     chunkFilename: string
   ): string {
     const resolve = (relPath: string): string => {
-      const resolved = this.resolveRelativePath(chunkFilename, relPath);
+      const resolved = resolveRelativePath(chunkFilename, relPath);
       const blobUrl = blobUrlMap.get(resolved);
       return blobUrl ?? `${baseUrl}${resolved}`;
     };
@@ -920,25 +920,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
     return result;
   }
-
-  /**
-   * Resolve a relative import path against the importing chunk's filename.
-   *
-   * Uses URL resolution to correctly handle '../' traversals. For example:
-   *  - resolveRelativePath('__federation_shared_@cyberfabric/react.js', '../runtime.js')
-   *    → 'runtime.js'
-   *  - resolveRelativePath('expose-Widget1.js', './dep.js')
-   *    → 'dep.js'
-   */
-  private resolveRelativePath(
-    fromChunkFilename: string,
-    relativeSpecifier: string
-  ): string {
-    const syntheticBase = 'http://r/';
-    const fromUrl = new URL(fromChunkFilename, syntheticBase);
-    const resolved = new URL(relativeSpecifier, fromUrl);
-    return resolved.pathname.slice(1); // strip leading '/'
-  }
 }
 
 export { MfeHandlerMF };
+export type { ExposedModuleMetadata };

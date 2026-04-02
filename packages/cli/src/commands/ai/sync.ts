@@ -1,15 +1,23 @@
 // @cpt-flow:cpt-frontx-flow-cli-tooling-ai-sync:p1
+// @cpt-flow:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1
 // @cpt-algo:cpt-frontx-algo-cli-tooling-generate-ai-config:p1
 // @cpt-algo:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1
+// @cpt-algo:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1
+// @cpt-state:cpt-frontx-state-unit-test-generation-and-agent-verification-guidance-state:p2
 // @cpt-dod:cpt-frontx-dod-cli-tooling-ai-sync:p1
+// @cpt-dod:cpt-frontx-dod-unit-test-generation-and-agent-verification-ai-enforcement:p1
 import path from 'path';
 import fs from 'fs-extra';
 import lodash from 'lodash';
 import type { CommandDefinition } from '../../core/command.js';
-import { loadConfig } from '../../utils/project.js';
+import { loadConfig, resolvePathUnderProjectRoot } from '../../utils/project.js';
 import { isCustomUikit } from '../../utils/validation.js';
 import type { PackageManager } from '../../core/types.js';
-import { detectPackageManager, getRunScriptCommand } from '../../core/packageManager.js';
+import {
+  detectPackageManager,
+  getRunScriptCommand,
+  resolveFrontxUnitTestConvention,
+} from '../../core/packageManager.js';
 
 const { trim } = lodash;
 import { validationOk, validationError } from '../../core/types.js';
@@ -150,21 +158,50 @@ async function resolveUikitRule(projectRoot: string): Promise<string> {
   return '**REQUIRED**: Use local shadcn/ui components for all UI';
 }
 
+function resolveUnitTestingRule(packageManager: PackageManager): string {
+  const testUnitCommand = getRunScriptCommand(packageManager, 'test:unit');
+  // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-load-testing-guidance
+  const guidanceClause =
+    'Read `.ai/project/targets/UNIT_TESTING.md` when that file exists.';
+  // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-load-testing-guidance
+
+  // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-implement-and-test
+  const implementAndTestClause =
+    'REQUIRED: Implement the requested change and add or update colocated unit tests when the changed behavior requires coverage.';
+  // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-implement-and-test
+
+  // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-follow-generated-rules
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-generate-unit-test-rule
+  const ruleBody = `REQUIRED: Run \`${testUnitCommand}\` when unit-test triggers apply (colocated tests changed, test setup changed, logic-heavy code changed, or task/review handoff). ${implementAndTestClause} ${guidanceClause} REQUIRED: Do not treat \`frontx validate\` (including \`frontx validate components\`) as the unit-test runner — FrontX validate is structural validation only and does not substitute for \`${testUnitCommand}\` by default.`;
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-generate-unit-test-rule
+  // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-follow-generated-rules
+
+  return ruleBody;
+}
+
 /**
  * Generate CLAUDE.md file
  */
 // @cpt-begin:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-generate-claude
-async function generateClaudeMd(
+export async function generateClaudeMd(
   projectRoot: string,
   userRules: string | null,
+  packageManager: PackageManager,
   options: GenerateOptions = {}
 ): Promise<{ file: string; changed: boolean }> {
-  let content = `# CLAUDE.md
+  // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-read-guidelines
+  const claudeHeader = `# CLAUDE.md
 
 Use \`.ai/GUIDELINES.md\` as the single source of truth for FrontX development guidelines.
 
 For routing to specific topics, see the ROUTING section in GUIDELINES.md.
 `;
+  // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-read-guidelines
+
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-insert-ai-rule
+  const unitTestingRule = resolveUnitTestingRule(packageManager);
+  let content = `${claudeHeader}\n\n${unitTestingRule}\n`;
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-insert-ai-rule
 
   if (userRules) {
     content += `
@@ -199,7 +236,7 @@ ${userRules}
  * Generate .github/copilot-instructions.md
  */
 // @cpt-begin:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-generate-copilot
-async function generateCopilotInstructions(
+export async function generateCopilotInstructions(
   projectRoot: string,
   userRules: string | null,
   uikitRule: string,
@@ -207,6 +244,8 @@ async function generateCopilotInstructions(
   options: GenerateOptions = {}
 ): Promise<{ file: string; changed: boolean }> {
   const archCheckCommand = getRunScriptCommand(packageManager, 'arch:check');
+  const typeCheckCommand = getRunScriptCommand(packageManager, 'type-check');
+  const unitTestCommand = getRunScriptCommand(packageManager, 'test:unit');
   let content = `# FrontX Development Guidelines for GitHub Copilot
 
 Always read \`.ai/GUIDELINES.md\` before making changes.
@@ -220,6 +259,8 @@ For detailed guidance, use these resources:
 - **API services**: \`.ai/targets/API.md\`
 - **Styling**: \`.ai/targets/STYLING.md\`
 - **Themes**: \`.ai/targets/THEMES.md\`
+- **Project guidelines**: \`.ai/project/GUIDELINES.md\` (when present)
+- **Unit testing**: \`.ai/project/targets/UNIT_TESTING.md\` (when present)
 
 ## Critical Rules
 
@@ -229,6 +270,16 @@ For detailed guidance, use these resources:
 4. **FORBIDDEN**: Hardcoded colors or inline styles
 5. ${uikitRule}
 6. **REQUIRED**: Run \`${archCheckCommand}\` before committing
+`;
+  // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-run-unit-tests
+  content += `7. **REQUIRED**: Run \`${unitTestCommand}\` when unit-test triggers apply, and follow the commands, triggers, and conventions in \`.ai/project/targets/UNIT_TESTING.md\` when that file exists
+`;
+  // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-run-unit-tests
+  // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-run-final-checks
+  content += `8. **REQUIRED**: After applicable unit-test runs succeed (or when project guidance exempts a run), run \`${typeCheckCommand}\` and \`${archCheckCommand}\` before completing the task
+`;
+  // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-run-final-checks
+  content += `9. **REQUIRED**: \`frontx validate\` (including \`frontx validate components\`) is structural validation only — not the unit-test runner; it does not substitute for \`${unitTestCommand}\` by default
 
 ## Available Commands
 
@@ -277,11 +328,13 @@ ${userRules}
  * Generate .cursor/rules/frontx.mdc
  */
 // @cpt-begin:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-generate-cursor
-async function generateCursorRules(
+export async function generateCursorRules(
   projectRoot: string,
   userRules: string | null,
+  packageManager: PackageManager,
   options: GenerateOptions = {}
 ): Promise<{ file: string; changed: boolean }> {
+  const unitTestingRule = resolveUnitTestingRule(packageManager);
   let content = `---
 description: FrontX development guidelines
 globs: ["**/*"]
@@ -289,6 +342,8 @@ alwaysApply: true
 ---
 
 Use \`.ai/GUIDELINES.md\` as the single source of truth for FrontX development guidelines.
+
+${unitTestingRule}
 `;
 
   if (userRules) {
@@ -322,16 +377,20 @@ ${userRules}
  * Generate .windsurf/rules/frontx.md
  */
 // @cpt-begin:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-generate-windsurf
-async function generateWindsurfRules(
+export async function generateWindsurfRules(
   projectRoot: string,
   userRules: string | null,
+  packageManager: PackageManager,
   options: GenerateOptions = {}
 ): Promise<{ file: string; changed: boolean }> {
+  const unitTestingRule = resolveUnitTestingRule(packageManager);
   let content = `---
 trigger: always_on
 ---
 
 Use \`.ai/GUIDELINES.md\` as the single source of truth for FrontX development guidelines.
+
+${unitTestingRule}
 `;
 
   if (userRules) {
@@ -595,6 +654,16 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     const packageManager = (await detectPackageManager(projectRoot!, ctx.config)).manager;
     // @cpt-end:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 
+    // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-read-normalized-testing-config
+    // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-resolve-config
+    const unitTestConvention = await resolveFrontxUnitTestConvention(projectRoot!, ctx.config);
+    // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-resolve-config
+    // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-read-normalized-testing-config
+
+    if (!unitTestConvention.ok) {
+      logger.warn(unitTestConvention.error);
+    }
+
     if (showDiff) {
       logger.info('Showing diff of AI assistant configuration changes...');
     } else {
@@ -608,6 +677,11 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
 
     const aiDir = path.join(projectRoot!, '.ai');
     const commandsDir = path.join(aiDir, 'commands');
+
+    // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-update-command-templates
+    // Command templates shipped with FrontX (e.g. under packages/framework/commands) must stay aligned with the unit-test rules emitted by this sync; maintain them when changing testing guidance here.
+    await Promise.resolve();
+    // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-update-command-templates
 
     // @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-create-ai-dir
     // Check if .ai/ directory exists
@@ -624,6 +698,40 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
       );
     }
     // @cpt-end:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-create-ai-dir
+
+    // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-generate-testing-guidance
+    const unitTestingTarget = resolvePathUnderProjectRoot(
+      projectRoot!,
+      '.ai',
+      'project',
+      'targets',
+      'UNIT_TESTING.md'
+    );
+    let unitTestingBaseline = '';
+    if (await fs.pathExists(unitTestingTarget)) {
+      unitTestingBaseline = await fs.readFile(unitTestingTarget, 'utf-8');
+    }
+    // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-generate-testing-guidance
+
+    // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-curate-vitest-guidance
+    const vitestCuratedSectionsOk =
+      unitTestingBaseline.length === 0 ||
+      (unitTestingBaseline.includes('## EXECUTION RULES') &&
+        unitTestingBaseline.includes('## ENVIRONMENT RULES'));
+    if (!vitestCuratedSectionsOk) {
+      logger.warn(
+        'Unit testing guidance is present but missing expected Vitest EXECUTION/ENVIRONMENT sections.'
+      );
+    }
+    // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-curate-vitest-guidance
+
+    // @cpt-begin:cpt-frontx-state-unit-test-generation-and-agent-verification-guidance-state:p1:inst-transition-to-customized
+    // Guidance is customized when the unit testing target is populated.
+    // @cpt-end:cpt-frontx-state-unit-test-generation-and-agent-verification-guidance-state:p1:inst-transition-to-customized
+
+    // @cpt-begin:cpt-frontx-state-unit-test-generation-and-agent-verification-guidance-state:p1:inst-transition-to-default
+    // Otherwise the CLI baseline guidance remains in effect.
+    // @cpt-end:cpt-frontx-state-unit-test-generation-and-agent-verification-guidance-state:p1:inst-transition-to-default
 
     // @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-read-user-rules
     // Read user's custom rules from .ai/rules/app.md (preserved across syncs)
@@ -650,7 +758,7 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     // @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-generate-per-tool
     // Generate files for each tool
     if (tool === 'all' || tool === 'claude') {
-      const result = await generateClaudeMd(projectRoot!, userRules, genOptions);
+      const result = await generateClaudeMd(projectRoot!, userRules, packageManager, genOptions);
       if (result.changed) filesGenerated.push(result.file);
       if (!showDiff) {
         const claudeCommandsDir = path.join(projectRoot!, '.claude', 'commands');
@@ -692,7 +800,7 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     }
 
     if (tool === 'all' || tool === 'cursor') {
-      const result = await generateCursorRules(projectRoot!, userRules, genOptions);
+      const result = await generateCursorRules(projectRoot!, userRules, packageManager, genOptions);
       if (result.changed) filesGenerated.push(result.file);
       if (!showDiff) {
         const cursorCommandsDir = path.join(projectRoot!, '.cursor', 'commands');
@@ -711,7 +819,7 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     }
 
     if (tool === 'all' || tool === 'windsurf') {
-      const result = await generateWindsurfRules(projectRoot!, userRules, genOptions);
+      const result = await generateWindsurfRules(projectRoot!, userRules, packageManager, genOptions);
       if (result.changed) filesGenerated.push(result.file);
       if (!showDiff) {
         const windsurfWorkflowsDir = path.join(projectRoot!, '.windsurf', 'workflows');
@@ -772,11 +880,15 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     // @cpt-end:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-write-ai-configs
 
     // @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-return-ai-sync
+    // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-return-generated-ai-rules
+    // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-return
     return {
       filesGenerated,
       commandsGenerated,
       toolsUpdated,
     };
+    // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-agent-verify:p1:inst-agent-return
+    // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-generate-ai-rules:p1:inst-return-generated-ai-rules
     // @cpt-end:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-return-ai-sync
   },
 };

@@ -4,6 +4,19 @@ import path from 'path';
 import type { GeneratedFile } from '../core/types.js';
 
 /**
+ * Resolve path segments under root; rejects traversal outside root (e.g. via `..` segments).
+ */
+export function joinUnderRoot(root: string, ...segments: string[]): string {
+  const base = path.resolve(root);
+  const full = path.resolve(base, ...segments);
+  const rel = path.relative(base, full);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error(`Resolved path escapes root directory: ${full}`);
+  }
+  return full;
+}
+
+/**
  * Write generated files to disk atomically
  * Creates directories as needed
  */

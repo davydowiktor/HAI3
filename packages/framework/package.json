@@ -31,22 +31,29 @@
   ],
   "scripts": {
     "build": "tsup",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "type-check:test": "tsc -p tsconfig.test.json",
+    "test": "npm run test:unit",
+    "test:unit": "vitest --run --passWithNoTests=false",
+    "test:unit:watch": "vitest --watch"
   },
   "dependencies": {
     "path-to-regexp": "^8.2.0"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "4.1.4",
     "@tanstack/query-core": "^5.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "vitest": "4.1.4"
   },
   "peerDependencies": {
     "@cyberfabric/state": "*",
     "@cyberfabric/screensets": "*",
     "@cyberfabric/api": "*",
     "@cyberfabric/i18n": "*",
-    "@tanstack/query-core": "^5.0.0"
+    "@tanstack/query-core": "^5.0.0",
+    "vitest": "4.1.4"
   },
   "peerDependenciesMeta": {
     "@cyberfabric/state": {
@@ -63,6 +70,9 @@
     },
     "@tanstack/query-core": {
       "optional": false
+    },
+    "vitest": {
+      "optional": true
     }
   },
   "publishConfig": {
