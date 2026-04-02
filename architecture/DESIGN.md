@@ -666,6 +666,34 @@ interface SharedPropertyBridge {
 }
 ```
 
+- [ ] `p1` - **ID**: `cpt-frontx-interface-child-mfe-bridge`
+- **Contract**: `cpt-frontx-contract-child-mfe-bridge`
+- **Technology**: TypeScript interface
+- **Location**: `packages/screensets/src/mfe/handler/types.ts`
+
+```typescript
+interface ChildMfeBridge {
+  readonly domainId: string;
+  readonly instanceId: string;
+  executeActionsChain(chain: ActionsChain): Promise<void>;
+  subscribeToProperty(propertyTypeId: string, callback: (value: SharedProperty) => void): () => void;
+  getProperty(propertyTypeId: string): SharedProperty | undefined;
+  registerActionHandler(handler: ActionHandler): void;
+}
+```
+
+- [ ] `p1` - **ID**: `cpt-frontx-interface-parent-mfe-bridge`
+- **Contract**: `cpt-frontx-contract-parent-mfe-bridge`
+- **Technology**: TypeScript interface
+- **Location**: `packages/screensets/src/mfe/handler/types.ts`
+
+```typescript
+interface ParentMfeBridge {
+  readonly instanceId: string;
+  dispose(): void;
+}
+```
+
 **Public Package Interfaces**
 
 | Interface | Package | Description |
@@ -868,6 +896,37 @@ sequenceDiagram
 ```
 
 **Description**: When a host plugin sets a shared property, the value passes through GTS validation against the declared schema. Valid values are stored and broadcast to all subscribed MFE components via change notifications. Invalid values are rejected with a logged warning. MFE components read shared properties through `useSharedProperty()` which re-renders on changes.
+
+#### Extension Action Delivery
+
+**ID**: `cpt-frontx-seq-extension-action-delivery`
+
+**Use cases**: `cpt-frontx-usecase-mfe-load`
+
+**Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-microfrontend`, `cpt-frontx-actor-runtime`
+
+```mermaid
+sequenceDiagram
+    participant Host as Host / MFE
+    participant Bridge as ChildMfeBridge
+    participant Mediator as ActionsChainsMediator
+    participant Handler as ActionHandler (MFE)
+
+    Host->>Bridge: executeActionsChain(chain targeting extension ID)
+    Bridge->>Mediator: executeActionsChain(chain)
+    Mediator->>Mediator: resolveHandler(action.target)
+    alt extension handler registered
+        Mediator->>Handler: handleAction(actionTypeId, payload)
+        Handler-->>Mediator: resolve
+        Mediator-->>Bridge: chain complete
+    else no extension handler
+        Mediator->>Mediator: chain fails with recorded error
+        Mediator-->>Bridge: chain failed
+    end
+    Bridge-->>Host: Promise resolves
+```
+
+**Description**: When a host or MFE calls `executeActionsChain` with an action whose `target` is an extension ID (rather than a domain ID), the mediator resolves the extension's registered `ActionHandler` instead of the domain's `ExtensionLifecycleActionHandler`. The handler is registered during MFE mount via `ChildMfeBridge.registerActionHandler()`, which wires it to `mediator.registerExtensionHandler(extensionId, domainId, entryId, handler)`. On dispose, the handler is unregistered. This allows child MFEs to receive typed actions from the host or peer MFEs without any direct coupling.
 
 ### 3.7 Database schemas & tables
 

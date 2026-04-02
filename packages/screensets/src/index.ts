@@ -68,6 +68,9 @@ export type {
 // MFE Handler Abstract Classes (concrete implementations are internal)
 export { MfeHandler, MfeBridgeFactory } from './mfe';
 
+// Mediator types needed by MFE consumers to implement action handlers
+export type { ActionHandler } from './mfe';
+
 // FrontX Action Constants
 export {
   HAI3_SCREEN_EXTENSION_TYPE,

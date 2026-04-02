@@ -10,6 +10,7 @@
 // @cpt-dod:cpt-frontx-dod-screenset-registry-type-contracts:p1
 
 import type { MfeEntry, ActionsChain, SharedProperty } from '../types';
+import type { ActionHandler } from '../mediator/types';
 
 /**
  * Parent MFE Bridge interface.
@@ -65,6 +66,15 @@ export interface ChildMfeBridge {
    * @returns Current property value, or undefined if not set
    */
   getProperty(propertyTypeId: string): SharedProperty | undefined;
+
+  /**
+   * Register an action handler for this MFE.
+   * The MFE calls this once during mount to register its handler so that the
+   * mediator can route extension-targeted actions to it.
+   *
+   * @param handler - The action handler to register
+   */
+  registerActionHandler(handler: ActionHandler): void;
 }
 
 /**

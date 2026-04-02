@@ -77,6 +77,16 @@ export class DefaultMountManager extends MountManager {
   private readonly unregisterDomainActionHandler: (domainId: string) => void;
 
   /**
+   * Callback for registering extension action handlers in the parent mediator.
+   */
+  private readonly registerExtensionActionHandler: (extensionId: string, domainId: string, entryId: string, handler: ActionHandler) => void;
+
+  /**
+   * Callback for unregistering extension action handlers from the parent mediator.
+   */
+  private readonly unregisterExtensionActionHandler: (extensionId: string) => void;
+
+  /**
    * Runtime bridge factory for creating bridge connections.
    */
   private readonly bridgeFactory: RuntimeBridgeFactory;
@@ -90,6 +100,8 @@ export class DefaultMountManager extends MountManager {
     hostRuntime: ScreensetsRegistry;
     registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void;
     unregisterDomainActionHandler: (domainId: string) => void;
+    registerExtensionActionHandler: (extensionId: string, domainId: string, entryId: string, handler: ActionHandler) => void;
+    unregisterExtensionActionHandler: (extensionId: string) => void;
     bridgeFactory: RuntimeBridgeFactory;
   }) {
     super();
@@ -101,6 +113,8 @@ export class DefaultMountManager extends MountManager {
     this.hostRuntime = config.hostRuntime;
     this.registerDomainActionHandler = config.registerDomainActionHandler;
     this.unregisterDomainActionHandler = config.unregisterDomainActionHandler;
+    this.registerExtensionActionHandler = config.registerExtensionActionHandler;
+    this.unregisterExtensionActionHandler = config.unregisterExtensionActionHandler;
     this.bridgeFactory = config.bridgeFactory;
   }
 
@@ -220,7 +234,9 @@ export class DefaultMountManager extends MountManager {
         extensionState.entry.id,
         (chain: ActionsChain) => this.executeActionsChain(chain),
         (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
-        (domainId) => this.unregisterDomainActionHandler(domainId)
+        (domainId) => this.unregisterDomainActionHandler(domainId),
+        (extId, domainId, entryId, handler) => this.registerExtensionActionHandler(extId, domainId, entryId, handler),
+        (extId) => this.unregisterExtensionActionHandler(extId)
       );
 
       // Register with RuntimeCoordinator

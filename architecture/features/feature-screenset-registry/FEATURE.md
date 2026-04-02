@@ -16,6 +16,7 @@
   - [Unregister Extension](#unregister-extension)
   - [Unregister Domain](#unregister-domain)
   - [Execute Actions Chain](#execute-actions-chain)
+  - [Register Extension Action Handler](#register-extension-action-handler)
   - [Update Shared Property](#update-shared-property)
   - [Query Registry State](#query-registry-state)
   - [Build Registry via Factory](#build-registry-via-factory)
@@ -161,10 +162,22 @@ Success criteria: A host application can register a domain and extension, execut
 4. - [x] `p1` - IF target domain is not registered, the chain fails with a recorded error - `inst-target-not-found`
 5. - [x] `p1` - Mediator validates the action via anonymous instance pattern: the action object (no `id` field) is registered with `typeSystem.register(action)`; GTS resolves the schema from `action.type` via `schemaIdFields` config; `typeSystem.validateInstance('')` validates the anonymous instance — IF validation fails the chain fails with a recorded error - `inst-validate-action-anonymous`
 6. - [x] `p1` - Mediator invokes the domain's registered `ExtensionLifecycleActionHandler` - `inst-invoke-handler`
-7. - [x] `p1` - IF action completes successfully AND `chain.next` is defined, mediator executes `chain.next` recursively - `inst-execute-next`
-8. - [x] `p1` - IF action fails AND `chain.fallback` is defined, mediator executes `chain.fallback` instead - `inst-execute-fallback`
-9. - [x] `p1` - IF `result.completed` is false, registry logs the error and path to `console.error` - `inst-log-chain-failure`
-10. - [x] `p1` - Promise resolves when the chain execution concludes (success or exhausted fallback) - `inst-resolve-chain`
+7. - [ ] `p1` - IF `action.target` matches a registered extension ID, mediator also resolves the extension's `ActionHandler` registered via `ChildMfeBridge.registerActionHandler()` and invokes it instead of (or in addition to) the domain handler — routing is extension-level when an extension handler is present - `inst-resolve-extension-handler`
+8. - [x] `p1` - IF action completes successfully AND `chain.next` is defined, mediator executes `chain.next` recursively - `inst-execute-next`
+9. - [x] `p1` - IF action fails AND `chain.fallback` is defined, mediator executes `chain.fallback` instead - `inst-execute-fallback`
+10. - [x] `p1` - IF `result.completed` is false, registry logs the error and path to `console.error` - `inst-log-chain-failure`
+11. - [x] `p1` - Promise resolves when the chain execution concludes (success or exhausted fallback) - `inst-resolve-chain`
+
+### Register Extension Action Handler
+
+- [ ] `p1` - **ID**: `cpt-frontx-flow-screenset-registry-register-extension-handler`
+
+**Actors**: `cpt-frontx-actor-microfrontend`, `cpt-frontx-actor-framework-plugin`
+
+1. - [ ] `p1` - Child MFE calls `bridge.registerActionHandler(handler)` during mount, providing its `ActionHandler` implementation - `inst-call-register-handler`
+2. - [ ] `p1` - `ChildMfeBridge` delegates to `mediator.registerExtensionHandler(extensionId, domainId, entryId, handler)` — the bridge holds the `extensionId`, `domainId`, and `entryId` from its construction context - `inst-bridge-delegates-to-mediator`
+3. - [ ] `p1` - Mediator stores the handler in the `extensionHandlers` map keyed by `extensionId` - `inst-store-extension-handler`
+4. - [ ] `p1` - When the bridge is disposed (extension unmount or unregister), mediator unregisters the extension handler for `extensionId` — the `extensionHandlers` entry is removed - `inst-unregister-on-dispose`
 
 ### Update Shared Property
 

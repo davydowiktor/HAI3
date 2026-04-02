@@ -48,7 +48,9 @@ export abstract class RuntimeBridgeFactory {
     entryTypeId: string,
     executeActionsChain: (chain: ActionsChain) => Promise<void>,
     registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void,
-    unregisterDomainActionHandler: (domainId: string) => void
+    unregisterDomainActionHandler: (domainId: string) => void,
+    registerExtensionActionHandler: (extensionId: string, domainId: string, entryId: string, handler: ActionHandler) => void,
+    unregisterExtensionActionHandler: (extensionId: string) => void
   ): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge };
 
   /**

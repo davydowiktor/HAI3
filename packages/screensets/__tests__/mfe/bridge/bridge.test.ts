@@ -8,7 +8,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ChildMfeBridgeImpl } from '../../../src/mfe/bridge/ChildMfeBridge';
 import { ParentMfeBridgeImpl } from '../../../src/mfe/bridge/ParentMfeBridge';
 import type { ActionsChain, SharedProperty } from '../../../src/mfe/types';
+import type { ActionHandler } from '../../../src/mfe/mediator/types';
 import { NoActionsChainHandlerError, BridgeDisposedError } from '../../../src/mfe/errors';
+import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
+import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../src/mfe/plugins/types';
+import type { ExtensionDomain } from '../../../src/mfe/types';
+import { MockContainerProvider } from '../test-utils';
 
 describe('Bridge Implementation', () => {
   describe('ChildMfeBridge', () => {
@@ -512,6 +518,185 @@ describe('Bridge Implementation', () => {
         };
         await parentBridge.sendActionsChain(parentToChildChain);
         expect(childHandler).toHaveBeenCalledWith(parentToChildChain);
+      });
+    });
+  });
+
+  describe('Fix #254: ChildMfeBridge.registerActionHandler', () => {
+    // Minimal type system plugin needed to configure a mediator for integration tests.
+    function createMinimalTypeSystem(): TypeSystemPlugin {
+      const schemas = new Map<string, JSONSchema>();
+      const registered = new Map<string, unknown>();
+
+      for (const id of [
+        'gts.hai3.mfes.mfe.entry.v1~',
+        'gts.hai3.mfes.ext.domain.v1~',
+        'gts.hai3.mfes.ext.extension.v1~',
+        'gts.hai3.mfes.comm.shared_property.v1~',
+        'gts.hai3.mfes.comm.action.v1~',
+        'gts.hai3.mfes.comm.actions_chain.v1~',
+        'gts.hai3.mfes.lifecycle.stage.v1~',
+        'gts.hai3.mfes.lifecycle.hook.v1~',
+      ]) {
+        schemas.set(id, { $id: `gts://${id}`, type: 'object' });
+      }
+
+      return {
+        name: 'MinimalMock',
+        version: '1.0.0',
+        isValidTypeId: (id: string) => id.includes('gts.') && id.endsWith('~'),
+        parseTypeId: (id: string) => ({ id, segments: id.split('.') }),
+        registerSchema: (schema: JSONSchema) => {
+          if (schema.$id) schemas.set(schema.$id.replace('gts://', ''), schema);
+        },
+        getSchema: (id: string) => schemas.get(id),
+        register: (entity: unknown) => {
+          const e = entity as { id?: string };
+          registered.set(e.id ?? '', entity);
+        },
+        validateInstance: (instanceId: string): ValidationResult => {
+          if (registered.has(instanceId)) return { valid: true, errors: [] };
+          return { valid: false, errors: [{ path: '', message: `Not registered: ${instanceId}`, keyword: 'not-registered' }] };
+        },
+        query: (pattern: string, limit?: number) => {
+          const results = Array.from(schemas.keys()).filter(id => id.includes(pattern));
+          return limit ? results.slice(0, limit) : results;
+        },
+        isTypeOf: (typeId: string, baseTypeId: string) => typeId === baseTypeId || typeId.startsWith(baseTypeId),
+        checkCompatibility: () => ({ compatible: true, breaking: false, changes: [] }),
+        getAttribute: (typeId: string, path: string) => ({ typeId, path, resolved: false }),
+      };
+    }
+
+    // Concrete class implementing ActionHandler — no plain objects, per project rules.
+    class SpyActionHandler implements ActionHandler {
+      private readonly calls: Array<{ actionTypeId: string; payload: Record<string, unknown> | undefined }> = [];
+
+      async handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void> {
+        this.calls.push({ actionTypeId, payload });
+      }
+
+      getCalls(): ReadonlyArray<{ actionTypeId: string; payload: Record<string, unknown> | undefined }> {
+        return this.calls;
+      }
+    }
+
+    describe('Registration via setRegisterActionHandlerCallback', () => {
+      it('should invoke the wired callback with the provided handler', () => {
+        const bridge = new ChildMfeBridgeImpl('domain-id', 'instance-id');
+        const captured: ActionHandler[] = [];
+        bridge.setRegisterActionHandlerCallback((h) => captured.push(h));
+
+        const handler = new SpyActionHandler();
+        bridge.registerActionHandler(handler);
+
+        expect(captured).toHaveLength(1);
+        expect(captured[0]).toBe(handler);
+      });
+
+      it('should throw when callback is not wired', () => {
+        const bridge = new ChildMfeBridgeImpl('domain-id', 'instance-id');
+        const handler = new SpyActionHandler();
+
+        expect(() => bridge.registerActionHandler(handler)).toThrow(
+          'registerActionHandler callback not wired'
+        );
+      });
+
+      it('should throw after cleanup clears the callback', () => {
+        const bridge = new ChildMfeBridgeImpl('domain-id', 'instance-id');
+        bridge.setRegisterActionHandlerCallback(() => {});
+        bridge.cleanup();
+
+        const handler = new SpyActionHandler();
+        expect(() => bridge.registerActionHandler(handler)).toThrow(
+          'registerActionHandler callback not wired'
+        );
+      });
+    });
+
+    describe('Full pipeline: bridge → mediator → handler invocation', () => {
+      const EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~test.ext.v1~test.ext.handler.v1';
+      const DOMAIN_ID = 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~';
+      const ENTRY_ID = 'gts.hai3.mfes.mfe.entry.v1~test.entry.v1~';
+      const ACTION_TYPE = 'gts.hai3.mfes.comm.action.v1~test.custom.v1~';
+
+      let plugin: TypeSystemPlugin;
+      let registry: DefaultScreensetsRegistry;
+      let mediator: DefaultActionsChainsMediator;
+      let domain: ExtensionDomain;
+      let containerProvider: MockContainerProvider;
+
+      beforeEach(() => {
+        plugin = createMinimalTypeSystem();
+        registry = new DefaultScreensetsRegistry({ typeSystem: plugin });
+        containerProvider = new MockContainerProvider();
+        mediator = new DefaultActionsChainsMediator({
+          typeSystem: plugin,
+          getDomainState: (domainId) => registry.getDomainState(domainId),
+        });
+
+        domain = {
+          id: DOMAIN_ID,
+          sharedProperties: [],
+          actions: [],
+          // Extension-targeted actions are resolved via extensionHandlers map; the domain
+          // must be registered so the mediator can look up defaultActionTimeout.
+          extensionsActions: [ACTION_TYPE],
+          defaultActionTimeout: 5000,
+          lifecycleStages: [],
+          extensionsLifecycleStages: [],
+        };
+        registry.registerDomain(domain, containerProvider);
+      });
+
+      it('should route an action chain targeting the extension ID to the registered handler', async () => {
+        const bridge = new ChildMfeBridgeImpl(DOMAIN_ID, 'test-instance');
+
+        // Wire the callback exactly as DefaultRuntimeBridgeFactory does.
+        bridge.setRegisterActionHandlerCallback((handler) =>
+          mediator.registerExtensionHandler(EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler)
+        );
+
+        const spy = new SpyActionHandler();
+        bridge.registerActionHandler(spy);
+
+        await mediator.executeActionsChain({
+          action: { type: ACTION_TYPE, target: EXTENSION_ID },
+        });
+
+        expect(spy.getCalls()).toHaveLength(1);
+      });
+
+      it('should deliver the correct actionTypeId and payload to handleAction', async () => {
+        const bridge = new ChildMfeBridgeImpl(DOMAIN_ID, 'test-instance');
+        bridge.setRegisterActionHandlerCallback((handler) =>
+          mediator.registerExtensionHandler(EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler)
+        );
+
+        const spy = new SpyActionHandler();
+        bridge.registerActionHandler(spy);
+
+        const expectedPayload = { userId: 'u-42', refresh: true };
+        await mediator.executeActionsChain({
+          action: { type: ACTION_TYPE, target: EXTENSION_ID, payload: expectedPayload },
+        });
+
+        const calls = spy.getCalls();
+        expect(calls).toHaveLength(1);
+        expect(calls[0].actionTypeId).toBe(ACTION_TYPE);
+        expect(calls[0].payload).toEqual(expectedPayload);
+      });
+
+      it('should complete chain as no-op when no handler is registered for the extension target', async () => {
+        // The mediator treats a missing handler as a successful no-op (see executeAction internals).
+        const result = await mediator.executeActionsChain({
+          action: { type: ACTION_TYPE, target: EXTENSION_ID },
+        });
+
+        // Chain completes — the action is a no-op, not an error.
+        expect(result.completed).toBe(true);
+        expect(result.path).toContain(ACTION_TYPE);
       });
     });
   });

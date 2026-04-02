@@ -43,10 +43,12 @@ export class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
   createBridge(
     domainState: ExtensionDomainState,
     extensionId: string,
-    _entryTypeId: string,
+    entryTypeId: string,
     executeActionsChain: (chain: ActionsChain) => Promise<void>,
     registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void,
-    unregisterDomainActionHandler: (domainId: string) => void
+    unregisterDomainActionHandler: (domainId: string) => void,
+    registerExtensionActionHandler: (extensionId: string, domainId: string, entryId: string, handler: ActionHandler) => void,
+    _unregisterExtensionActionHandler: (extensionId: string) => void
   ): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge } {
 
     // Generate unique instance ID
@@ -78,6 +80,12 @@ export class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
     };
 
     childBridge.setChildDomainCallbacks(registerChildDomainCallback, unregisterChildDomainCallback);
+
+    // Wire extension action handler registration callback
+    // The bridge already knows domainId and instanceId; entryTypeId is captured from createBridge params.
+    childBridge.setRegisterActionHandlerCallback((handler) => {
+      registerExtensionActionHandler(extensionId, domainState.domain.id, entryTypeId, handler);
+    });
 
     // Populate initial properties from domain state (raw values)
     for (const [propertyTypeId, rawValue] of domainState.properties) {

@@ -39,6 +39,7 @@
   - [hai3-mfe-externalize Vite Plugin](#hai3-mfe-externalize-vite-plugin)
   - [MFE-Internal Dataflow](#mfe-internal-dataflow)
   - [SharedDependencyConfig chunkPath Field](#shareddependencyconfig-chunkpath-field)
+  - [ChildMfeBridge Interface Contract](#childmfebridge-interface-contract)
 - [6. Acceptance Criteria](#6-acceptance-criteria)
 - [Additional Context](#additional-context)
 
@@ -509,6 +510,38 @@ Each MFE package bootstraps its own isolated `HAI3App` and exposes it for use by
 **Covers (PRD)**:
 - `cpt-frontx-fr-blob-source-cache` (chunkPath enables cache keying)
 - `cpt-frontx-fr-sharescope-construction` (chunkPath determines whether blob get() is created)
+
+### ChildMfeBridge Interface Contract
+
+- [ ] `p1` - **ID**: `cpt-frontx-dod-mfe-isolation-child-bridge-contract`
+
+`ChildMfeBridge` is the object passed to the MFE by the host when `MfeEntryLifecycle.mount(bridge)` is called. The MFE receives it and may use it to communicate back with the host. The interface declares all members the child MFE may access:
+
+```typescript
+interface ChildMfeBridge {
+  readonly domainId: string;
+  readonly instanceId: string;
+  executeActionsChain(chain: ActionsChain): Promise<void>;
+  subscribeToProperty(propertyTypeId: string, callback: (value: SharedProperty) => void): () => void;
+  getProperty(propertyTypeId: string): SharedProperty | undefined;
+  registerActionHandler(handler: ActionHandler): void;
+}
+```
+
+- `domainId` — the ID of the domain this extension belongs to; provided by the registry at bridge creation
+- `instanceId` — the extension instance ID; used as the routing key for extension-level action delivery
+- `executeActionsChain` — allows the child MFE to send actions back to the host mediator
+- `subscribeToProperty` / `getProperty` — read-only access to shared property values broadcast by the host
+- `registerActionHandler` — registers the MFE's own `ActionHandler` with the mediator so it can receive actions targeted at `instanceId`; the bridge wires this to `mediator.registerExtensionHandler(extensionId, domainId, entryId, handler)`; the handler is automatically unregistered when the bridge is disposed
+
+The MFE provides the handler; the system manages routing and lifecycle. The handler is never called directly by the MFE — it is invoked by the mediator when an actions chain targets this extension.
+
+**Implements**:
+- `cpt-frontx-flow-screenset-registry-register-extension-handler`
+
+**Covers (DESIGN)**:
+- `cpt-frontx-interface-child-mfe-bridge`
+- `cpt-frontx-seq-extension-action-delivery`
 
 ---
 

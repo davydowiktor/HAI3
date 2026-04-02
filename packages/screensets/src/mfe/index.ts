@@ -64,6 +64,9 @@ export type {
 } from './handler/types';
 export { MfeHandler, MfeBridgeFactory } from './handler/types';
 
+// Mediator types needed by MFE consumers
+export type { ActionHandler } from './mediator/types';
+
 // Shadow DOM Utilities
 export {
   createShadowRoot,

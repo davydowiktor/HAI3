@@ -197,6 +197,10 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       hostRuntime: this,
       registerDomainActionHandler: (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
       unregisterDomainActionHandler: (domainId) => this.unregisterDomainActionHandler(domainId),
+      registerExtensionActionHandler: (extensionId, domainId, entryId, handler) =>
+        this.mediator.registerExtensionHandler(extensionId, domainId, entryId, handler),
+      unregisterExtensionActionHandler: (extensionId) =>
+        this.mediator.unregisterExtensionHandler(extensionId),
       bridgeFactory: this.bridgeFactory,
     });
 
