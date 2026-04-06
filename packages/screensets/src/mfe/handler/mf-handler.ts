@@ -79,7 +79,7 @@ interface MfeLoaderConfig {
  * Module Federation handler for loading MFE bundles.
  *
  * For each load() call:
- *  1. Parses remoteEntry.js (fetched as text) to find the expose chunk
+ *  1. Parses remoteEntry.js (fetched as text) for expose chunk filename and CSS paths
  *  2. Builds a shareScope with per-load blob URL get() functions
  *  3. Creates a blob URL chain for the expose chunk and all its static deps
  *     (fresh __federation_fn_import → fresh moduleCache)
@@ -190,7 +190,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     const shareScope = this.buildShareScope(manifest, loadState);
     this.writeShareScope(shareScope);
 
-    // Parse remoteEntry to find the expose chunk filename
+    // Parse remoteEntry moduleMap callback: expose chunk filename + emitted CSS paths
     const remoteEntrySource = await this.fetchSourceText(remoteEntryUrl);
     const exposeMetadata = this.parseExposeMetadata(
       remoteEntrySource,
@@ -198,7 +198,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     );
     if (!exposeMetadata) {
       throw new MfeLoadError(
-        `Cannot find expose chunk for '${exposedModule}' in remoteEntry`,
+        `Cannot resolve expose metadata for '${exposedModule}' in remoteEntry`,
         entryId
       );
     }
@@ -243,6 +243,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     );
   }
 
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-wrap-lifecycle-stylesheets:p1
   private wrapLifecycleWithStylesheets(
     lifecycle: MfeEntryLifecycle<ChildMfeBridge>,
     stylesheetPaths: string[],
@@ -264,6 +265,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     };
   }
 
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-inject-remote-stylesheets:p1
   private async injectRemoteStylesheets(
     container: Element | ShadowRoot,
     stylesheetPaths: string[],
@@ -279,6 +281,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     });
   }
 
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-remove-injected-stylesheets:p1
   private removeInjectedStylesheets(container: Element | ShadowRoot): void {
     const injectedStyles = container.querySelectorAll<HTMLLinkElement | HTMLStyleElement>(
       `link[id^="${RUNTIME_STYLE_ID_PREFIX}"], style[id^="${RUNTIME_STYLE_ID_PREFIX}"]`
@@ -286,6 +289,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     injectedStyles.forEach((styleElement) => styleElement.remove());
   }
 
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-upsert-mount-style-element:p1
   private upsertStyleElement(
     container: Element | ShadowRoot,
     stylesheet: { css?: string; href?: string },
@@ -551,18 +555,13 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   }
 
   /**
-   * Parse the remoteEntry source to find the expose chunk filename.
+   * Parse remoteEntry to locate the expose moduleMap callback and derive load metadata.
    *
-   * Matches the moduleMap entry pattern (dev / pretty-print):
-   *   "./lifecycle-helloworld":()=>{
-   *     ...
-   *     return __federation_import('./__federation_expose_Lifecycle-helloworld-CeX0Lwd2.js')...
-   *   }
-   *
-   * Production builds minify the entry to an arrow expression body and rename helpers, e.g.:
-   *   "./lifecycle":()=>(E([],!1,"./lifecycle"),w("./__federation_expose_Lifecycle-….js").then(...))
+   * Returns the expose JS chunk filename (for blob URL chain) and any CSS asset paths
+   * emitted by the federation runtime (`dynamicLoadingCss` / minified equivalent) so
+   * styles can be injected at mount time.
    */
-  // @cpt-algo:cpt-frontx-algo-mfe-isolation-parse-expose-chunk:p1
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-parse-expose-metadata:p1
   private parseExposeMetadata(
     remoteEntrySource: string,
     exposedModule: string
@@ -587,7 +586,12 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   /**
    * Resolve the expose chunk file inside the moduleMap callback body.
    * Prefers stable `__federation_expose_*` paths; falls back to __federation_import().
+   *
+   * Matches patterns inside the callback (dev / pretty-print and minified), e.g.:
+   *   return __federation_import('./__federation_expose_Lifecycle-….js')...
+   *   "./lifecycle":()=>(E([],!1,"./lifecycle"),w("./__federation_expose_….js").then(...))
    */
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-parse-expose-chunk:p1
   private parseExposeChunkFilename(exposeBody: string): string | null {
     const exposeRef = /['"]\.\/(__federation_expose_[^'"]+\.js)['"]/.exec(exposeBody);
     if (exposeRef) {
@@ -599,6 +603,11 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     return importMatch ? importMatch[1] : null;
   }
 
+  /**
+   * Find the moduleMap factory body for `exposedModule` in remoteEntry source.
+   * Supports `()=>{...}` and minified `()=>(...)` arrow forms.
+   */
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-find-expose-module-body:p1
   private findExposeModuleBody(
     remoteEntrySource: string,
     exposedModule: string
@@ -697,6 +706,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * `dynamicLoadingCss([...], …)`; minified output uses a short alias with the same
    * argument shape: `([...], <bool>, "<exposeKey>")`.
    */
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-parse-expose-stylesheets:p1
   private parseStylesheetPaths(
     exposeBody: string,
     exposedModule: string

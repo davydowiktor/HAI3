@@ -19,7 +19,14 @@
   - [Recursive Blob URL Chain](#recursive-blob-url-chain)
   - [Parse Static Import Filenames](#parse-static-import-filenames)
   - [Rewrite Module Imports](#rewrite-module-imports)
-  - [Parse Expose Chunk Filename](#parse-expose-chunk-filename)
+  - [Find Expose Module Body](#find-expose-module-body)
+  - [Parse Expose Metadata](#parse-expose-metadata)
+  - [Parse Expose Chunk Filename (callback body)](#parse-expose-chunk-filename-callback-body)
+  - [Parse Expose Stylesheets](#parse-expose-stylesheets)
+  - [Wrap Lifecycle With Remote Stylesheets](#wrap-lifecycle-with-remote-stylesheets)
+  - [Inject Remote Stylesheets](#inject-remote-stylesheets)
+  - [Remove Injected Stylesheets](#remove-injected-stylesheets)
+  - [Upsert Mount Style Element](#upsert-mount-style-element)
   - [Write Share Scope to Global](#write-share-scope-to-global)
   - [hai3-mfe-externalize: Rename Shared Chunks](#hai3-mfe-externalize-rename-shared-chunks)
   - [hai3-mfe-externalize: Map Bundled Sub-Chunks to Packages](#hai3-mfe-externalize-map-bundled-sub-chunks-to-packages)
@@ -104,14 +111,15 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 6. [x] - `p1` - Algorithm: build share scope via `cpt-frontx-algo-mfe-isolation-build-share-scope` — `inst-build-share-scope`
 7. [x] - `p1` - `writeShareScope()` writes the constructed entries to `globalThis.__federation_shared__['default']` — `inst-write-share-scope`
 8. [x] - `p1` - Algorithm: fetch `remoteEntry.js` source text via `cpt-frontx-algo-mfe-isolation-fetch-source` — `inst-fetch-remote-entry`
-9. [x] - `p1` - Algorithm: parse expose chunk filename via `cpt-frontx-algo-mfe-isolation-parse-expose-chunk` — `inst-parse-expose-chunk`
-10. [x] - `p1` - **IF** expose chunk filename is null **RETURN** `MfeLoadError` — `inst-check-expose-chunk`
+9. [x] - `p1` - Algorithm: parse expose metadata (moduleMap callback body, chunk filename, stylesheet paths) via `cpt-frontx-algo-mfe-isolation-parse-expose-metadata` — `inst-parse-expose-metadata`
+10. [x] - `p1` - **IF** expose metadata is null **RETURN** `MfeLoadError` — `inst-check-expose-metadata`
 11. [x] - `p1` - Algorithm: build blob URL chain for expose chunk via `cpt-frontx-algo-mfe-isolation-blob-url-chain` — `inst-blob-url-chain`
 12. [x] - `p1` - **IF** expose blob URL is absent from `blobUrlMap` **RETURN** `MfeLoadError` — `inst-check-expose-blob`
 13. [x] - `p1` - Dynamic `import()` of the expose blob URL produces the expose module — `inst-import-expose-blob`
 14. [x] - `p1` - Module factory extracted from expose module; result validated as `MfeEntryLifecycle` (must have `mount` and `unmount`) — `inst-validate-lifecycle`
 15. [x] - `p1` - **IF** lifecycle interface not satisfied **RETURN** `MfeLoadError` — `inst-check-lifecycle`
-16. [x] - `p1` - **RETURN** `MfeEntryLifecycle<ChildMfeBridge>` to caller — `inst-return-lifecycle`
+16. [x] - `p1` - Algorithm: when stylesheet paths are non-empty, wrap lifecycle so `mount` injects remote CSS (`cpt-frontx-algo-mfe-isolation-wrap-lifecycle-stylesheets`) and `unmount` removes injected `<link>` / `<style>` nodes — `inst-wrap-stylesheets`
+17. [x] - `p1` - **RETURN** `MfeEntryLifecycle<ChildMfeBridge>` to caller — `inst-return-lifecycle`
 
 ### MFE Build with Externalize Plugin
 
@@ -224,16 +232,84 @@ Replaces relative specifiers in a chunk's source text with either a blob URL (if
 3. [x] - `p1` - Non-relative specifiers (bare package names, absolute URLs) are not modified — `inst-skip-non-relative`
 4. [x] - `p1` - **RETURN** the fully rewritten source text — `inst-return-rewritten`
 
-### Parse Expose Chunk Filename
+### Find Expose Module Body
+
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-find-expose-module-body`
+
+Locates the `moduleMap` factory callback body for the requested `exposedModule` key in `remoteEntry.js` (supports `()=>{...}` and minified `()=>(...)`).
+
+1. [x] - `p1` - Match `"<exposedModule>":()=>` with opening `{` or `(` — `inst-match-module-key`
+2. [x] - `p1` - Scan forward with delimiter balancing (respecting strings) until the matching `}` or `)` — `inst-scan-balanced-body`
+3. [x] - `p1` - **RETURN** the inner source slice or null if not found — `inst-return-body-slice`
+
+### Parse Expose Metadata
+
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-parse-expose-metadata`
+
+Orchestrates expose load metadata from `remoteEntry.js`: finds the moduleMap callback body, resolves the expose JS chunk filename, and collects emitted CSS paths for mount-time injection.
+
+1. [x] - `p1` - Call `cpt-frontx-algo-mfe-isolation-find-expose-module-body` — `inst-find-body`
+2. [x] - `p1` - **IF** body is null **RETURN** null — `inst-no-body`
+3. [x] - `p1` - Resolve chunk filename via `cpt-frontx-algo-mfe-isolation-parse-expose-chunk` — `inst-resolve-chunk`
+4. [x] - `p1` - **IF** chunk filename is null **RETURN** null — `inst-no-chunk`
+5. [x] - `p1` - Resolve stylesheet paths via `cpt-frontx-algo-mfe-isolation-parse-expose-stylesheets` — `inst-resolve-css`
+6. [x] - `p1` - **RETURN** `{ chunkFilename, stylesheetPaths }` — `inst-return-metadata`
+
+### Parse Expose Chunk Filename (callback body)
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-parse-expose-chunk`
 
-Extracts the filename of the expose entry chunk from the remoteEntry source.
+Extracts the expose entry chunk filename from the **moduleMap callback body** (not the full remoteEntry).
 
-1. [x] - `p1` - Escape the `exposedModule` string for regex use — `inst-escape-module`
-2. [x] - `p1` - Apply the pattern: `"<exposedModule>"[^}]*__federation_import\(['"]\.\/([^'"]+)['"]\)` against the remoteEntry source text — `inst-apply-regex`
-3. [x] - `p1` - **IF** pattern matches **RETURN** the captured filename (group 1) — `inst-return-filename`
-4. [x] - `p1` - **IF** no match **RETURN** null — `inst-return-null`
+1. [x] - `p1` - Prefer match `['"]\.\/(__federation_expose_[^'"]+\.js)['"]` — `inst-expose-stable-name`
+2. [x] - `p1` - Else match `__federation_import(\s*['"]\.\/([^'"]+)['"]\s*)` — `inst-expose-import-fallback`
+3. [x] - `p1` - **RETURN** captured filename or null — `inst-return-chunk-or-null`
+
+### Parse Expose Stylesheets
+
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-parse-expose-stylesheets`
+
+Extracts `.css` asset paths from the expose callback (pretty `dynamicLoadingCss([...],` or minified `([...], …, "<exposeKey>")`).
+
+1. [x] - `p1` - **IF** legacy `dynamicLoadingCss` shape matches, parse string literals inside the bracket list — `inst-parse-legacy-css`
+2. [x] - `p1` - **ELSE** match minified bracket list followed by expose key; parse string literals — `inst-parse-minified-css`
+3. [x] - `p1` - **RETURN** deduplicated path list (may be empty) — `inst-return-css-paths`
+
+### Wrap Lifecycle With Remote Stylesheets
+
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-wrap-lifecycle-stylesheets`
+
+When the remote emitted CSS paths, returns a lifecycle proxy that injects styles before `mount` and removes them on `unmount`.
+
+1. [x] - `p1` - **IF** `stylesheetPaths` is empty **RETURN** the original lifecycle — `inst-no-css-proxy`
+2. [x] - `p1` - **ELSE** **RETURN** object whose `mount` awaits `cpt-frontx-algo-mfe-isolation-inject-remote-stylesheets` then delegates — `inst-proxy-mount`
+3. [x] - `p1` - `unmount` calls `cpt-frontx-algo-mfe-isolation-remove-injected-stylesheets` then delegates — `inst-proxy-unmount`
+
+### Inject Remote Stylesheets
+
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-inject-remote-stylesheets`
+
+For each path, resolves absolute URL with `baseUrl` and upserts a `<link rel="stylesheet">` under the mount container with a deterministic id prefix.
+
+1. [x] - `p1` - **FOR EACH** path: `cpt-frontx-algo-mfe-isolation-upsert-mount-style-element` with `href` — `inst-inject-each-link`
+
+### Remove Injected Stylesheets
+
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-remove-injected-stylesheets`
+
+Queries `link[id^=prefix], style[id^=prefix]` within the mount container and removes each node.
+
+1. [x] - `p1` - **RETURN** after removal (idempotent) — `inst-cleanup-styles`
+
+### Upsert Mount Style Element
+
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-upsert-mount-style-element`
+
+Creates or updates a `<link rel="stylesheet">` (href) or `<style>` (inline css) under `Element` or `ShadowRoot`, keyed by id.
+
+1. [x] - `p1` - Locate existing node by id (`getElementById` or `querySelector`) — `inst-find-existing`
+2. [x] - `p1` - **IF** href: ensure `LINK` element; set `href` — `inst-upsert-link`
+3. [x] - `p1` - **ELSE** ensure `STYLE` element; set `textContent` — `inst-upsert-inline`
 
 ### Write Share Scope to Global
 
@@ -341,7 +417,14 @@ Tracks the fetch state of each chunk URL across all loads for the lifetime of th
 - `cpt-frontx-algo-mfe-isolation-blob-url-chain`
 - `cpt-frontx-algo-mfe-isolation-parse-imports`
 - `cpt-frontx-algo-mfe-isolation-rewrite-module-imports`
+- `cpt-frontx-algo-mfe-isolation-find-expose-module-body`
+- `cpt-frontx-algo-mfe-isolation-parse-expose-metadata`
 - `cpt-frontx-algo-mfe-isolation-parse-expose-chunk`
+- `cpt-frontx-algo-mfe-isolation-parse-expose-stylesheets`
+- `cpt-frontx-algo-mfe-isolation-wrap-lifecycle-stylesheets`
+- `cpt-frontx-algo-mfe-isolation-inject-remote-stylesheets`
+- `cpt-frontx-algo-mfe-isolation-remove-injected-stylesheets`
+- `cpt-frontx-algo-mfe-isolation-upsert-mount-style-element`
 - `cpt-frontx-algo-mfe-isolation-write-share-scope`
 - `cpt-frontx-state-mfe-isolation-load-blob-state`
 - `cpt-frontx-state-mfe-isolation-source-cache`
