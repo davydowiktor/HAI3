@@ -575,9 +575,9 @@ The handler MUST NOT call `URL.revokeObjectURL()` after `import()` resolves; blo
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-blob-source-cache`
 
-`MfeHandlerMF` MUST maintain an in-memory cache of fetched source text strings, keyed by absolute chunk URL. At most ONE network fetch MUST occur per chunk URL across all MFE loads.
+`MfeHandlerMF` MUST maintain a handler-level `sourceTextCache` of fetched source text strings, keyed by absolute URL. The cache covers both expose chunk source text and shared dependency standalone ESM source text. At most ONE network fetch MUST occur per absolute URL across all MFE loads. For shared dependencies, all runtimes declaring the same `name@version` resolve to the same host-relative URL (e.g., `/shared/react.js`), so the cache key (absolute URL) effectively deduplicates by `name@version`.
 
-**Rationale**: Prevents redundant network requests when multiple MFEs share the same dependency version.
+**Rationale**: Prevents redundant network requests when multiple MFEs share the same dependency version. A single cache with URL keys unifies expose chunk and shared dep caching without requiring separate mechanisms.
 **Actors**: `cpt-frontx-actor-microfrontend`
 
 #### Import Rewriting
@@ -613,9 +613,9 @@ The blob URL mapping MUST be scoped to a single load; different MFE loads MUST h
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-externalize-transform`
 
-The MFE build plugin MUST transform ALL `import` statements for shared dependencies into federation-resolvable calls across the entire MFE bundle, including code-split chunks — not only expose entry files.
+The MFE build configuration MUST externalize ALL declared shared dependencies via `rollupOptions.external` so that bare import specifiers are preserved in the output across the entire MFE bundle, including code-split chunks — not only expose entry files. At runtime, the handler resolves these bare specifiers to per-load shared dep blob URLs.
 
-**Rationale**: All chunks in the MFE bundle must participate in shared dependency resolution for blob URL isolation to work correctly.
+**Rationale**: Preserving bare specifiers in all chunks allows the handler's blob URL chain to rewrite them uniformly to isolated shared dep instances. All chunks in the MFE bundle must participate in shared dependency resolution for blob URL isolation to work correctly.
 **Actors**: `cpt-frontx-actor-build-system`
 
 #### Declarative Manifest Generation
@@ -638,11 +638,11 @@ The MFE build plugin MUST operate at build time only (`vite build`); it MUST NOT
 
 #### Registration Config Generation Script
 
-- [ ] `p1` - **ID**: `cpt-frontx-fr-manifest-generation-script`
+- [x] `p1` - **ID**: `cpt-frontx-fr-manifest-generation-script`
 
-The build system MUST provide a manifest generation script that reads human-authored MFE configuration (`mfe.json`) and the plugin artifact (`mfe.gts-manifest.json` produced by `frontx-mf-gts`), merges them into complete GTS entity registration data (`mfe.generated.json`) with environment-specific base URL. The script MUST accept a `--base-url` parameter that sets the `publicPath` in the generated `MfManifest` GTS entity. The script MUST produce `exposeAssets` for each entry by reading `exposes[]` from `mfe.gts-manifest.json`. The generated `MfManifest` entity MUST include `mfInitKey` and per-dep `unwrapKey`/`chunkPath` from the plugin artifact. The generated file is what the bootstrap loader imports to register GTS entities with the runtime — `mfe.json` is never read at runtime.
+The build system MUST provide a temporary generation script that aggregates pointers to enriched `mfe.json` files into `mfe.generated.json` with environment-specific base URL. The script MUST accept a `--base-url` parameter that sets the `publicPath` in each `MfManifest` GTS entity. The enriched `mfe.json` already contains `manifest.metaData`, `manifest.shared[]` (with per-dep `chunkPath`/`version`/`unwrapKey`), and `entries[].exposeAssets` — all set in-place by the `frontx-mf-gts` plugin at build time. The generated file is what the bootstrap loader imports to register GTS entities with the runtime; when a backend API is ready, the static import is replaced with a fetch call — same `mfe.json` shape, different transport.
 
-**Rationale**: `mfe.json` is environment-independent (no URLs, no chunk paths) and therefore human-authorable and version-controllable. `mfe.gts-manifest.json` is produced by `frontx-mf-gts` at build time and carries `mfInitKey`, per-dep `unwrapKey`/`chunkPath`, and `exposeAssets` — all extracted without heuristics. The generation script is the single point where environment-specific `publicPath` is injected, producing `mfe.generated.json` that the bootstrap registers. This separation keeps `mfe.json` reviewable and keeps runtime bootstrapping simple.
+**Rationale**: `mfe.json` is environment-independent before enrichment (no URLs, no chunk paths) and therefore human-authorable and version-controllable. The `frontx-mf-gts` plugin enriches it in-place at build time with manifest metadata, shared dep info, and expose assets — all determined without heuristics. The generation script is a temporary aggregator that injects environment-specific `publicPath` via `--base-url`. This separation keeps `mfe.json` reviewable and keeps runtime bootstrapping simple.
 **Actors**: `cpt-frontx-actor-build-system`, `cpt-frontx-actor-ci-cd`
 
 ### 5.8 MFE Internal Dataflow
@@ -671,18 +671,18 @@ MFE packages MUST NOT import from `react-redux`, `redux`, or `@reduxjs/toolkit` 
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-sharescope-construction`
 
-`MfeHandlerMF` MUST create a per-load `FederationHost` instance via `createInstance()` from `@module-federation/runtime`. Each shared dependency declared in the manifest MUST be configured with a `get()` factory that returns a blob-URL'd module using `manifest.shared[].unwrapKey` to extract the module from the imported chunk. The handler MUST resolve `globalThis[manifest.mfInitKey].initPromise` with the real `FederationHost` instance BEFORE evaluating any blob-URL'd chunk. The handler MUST NOT write to `globalThis.__federation_shared__`; MF 2.0 chunks never read that global. The `mfInitKey` value is stored in `manifest.mfInitKey` — extracted at build time by the `frontx-mf-gts` plugin.
+`MfeHandlerMF` MUST fetch standalone ESM source text for each shared dependency declared in the manifest, deduplicated via `sourceTextCache` (one fetch per `name@version` across all runtimes). For each shared dep, the handler MUST rewrite bare specifiers between shared deps to per-load blob URLs (respecting dependency order — leaves first), then create a fresh blob URL via `URL.createObjectURL()`. Each shared dep's `manifest.shared[].unwrapKey` identifies the export key to extract the module from the standalone ESM (`null` means `'default'`). The handler MUST NOT use `@module-federation/runtime`, `createInstance()`, `FederationHost`, `__loadShare__`, `__mf_init__`, or write to `globalThis.__federation_shared__`.
 
-**Rationale**: MF 2.0 chunks use `loadShare()` via the `__mf_init__` global promise. Using a real `FederationHost` instance (via `createInstance()`) with build-time `unwrapKey` values eliminates all runtime heuristics: no single-export guessing, no module factory name detection, and no `__mf_init__` key derivation formula. Writing to `__federation_shared__` has no effect and is therefore omitted.
+**Rationale**: Standalone ESM modules (built by the `frontx-mf-gts` plugin via esbuild) with bare specifier rewriting eliminate all MF 2.0 runtime dependencies. Build-time `unwrapKey` values avoid runtime heuristics (no single-export guessing, no module factory name detection). Per-load blob URLs from cached source text produce unique module evaluations — fresh state per load.
 **Actors**: `cpt-frontx-actor-microfrontend`
 
 #### Concurrent Load Safety
 
 - [x] `p2` - **ID**: `cpt-frontx-fr-sharescope-concurrent`
 
-When multiple MFEs are loaded concurrently, each load's shared dependency resolution MUST be isolated. A fresh `FederationHost` instance is created for each load via `createInstance()` and captures its own `LoadBlobState` through `get()` factory closures; resolving `globalThis[manifest.mfInitKey].initPromise` with the instance does not affect other concurrent loads because each MFE uses a distinct `mfInitKey` value from its own manifest. At most ONE network fetch MUST occur per chunk URL.
+When multiple MFEs are loaded concurrently, each load's shared dependency resolution MUST be isolated. Each load creates its own `LoadBlobState` with independent `sharedDepBlobUrls` and `blobUrlMap`; per-load blob URLs from `URL.createObjectURL()` produce unique module evaluations with no cross-load reuse. The handler-level `sourceTextCache` deduplicates source text fetches — at most ONE network fetch per `name@version` across all loads. There is no global state interaction — no `globalThis` entries, no shared scope, no runtime registry.
 
-**Rationale**: Distinct per-load `FederationHost` instances with manifest-scoped `mfInitKey` values guarantee that concurrent loads cannot interfere with each other's shared dependency resolution.
+**Rationale**: Per-load blob URLs from cached source text guarantee that concurrent loads cannot interfere with each other's shared dependency resolution. Each `URL.createObjectURL()` produces a unique URL that evaluates as an independent module — isolation is guaranteed by the blob URL mechanism itself.
 **Actors**: `cpt-frontx-actor-microfrontend`
 
 ### 5.10 Shared Property Broadcast
@@ -1395,18 +1395,18 @@ Non-production screensets MUST NOT be included in the production build's module 
 - [x] `p1` - **ID**: `cpt-frontx-contract-mfe-manifest`
 
 **Direction**: required from MFE packages
-**Protocol/Format**: Two JSON files per MFE package: `mfe.json` (human-authored, environment-independent) and `mfe.generated.json` (generated at deploy time, contains complete GTS registration data).
-**Compatibility**: `mfe.generated.json` content MUST conform to the `MfManifest` GTS schema; the generation script produces it from `mfe.json` and `mfe.gts-manifest.json`.
-**Description**: Each MFE package provides two files. `mfe.json` is human-authored and version-controlled: it contains entries (without `exposeAssets`), extensions, schemas, and `sharedDependencies` names — no manifest section, no URLs, no chunk paths. `mfe.generated.json` is produced by the generation script (see `cpt-frontx-fr-manifest-generation-script`) by merging `mfe.json` with `mfe.gts-manifest.json` (produced by the `frontx-mf-gts` Vite plugin) and injecting the environment-specific `--base-url`. The generated file contains the complete `MfManifest` GTS entity (with `mfInitKey` and per-dep `unwrapKey`/`chunkPath`) and entries with `exposeAssets`. The bootstrap loader imports `mfe.generated.json`; `mf-manifest.json` and `mfe.gts-manifest.json` never reach runtime.
+**Protocol/Format**: `mfe.json` per MFE package — human-authored base enriched in-place by the `frontx-mf-gts` Vite plugin at build time. A temporary generation script aggregates pointers to enriched `mfe.json` files into `mfe.generated.json` for host bootstrap.
+**Compatibility**: Enriched `mfe.json` content MUST conform to the `MfManifest` GTS schema.
+**Description**: Each MFE package provides `mfe.json` — human-authored and version-controlled: it contains entries (without `exposeAssets`), extensions, schemas, and `sharedDependencies` names. The `frontx-mf-gts` Vite plugin enriches `mfe.json` in-place at build time with `manifest.metaData`, `manifest.shared[]` (with `chunkPath`/`version`/`unwrapKey` per dep), and `entries[].exposeAssets`. Enriched `mfe.json` is the complete self-contained contract per MFE — no intermediate artifacts (`mfe.gts-manifest.json`) are produced. The generation script (see `cpt-frontx-fr-manifest-generation-script`) is a temporary aggregator that produces pointers to enriched `mfe.json` files with environment-specific `--base-url`; when a backend API is ready, the static import is replaced with a fetch call. `mf-manifest.json` is consumed by the plugin only and never reaches runtime.
 
 #### Module Federation Runtime
 
 - [x] `p2` - **ID**: `cpt-frontx-contract-federation-runtime`
 
 **Direction**: required from build system
-**Protocol/Format**: `@module-federation/vite` build plugin (produces `mf-manifest.json`) + `frontx-mf-gts` Vite plugin (produces `mfe.gts-manifest.json` with `mfInitKey`, per-dep `unwrapKey`/`chunkPath`, and `exposeAssets`)
-**Compatibility**: Compatible with Module Federation 2.0 manifest schema.
-**Description**: The MFE build pipeline runs `@module-federation/vite` to produce `mf-manifest.json`, then `frontx-mf-gts` extracts `mfInitKey`, per-dep `unwrapKey`/`chunkPath`, and `exposeAssets` into `mfe.gts-manifest.json`. The generation script reads `mfe.gts-manifest.json` and merges with `mfe.json` to produce `mfe.generated.json`, which carries the complete GTS entity registration data including `mfInitKey` and `unwrapKey` values. The handler consumes the GTS entities registered from `mfe.generated.json`, not the raw build artifacts.
+**Protocol/Format**: `@module-federation/vite` build plugin (`shared: {}`, `rollupOptions.external`; produces `mf-manifest.json`) + `frontx-mf-gts` Vite plugin (builds standalone ESMs for shared deps, enriches `mfe.json` in-place with manifest metadata, shared dep info, and expose assets)
+**Compatibility**: Compatible with Module Federation 2.0 manifest schema for expose compilation and `mf-manifest.json` generation.
+**Description**: The MFE build pipeline runs `@module-federation/vite` to produce `mf-manifest.json` (expose chunk paths, CSS assets). The `frontx-mf-gts` plugin runs in `closeBundle`: builds standalone ESM modules for each shared dep from `node_modules` via esbuild into `dist/shared/`, then enriches `mfe.json` in-place with `manifest.metaData`, `manifest.shared[]` (with `chunkPath`/`version`/`unwrapKey`), and `entries[].exposeAssets`. No intermediate artifacts (`mfe.gts-manifest.json`) are produced. At runtime, the handler fetches standalone ESM source text (deduplicated via `sourceTextCache`), rewrites bare specifiers to per-load blob URLs, and constructs the expose blob URL chain — no `@module-federation/runtime`, no `FederationHost`, no `__mf_init__`.
 
 ## 8. Use Cases
 
@@ -1423,7 +1423,7 @@ Non-production screensets MUST NOT be included in the production build's module 
 **Main Flow**:
 1. Host dispatches `loadExtension` action with MFE entry reference
 2. Handler resolves `MfManifest` GTS entity and reads `entry.exposeAssets` for per-module chunk paths
-3. Handler calls `createInstance()` to create a per-load `FederationHost`, resolves `globalThis[manifest.mfInitKey].initPromise`, and evaluates exposed module via blob URLs
+3. Handler builds shared dep blob URLs (fetches standalone ESMs via `sourceTextCache`, rewrites bare specifiers, creates per-load blob URLs), then builds the expose blob URL chain and evaluates the exposed module
 4. Handler returns lifecycle module (mount/unmount)
 5. Host dispatches `mountExtension` to render in Shadow DOM slot
 

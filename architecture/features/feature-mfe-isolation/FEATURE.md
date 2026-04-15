@@ -60,7 +60,7 @@ The isolation is achieved through five coordinated responsibilities:
 1. **Manifest resolution and source text fetching** — the handler resolves the `MfManifest` GTS entity (registered before load) to extract expose chunk paths, shared dependency info, and CSS asset paths; shared dependencies are standalone ESM modules fetched from `/shared/` URLs; source text is fetched at most once per `name@version` across ALL runtimes (host and MFEs) and cached in the handler-level `sourceTextCache`; each subsequent runtime that declares the same `name@version` gets a `sourceTextCache` hit and pays zero network cost.
 2. **Import rewriting** — BOTH relative specifiers (`./dep.js`, `../dep.js`) AND bare specifiers (`from "react"`, `from "react-dom"`) in fetched source text are rewritten to blob URLs, so blob-evaluated modules can locate their dependencies; relative specifiers are resolved to existing blob URLs or absolute HTTP URLs; bare specifiers are resolved from the per-load shared dep blob URL map.
 3. **Recursive blob URL chain** — the expose chunk and every static dependency it imports are processed depth-first; common transitive dependencies within one load are blob-URL'd once, then reused by the per-load map.
-4. **Per-load shared dep blob URLs** — shared deps are blob-URL'd BEFORE the expose chain; for each shared dep declared in the manifest, the cached source text has its bare specifiers rewritten to other shared dep blob URLs (respecting dependency order), then a fresh blob URL is created; each load creates fresh blob URLs from cached source text, producing unique module evaluations; no MF 2.0 runtime interaction — no `@module-federation/runtime`, no `FederationHost`, no `createInstance()`, no `__loadShare__` proxies.
+4. **Per-load shared dep blob URLs** — shared deps are blob-URL'd BEFORE the expose chain; for each shared dep declared in the manifest, the cached source text has its bare specifiers rewritten to other shared dep blob URLs (respecting dependency order), then a fresh blob URL is created; each load creates fresh blob URLs from cached source text, producing unique module evaluations.
 5. **Build-time standalone ESM generation and mfe.json enrichment** — at build time, `@module-federation/vite` is used ONLY for expose compilation and `mf-manifest.json` generation (CSS assets, expose chunk paths); shared dependency handling is disabled (`shared: {}`); shared deps are externalized via `build.rollupOptions.external` so bare specifiers are preserved in output; the `frontx-mf-gts` Vite plugin builds standalone ESM modules for each shared dep (from `node_modules` via esbuild) and enriches `mfe.json` in-place with manifest metadata, shared dep info (`chunkPath`, `version`, `unwrapKey`), and per-entry `exposeAssets`; enriched `mfe.json` is the complete self-contained contract per MFE — no intermediate build artifacts.
 
 The MFE-internal dataflow completes the isolation: each MFE creates its own `HAI3App` with an isolated store via the blob-URL-evaluated `@cyberfabric/react`; no direct `react-redux` or `@reduxjs/toolkit` imports are permitted.
@@ -139,7 +139,7 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 - `cpt-frontx-actor-build-system`
 
 1. [x] - `p1` - MFE `vite.config.ts` registers the `@module-federation/vite` plugin with expose entries and `shared: {}` (empty — shared dependency mechanism disabled); shared deps are externalized via `build.rollupOptions.external` so bare specifiers are preserved in the expose output — `inst-vite-config`
-2. [x] - `p1` - On `vite build`, the plugin processes expose entry files and all code-split chunks; since `shared: {}`, no `__loadShare__` proxy chunks are generated — bare specifiers pass through to the output as-is — `inst-federation-plugin-runs`
+2. [x] - `p1` - On `vite build`, the plugin processes expose entry files and all code-split chunks; bare specifiers for externalized shared deps pass through to the output as-is — `inst-federation-plugin-runs`
 3. [x] - `p1` - The plugin emits `mf-manifest.json` alongside the built chunk files; the manifest declares each expose entry with its primary JS chunk path in `exposes[].assets.js.sync` and CSS asset paths in `exposes[].assets.css.sync` and `exposes[].assets.css.async` — `inst-manifest-emitted`
 4. [x] - `p1` - Expose chunk paths in `mf-manifest.json` are stable across rebuilds; the manifest is the authoritative source of expose chunk paths and CSS assets — `inst-stable-chunk-paths`
 5. [x] - `p1` - Resulting bundle contains expose chunks with preserved bare specifiers and `mf-manifest.json` with expose metadata — `inst-build-output`
@@ -175,6 +175,9 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 
 Builds per-load blob URLs for all shared dependencies declared in the manifest. Processes deps in dependency order (leaves first) so that bare specifiers between shared deps can be rewritten to already-created blob URLs. Uses the handler-level `sourceTextCache` to avoid redundant fetches — source text is fetched once per absolute URL across all loads; each load creates fresh blob URLs from the cached text to achieve unique module evaluations.
 
+**Inputs**: `MfManifest.shared[]` array, `sourceTextCache` (handler-level), `baseUrl` (string)
+**Outputs**: `sharedDepBlobUrls` map (package name → blob URL)
+
 1. [x] - `p1` - **IF** the manifest shared dependency list is empty or absent **RETURN** an empty `sharedDepBlobUrls` map — `inst-empty-shared-deps`
 2. [x] - `p1` - Sort shared deps in dependency order: deps that import other shared deps are processed AFTER their dependencies (leaves first) so that blob URLs for transitive shared deps are available during bare specifier rewriting — `inst-sort-dep-order`
 3. [x] - `p1` - **FOR EACH** shared dep in dependency order:
@@ -193,6 +196,9 @@ Builds per-load blob URLs for all shared dependencies declared in the manifest. 
 
 Replaces bare specifiers (non-relative, non-absolute import paths like `"react"`, `"react-dom"`, `"react/jsx-runtime"`) in source text with blob URLs from the shared dep blob URL map. Applied to both shared dep source text (during `buildSharedDepBlobUrls`) and expose chain source text (during `createBlobUrlChain`).
 
+**Inputs**: `sourceText` (string), `sharedDepBlobUrls` (Map<string, string>)
+**Outputs**: rewritten source text (string)
+
 1. [x] - `p1` - **FOR EACH** static `from '...'` pattern where the specifier is a bare package name (not starting with `.`, `..`, `/`, or `http`): look up the specifier in `sharedDepBlobUrls`; if found, replace with the blob URL — `inst-rewrite-bare-static`
 2. [x] - `p1` - Apply the same resolution and replacement to dynamic `import('...')` patterns with bare specifiers — `inst-rewrite-bare-dynamic`
 3. [x] - `p1` - Bare specifiers not found in `sharedDepBlobUrls` are left unmodified — the module will resolve them through its own bundled copy — `inst-bare-fallback`
@@ -204,12 +210,15 @@ Replaces bare specifiers (non-relative, non-absolute import paths like `"react"`
 
 All source text fetches go through the `MfeHandlerMF`-level `sourceTextCache` (keyed by absolute URL), ensuring at most one network request per chunk across all loads.
 
+**Inputs**: `absoluteChunkUrl` (string), `sourceTextCache` (handler-level `Map<string, Promise<string>>`)
+**Outputs**: `Promise<string>` (source text) or `MfeLoadError`
+
 1. [x] - `p1` - **IF** `sourceTextCache` contains an entry for `absoluteChunkUrl` **RETURN** the cached `Promise<string>` — `inst-cache-hit`
-2. [x] - `p1` - **TRY**: issue `fetch(absoluteChunkUrl)` — `inst-fetch-request`
+2. [x] - `p1` - Store a new `Promise<string>` in `sourceTextCache` keyed by `absoluteChunkUrl` before awaiting — this ensures concurrent callers for the same URL share a single in-flight fetch — `inst-cache-store`
+3. [x] - `p1` - **TRY**: issue `fetch(absoluteChunkUrl)` — `inst-fetch-request`
    - **IF** `response.ok` is false **RETURN** `MfeLoadError` with HTTP status and URL — `inst-http-error`
    - **RETURN** `response.text()` — `inst-return-text`
-3. [x] - `p1` - **CATCH**: remove the failed entry from `sourceTextCache` (prevents a stuck negative cache entry), then **RETURN** `MfeLoadError` wrapping the original error — `inst-cache-evict-on-error`
-4. [x] - `p1` - Store the `Promise<string>` in `sourceTextCache` keyed by `absoluteChunkUrl` before awaiting — `inst-cache-store`
+4. [x] - `p1` - **CATCH**: remove the failed entry from `sourceTextCache` (prevents a stuck negative cache entry), then **RETURN** `MfeLoadError` wrapping the original error — `inst-cache-evict-on-error`
 5. [x] - `p1` - **RETURN** the stored promise — `inst-return-promise`
 
 ### Recursive Blob URL Chain
@@ -217,6 +226,9 @@ All source text fetches go through the `MfeHandlerMF`-level `sourceTextCache` (k
 - [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-blob-url-chain`
 
 Processes a chunk and all its static relative imports depth-first. Within a single load, each filename is processed at most once. Bare specifiers in each chunk are rewritten to blob URLs from the per-load `sharedDepBlobUrls` map (built by `cpt-frontx-algo-mfe-isolation-build-shared-dep-blob-urls` before this chain runs).
+
+**Inputs**: `loadState` (LoadBlobState), `filename` (string), `sourceTextCache` (handler-level)
+**Outputs**: populates `loadState.blobUrlMap` with blob URLs for all processed chunks
 
 1. [x] - `p1` - **IF** `loadState.blobUrlMap` already has `filename` OR `loadState.visited` contains `filename` **RETURN** (already processed) — `inst-already-processed`
 2. [x] - `p1` - Add `filename` to `loadState.visited` — `inst-mark-visited`
@@ -235,6 +247,9 @@ Processes a chunk and all its static relative imports depth-first. Within a sing
 
 Extracts normalized dependency filenames from a chunk's source text so the recursive chain knows which sub-chunks to process.
 
+**Inputs**: `sourceText` (string), `chunkFilename` (string)
+**Outputs**: deduplicated list of resolved relative filenames
+
 1. [x] - `p1` - Match all `from './...'` and `from '../...'` patterns in the source text — `inst-match-relative`
 2. [x] - `p1` - **FOR EACH** match: resolve the relative specifier against `chunkFilename` using URL-based path resolution (synthetic `http://r/` base, then strip the leading `/`) — `inst-resolve-path`
 3. [x] - `p1` - Deduplicate the resulting filename list — `inst-dedupe`
@@ -245,6 +260,9 @@ Extracts normalized dependency filenames from a chunk's source text so the recur
 - [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-rewrite-module-imports`
 
 Replaces relative specifiers in a chunk's source text with either a blob URL (if the dependency has already been processed in the current load) or an absolute HTTP URL. Also rewrites bare specifiers to shared dep blob URLs and `import.meta.url` occurrences to the real base URL.
+
+**Inputs**: `sourceText` (string), `chunkFilename` (string), `blobUrlMap` (Map), `baseUrl` (string), `sharedDepBlobUrls` (Map)
+**Outputs**: fully rewritten source text (string)
 
 1. [x] - `p1` - For each relative specifier (both `./` and `../`) in static `from '...'` patterns: resolve the relative specifier against `chunkFilename`; look up the resolved key in `blobUrlMap`; if found, replace with the blob URL; otherwise replace with `baseUrl + resolvedKey` — `inst-static-imports`
 2. [x] - `p1` - Apply the same resolution and replacement to dynamic `import('./...')` and `import('../...')` patterns — `inst-dynamic-imports`
@@ -258,6 +276,9 @@ Replaces relative specifiers in a chunk's source text with either a blob URL (if
 - [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-parse-manifest-expose-metadata`
 
 Reads the expose chunk path and CSS asset paths from `entry.exposeAssets`. This data is set at registration time — the registration code splits `mf-manifest.json`'s `exposes[]` array so that per-module assets travel with the entry, not the manifest.
+
+**Inputs**: `entry` (MfeEntryMF with `exposeAssets`)
+**Outputs**: `{ chunkPath, stylesheetPaths }` or `null`
 
 1. [x] - `p1` - Read `entry.exposeAssets.js.sync[0]` as the primary expose chunk path — `inst-read-chunk-path`
 2. [x] - `p1` - Read `entry.exposeAssets.css.sync` and `entry.exposeAssets.css.async` as CSS asset paths for mount-time injection — `inst-read-css-paths`
@@ -374,7 +395,7 @@ Tracks the fetch state of each individual chunk URL across all loads for the lif
 - Key types: `LoadBlobState` (per-load, includes `sharedDepBlobUrls`), `ManifestCache`, `MfeLoaderConfig`
 - Constructor: `MfeHandlerMF(handledBaseTypeId: string, config?: MfeLoaderConfig)` — does NOT take `typeSystem`; the registry owns type hierarchy checks. Consumer passes the GTS base type ID constant (e.g., `HAI3_MFE_ENTRY_MF`) at instantiation.
 - Public entry: `MfeHandlerMF.load(entry: MfeEntryMF): Promise<MfeEntryLifecycle<ChildMfeBridge>>`
-- No `@module-federation/runtime` dependency — shared dep isolation is achieved entirely through blob URL evaluation of standalone ESMs
+- Shared dep isolation is achieved through blob URL evaluation of standalone ESMs
 
 **Implements**:
 - `cpt-frontx-flow-mfe-isolation-load`
@@ -414,13 +435,12 @@ Tracks the fetch state of each individual chunk URL across all loads for the lif
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-mfe-isolation-mf-vite-plugin`
 
-The `@module-federation/vite` build plugin is used ONLY for expose compilation and `mf-manifest.json` generation (CSS assets, expose chunk paths). Shared dependency handling is disabled (`shared: {}`); shared deps are externalized via `build.rollupOptions.external`. The `frontx-mf-gts` Vite plugin runs in `closeBundle` after `@module-federation/vite` and performs two tasks: (1) builds standalone ESM modules for each shared dep from `node_modules` using esbuild, and (2) enriches `mfe.json` in-place with manifest metadata, shared dep info, and per-entry `exposeAssets`. No intermediate `mfe.gts-manifest.json` artifact is produced.
+`@module-federation/vite` handles expose compilation and `mf-manifest.json` generation (CSS assets, expose chunk paths). Shared deps are externalized via `build.rollupOptions.external`, preserving bare specifiers in output. The `frontx-mf-gts` Vite plugin runs in `closeBundle` and performs two tasks: (1) builds standalone ESM modules for each shared dep from `node_modules` using esbuild, and (2) enriches `mfe.json` in-place with manifest metadata, shared dep info, and per-entry `exposeAssets`.
 
 **Implementation details**:
-- Dependency: `@module-federation/vite` (expose compilation only, `shared: {}`)
+- `@module-federation/vite`: expose compilation, `mf-manifest.json` generation
 - `frontx-mf-gts` Vite plugin: reads `mf-manifest.json` and `mfe.json`; builds standalone ESMs into `dist/shared/`; enriches `mfe.json` in-place with `manifest.metaData`, `manifest.shared[]` (with `chunkPath`/`version`/`unwrapKey`), and `entries[].exposeAssets`
-- Both plugins are registered in each MFE's `vite.config.ts`; enriched `mfe.json` is the sole output artifact
-- No `@module-federation/runtime` dependency at runtime — no `remoteEntry.js` extraction, no `localSharedImportMap`, no `mfInitKey`
+- Both plugins registered in each MFE's `vite.config.ts`; enriched `mfe.json` is the sole output artifact
 
 **Implements**:
 - `cpt-frontx-flow-mfe-isolation-build-v2` (steps 1-9)
@@ -531,12 +551,12 @@ Action target contract enforcement is handled by GTS schema validation: each act
 - [x] `import.meta.url` occurrences in blob-URL'd chunk source text are replaced with the manifest base URL before the blob is created
 - [x] Shared dep standalone ESMs are fetched once via `sourceTextCache` and converted to fresh blob URLs per load; the handler's `buildSharedDepBlobUrls` processes deps in dependency order (leaves first) to ensure all bare specifiers are rewritten before blob URL creation
 - [x] Bare specifiers in expose chunks are rewritten to blob URLs from the per-load `sharedDepBlobUrls` map; unrecognized bare specifiers (not in shared deps) are left unmodified
-- [x] Zero MF 2.0 runtime interaction for shared deps — no `@module-federation/runtime` import, no `createInstance()`, no `FederationHost`, no `__loadShare__` proxies, no `globalThis.__federation_shared__` writes
+- [x] Shared dep isolation is handled entirely by the handler's blob URL mechanism (standalone ESMs → per-load blob URLs → bare specifier rewriting)
 - [x] Blob URLs are never revoked (`URL.revokeObjectURL` is never called)
 - [x] A missing manifest, missing fields, or network error throws `MfeLoadError` with descriptive message
 - [x] Shared deps are built as standalone ESMs by the `frontx-mf-gts` plugin (via esbuild) into `dist/shared/`; CJS packages (react, react-dom) are patched with named re-exports; sub-path imports (react/jsx-runtime) are bundled inline with parent-package externals preserved
 - [x] The `frontx-mf-gts` plugin enriches `mfe.json` in-place: `manifest.shared[].chunkPath` set to host-relative URLs (`/shared/{name}.js`) ensuring all MFEs resolve to the same URL for `sourceTextCache` deduplication; no intermediate `mfe.gts-manifest.json` artifact
-- [x] MFE `vite.config.ts` uses `shared: {}` (empty) and `build.rollupOptions.external` for shared deps — no `__loadShare__` proxy chunks are generated
+- [x] MFE `vite.config.ts` uses `shared: {}` (empty) and `build.rollupOptions.external` for shared deps; expose chunks contain bare specifiers for shared deps
 - [x] MFE `init.ts` files contain no direct imports from `react-redux`, `redux`, or `@reduxjs/toolkit`
 
 ---
@@ -545,15 +565,15 @@ Action target contract enforcement is handled by GTS schema validation: each act
 
 **Never-revoke policy rationale**: The `import()` function resolves when a module is parsed and its top-level synchronous code has run. Modules with top-level `await` or dynamic `import()` internally continue evaluating asynchronously after the outer `import()` promise resolves. If the blob URL is revoked at this point, the async continuation cannot fetch the already-queued sub-module evaluation and fails with `ERR_FILE_NOT_FOUND`. Blob URLs are cleaned up automatically by the browser on page unload; no manual revocation is needed.
 
-**Per-load isolation mechanism**: Each load creates fresh blob URLs for ALL shared deps from the handler-level `sourceTextCache`. Even though the source text is identical (same `name@version`), each `URL.createObjectURL()` call produces a unique blob URL that the browser evaluates as a fresh module — independent state, independent closures. The `sharedDepBlobUrls` map and `blobUrlMap` are scoped to a single load; the `sourceTextCache` is handler-level to avoid redundant network fetches. This achieves per-load isolation without any MF 2.0 runtime, `FederationHost`, or `__loadShare__` proxy machinery.
+**Per-load isolation mechanism**: Each load creates fresh blob URLs for ALL shared deps from the handler-level `sourceTextCache`. Even though the source text is identical (same `name@version`), each `URL.createObjectURL()` call produces a unique blob URL that the browser evaluates as a fresh module — independent state, independent closures. The `sharedDepBlobUrls` map and `blobUrlMap` are scoped to a single load; the `sourceTextCache` is handler-level to avoid redundant network fetches.
 
 **Shared dependency resolution**: Enriched `mfe.json` (produced by the `frontx-mf-gts` plugin) provides `chunkPath`, `version`, and `unwrapKey` directly on each shared dependency entry. The handler reads these fields from the `MfManifest` GTS entity; any dependency without a `chunkPath` is skipped and the MFE falls back to its own bundled copy. `unwrapKey` identifies the exact module export key — no heuristics are applied at runtime.
 
-**Bare specifier rewriting**: Since `@module-federation/vite` runs with `shared: {}` and deps are externalized via `build.rollupOptions.external`, expose chunks contain bare specifiers (`from "react"`, `from "react-dom"`) rather than `__loadShare__` proxy imports. The handler's blob URL chain rewrites these bare specifiers to the per-load shared dep blob URLs built by `buildSharedDepBlobUrls`. This is the key mechanism that connects expose chunks to isolated shared dep instances without MF 2.0 runtime involvement.
+**Bare specifier rewriting**: Shared deps are externalized via `build.rollupOptions.external`, so expose chunks contain bare specifiers (`from "react"`, `from "react-dom"`). The handler's blob URL chain rewrites these bare specifiers to the per-load shared dep blob URLs built by `buildSharedDepBlobUrls`. This is the key mechanism that connects expose chunks to isolated shared dep instances.
 
 **CSP compatibility**: The isolation mechanism uses `Blob` objects and `URL.createObjectURL`, not `eval()` or `new Function()`. The only required CSP directive addition is `blob:` in `script-src`. The `cpt-frontx-nfr-sec-csp-blob` requirement is satisfied by construction.
 
-**Per-load isolation for concurrent loads**: Each load creates its own `LoadBlobState` with independent `sharedDepBlobUrls` and `blobUrlMap`. Concurrent loads for different MFEs produce completely independent blob URL sets. There is no global state interaction — no `globalThis` entries, no shared scope, no runtime registry. Isolation is guaranteed by the blob URL mechanism itself: each `URL.createObjectURL()` produces a unique URL that evaluates as an independent module.
+**Per-load isolation for concurrent loads**: Each load creates its own `LoadBlobState` with independent `sharedDepBlobUrls` and `blobUrlMap`. Concurrent loads for different MFEs produce completely independent blob URL sets. Isolation is guaranteed by the blob URL mechanism itself: each `URL.createObjectURL()` produces a unique URL that evaluates as an independent module.
 
 **`import.meta.url` rewriting**: The blob URL mechanism assigns blob URLs as the module's `import.meta.url`, not the original deployment origin. MFE chunks produced by `@module-federation/vite` may include preload helper code that constructs absolute URLs from `import.meta.url`. To fix this, the handler replaces every `import.meta.url` occurrence in the source text with the resolved absolute base URL (from `manifest.metaData.publicPath`) before creating the `Blob`. This is applied in the same rewriting pass as relative and bare import specifier replacement.
 

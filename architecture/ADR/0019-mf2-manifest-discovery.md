@@ -34,7 +34,7 @@ MFE bundles are built with Module Federation and loaded at runtime through a blo
 
 * **(P0)** The blob URL isolation mechanism (ADR-0004) must remain fully functional — per-MFE module-level state isolation is non-negotiable
 * **(P1)** The metadata discovery mechanism must reliably provide expose chunk paths, shared dependency declarations, and CSS asset paths regardless of minification settings or code-split chunk structure
-* **(P1)** Shared dependency transforms (rewriting bundled imports to shared-resolution proxy calls) must apply across all chunks in the MFE bundle, not only the expose entry files
+* **(P1)** Shared dependency resolution must work across all chunks in the MFE bundle, not only the expose entry files — whether via build-time transforms or runtime specifier rewriting
 * **(P1)** The build plugin must be actively maintained with a stable output contract
 * **(P2)** Shared dependency metadata should include version information to enable meaningful version negotiation rather than wildcard matching
 * **(P2)** The build output must support both `remoteEntry.js` and declarative manifest formats
@@ -47,25 +47,28 @@ MFE bundles are built with Module Federation and loaded at runtime through a blo
 
 ## Decision Outcome
 
-Chosen option: "`@module-federation/vite` with `mf-manifest.json` declarative discovery and blob URL runtime isolation", because `mf-manifest.json` provides all required metadata as machine-readable JSON — expose chunk paths, shared dependency declarations with versions, and CSS asset paths — eliminating the need to parse generated JavaScript. The `@module-federation/vite` plugin applies shared dependency transforms across all chunks natively, removing the need for a custom build-time externalize plugin. The blob URL isolation pipeline consumes this metadata to construct its per-load module evaluation chain, preserving the isolation guarantee from ADR-0004.
+Chosen option: "`@module-federation/vite` with `mf-manifest.json` declarative discovery and blob URL runtime isolation", with a hybrid approach: `@module-federation/vite` is used ONLY for expose compilation and `mf-manifest.json` generation (configured with `shared:{}` and `rollupOptions.external` to externalize shared dependencies). Shared dependencies are built as standalone ESM modules by the `frontx-mf-gts` Vite plugin and enriched into `mfe.json` in-place. At runtime, the handler fetches standalone ESM source text (deduplicated via `sourceTextCache`), rewrites bare specifiers to per-load blob URLs, and constructs the expose blob URL chain — preserving the isolation guarantee from ADR-0004 without using `@module-federation/runtime`, `FederationHost`, or any MF 2.0 shared dep mechanism.
 
 ### Consequences
 
-* Good, because expose chunk paths, shared dependencies, and CSS assets are available via `JSON.parse()` of `mf-manifest.json` — no source text parsing or format-dependent regex required
+* Good, because expose chunk paths and CSS assets are available via `JSON.parse()` of `mf-manifest.json` — no source text parsing or format-dependent regex required
 * Good, because MFE builds can enable minification and CSS code splitting since metadata discovery does not depend on JavaScript syntax patterns
-* Good, because `@module-federation/vite` transforms all shared dependency imports across the entire bundle, not only expose entry files — no custom build plugin needed for code-split chunks
-* Good, because `mf-manifest.json` includes shared dependency version metadata, enabling real version negotiation instead of wildcard matching
+* Good, because shared dependency source text is downloaded once per `name@version` across ALL runtimes (host and MFEs) via `sourceTextCache` deduplication — zero duplicate network fetches
+* Good, because no `@module-federation/runtime` dependency in the handler — no `FederationHost`, no `__loadShare__` proxy chains, no `__mf_init__` globals (~70KB runtime removed)
+* Good, because `mfe.json` is the complete self-contained contract per MFE — enriched in-place by the `frontx-mf-gts` plugin with manifest metadata, shared dep info, and expose assets; no intermediate artifacts at runtime
 * Good, because `@module-federation/vite` is the official, actively maintained Vite integration for Module Federation 2.0
 * Bad, because the blob URL isolation layer is a custom mechanism outside the standard MF 2.0 runtime — it consumes MF 2.0 build output as data but does not use the MF 2.0 runtime loading API (`loadRemote`, `init`)
-* Bad, because `@module-federation/enhanced` adds approximately 70KB of runtime overhead (~3% of a typical 2MB host bundle)
+* Bad, because the handler must rewrite bare specifiers in shared dependency source text at runtime to construct per-load blob URLs (added complexity compared to MF 2.0's built-in share scope resolution)
+* Bad, because shared dependencies require a separate build step (standalone ESM via esbuild) managed by the `frontx-mf-gts` Vite plugin
 * Bad, because the `mf-manifest.json` formal specification is still being finalized ([module-federation/core#2496](https://github.com/module-federation/core/issues/2496)). Mitigation: the manifest reader is isolated behind the MfeHandler abstraction — schema changes only require updating the manifest parsing logic, not the blob URL isolation pipeline
-* Good, because the custom `hai3-mfe-externalize` plugin (374 lines) is eliminated, reducing build-time code complexity
+* Good, because the custom `hai3-mfe-externalize` plugin (374 lines) is replaced by `frontx-mf-gts` which handles both standalone ESM builds and `mfe.json` enrichment in a single `closeBundle` hook
+* Neutral, because MF 2.0's shared dep mechanism (share scopes, version-first strategy, singleton mode) is unused — the plugin and handler implement their own sharing/isolation via standalone ESMs and blob URLs
 * Neutral, because `@module-federation/vite` configuration is similar to the previous plugin, limiting the learning curve
 * Neutral, because if `@module-federation/vite` is deprecated or the manifest schema changes incompatibly, the MfeHandler abstraction allows creating a new handler implementation without affecting the registry, bridge, or mediator layers
 
 ### Confirmation
 
-The decision is confirmed when: (1) MFE `vite.config.ts` files use `@module-federation/vite`, (2) MFE builds produce `mf-manifest.json` alongside `remoteEntry.js`, (3) `MfeHandlerMF.load()` reads metadata from the `MfManifest` GTS entity and `entry.exposeAssets`, which originate from `mf-manifest.json` via the generation script, (4) no custom build-time externalize plugin is required, (5) blob URL isolation tests pass — `Object.is(mfeA_React, mfeB_React)` remains `false` for concurrent loads, and (6) MFE builds succeed with `minify: true`.
+The decision is confirmed when: (1) MFE `vite.config.ts` files use `@module-federation/vite` with `shared:{}` and `rollupOptions.external` to externalize shared dependencies, (2) MFE builds produce `mf-manifest.json` for expose chunk paths alongside `remoteEntry.js`, (3) the `frontx-mf-gts` Vite plugin builds standalone ESM modules for shared dependencies and enriches `mfe.json` in-place with manifest metadata, shared dep info (`chunkPath`/`version`/`unwrapKey`), and expose assets, (4) `MfeHandlerMF.load()` builds shared dep blob URLs by fetching standalone ESMs and rewriting bare specifiers — no `createInstance()`, no `FederationHost`, no `__mf_init__`, (5) blob URL isolation tests pass — `Object.is(mfeA_React, mfeB_React)` remains `false` for concurrent loads, and (6) MFE builds succeed with `minify: true`.
 
 ## Pros and Cons of the Options
 
@@ -91,15 +94,17 @@ Use MF 2.0's runtime API for module loading and shared dependency resolution. St
 
 ### `@module-federation/vite` with `mf-manifest.json` declarative discovery and blob URL runtime isolation
 
-Use MF 2.0's build plugin for bundle production and manifest generation. The generation script reads `mf-manifest.json` and produces `mfe.generated.json`; the handler reads GTS entities from `mfe.generated.json` and feeds chunk URLs into the blob URL isolation pipeline from ADR-0004.
+Use MF 2.0's build plugin for expose compilation and manifest generation only (`shared:{}`, `rollupOptions.external`). The `frontx-mf-gts` Vite plugin builds standalone ESM modules for shared dependencies via esbuild and enriches `mfe.json` in-place with manifest metadata, shared dep info, and expose assets. At runtime, the handler fetches standalone ESM source text (deduplicated via `sourceTextCache`), rewrites bare specifiers to per-load blob URLs, and constructs the expose blob URL chain from ADR-0004. A temporary generation script aggregates pointers to `mfe.json` files for host bootstrap.
 
 * Good, because `mf-manifest.json` is declarative JSON — reliable regardless of minification or code structure
-* Good, because `@module-federation/vite` handles shared dependency transforms across all chunks
-* Good, because blob URL isolation is preserved — the pipeline receives chunk URLs from the manifest instead of from regex, but the isolation mechanism is unchanged
+* Good, because `mfe.json` is the complete self-contained contract per MFE — no intermediate artifacts at runtime
+* Good, because shared dep source text is downloaded once per `name@version` across all runtimes (`sourceTextCache` deduplication)
+* Good, because blob URL isolation is preserved — the pipeline receives chunk URLs from the enriched `mfe.json` instead of from regex, and shared deps get per-load blob URLs via bare specifier rewriting
 * Good, because `@module-federation/vite` is actively maintained with regular releases
-* Neutral, because MF 2.0's runtime API is available but not used for module loading — the manifest is consumed as structured data
+* Good, because no `@module-federation/runtime` in the handler — simpler loading code with no `FederationHost`, `__loadShare__`, or `__mf_init__` globals
+* Neutral, because MF 2.0's shared dep mechanism (share scopes, version-first strategy) is unused — the plugin and handler implement their own sharing/isolation
 * Bad, because the approach diverges from the MF 2.0 standard loading path, reducing the benefit of ecosystem tooling (e.g., Chrome DevTools module graph requires standard runtime)
-* Bad, because approximately 70KB (~3% of a typical 2MB host bundle) of MF 2.0 runtime is bundled even though only the build plugin and manifest format are actively used
+* Bad, because the handler must rewrite bare specifiers at runtime (added complexity) and shared deps require a standalone ESM build step
 
 ## Review Triggers
 
@@ -118,7 +123,7 @@ This decision should be revisited when:
 * `@module-federation/vite` — official Vite plugin for Module Federation 2.0
 * `mf-manifest.json` specification tracking: [module-federation/core#2496](https://github.com/module-federation/core/issues/2496)
 * Issues addressed by this decision: #249 (build plugin coupling), #250 (minification constraint), #251 (CSS discovery), #252 (shared dependency contract), #253 (concurrent load race condition)
-* Learning curve: `@module-federation/vite` configuration is similar to `@originjs/vite-plugin-federation` — the primary learning investment is understanding the `mf-manifest.json` structure and how the `MfManifest` type maps to it
+* Learning curve: `@module-federation/vite` configuration is similar to `@originjs/vite-plugin-federation` — the primary learning investment is understanding the hybrid approach: `mf-manifest.json` for expose metadata, standalone ESMs for shared deps, and bare specifier rewriting in the handler
 * Evolution path: if `@module-federation/vite` is deprecated or the manifest schema changes incompatibly, the MfeHandler abstraction allows creating a new handler implementation without affecting the registry, bridge, or mediator layers
 
 ## Traceability
@@ -130,6 +135,6 @@ This decision should be revisited when:
 This decision directly addresses the following design elements:
 
 * `cpt-frontx-seq-mfe-loading` — MFE loading sequence uses pre-registered GTS entities (sourced from `mfe.generated.json`) for metadata discovery
-* `cpt-frontx-contract-federation-runtime` — federation build contract: `@module-federation/vite` producing `mf-manifest.json`
-* `cpt-frontx-contract-mfe-manifest` — MFE manifest contract: two-file model (`mfe.json` + `mfe.generated.json`) with `mf-manifest.json` as build-time intermediate
+* `cpt-frontx-contract-federation-runtime` — federation build contract: `@module-federation/vite` producing `mf-manifest.json` for expose chunk paths; `frontx-mf-gts` plugin building standalone ESMs and enriching `mfe.json`; handler building shared dep blob URLs with bare specifier rewriting
+* `cpt-frontx-contract-mfe-manifest` — MFE manifest contract: `mfe.json` enriched in-place by plugin as the complete self-contained contract per MFE; `mf-manifest.json` as build-time intermediate consumed by plugin only
 * `cpt-frontx-principle-mfe-isolation` — isolation principle preserved; blob URL mechanism from ADR-0004 consumes manifest metadata
