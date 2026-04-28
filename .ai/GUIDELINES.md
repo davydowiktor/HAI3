@@ -33,7 +33,10 @@
 ### Other
 - packages/cli -> .ai/targets/CLI.md
 - presets/standalone, presets/monorepo -> .ai/targets/CLI.md
-- src/mfe_packages -> .ai/targets/SCREENSETS.md
+- packages/screensets/src/mfe, ChildMfeBridge, ScreensetsRegistry, actions chains, lifecycle stages, gtsPlugin -> .ai/targets/MFE.md
+- src/mfe_packages (per-MFE Flux + screens) -> .ai/targets/SCREENSETS.md
+- src/mfe_packages (bridge, lifecycle, manifest, GTS) -> .ai/targets/MFE.md
+- Precedence when both apply to src/mfe_packages: read .ai/targets/MFE.md first (cross-runtime contract), then .ai/targets/SCREENSETS.md (per-MFE Flux).
 - src/screensets -> .ai/targets/SCREENSETS.md (legacy — no screensets exist here after MFE conversion)
 - src/themes -> .ai/targets/THEMES.md
 - Styling anywhere -> .ai/targets/STYLING.md
@@ -41,15 +44,27 @@
 - .ai/commands, .claude/commands -> .ai/targets/AI_COMMANDS.md
 
 ## REPO INVARIANTS
-- Event-driven architecture only (see EVENTS.md).
+- In-MFE communication is event-driven (Flux: Action -> Event -> Effect -> Slice). See `.ai/targets/EVENTS.md`.
+- Cross-runtime coordination (host <-> MFE, MFE <-> MFE) uses lifecycle stages + actions chains via `ScreensetsRegistry.executeActionsChain()` and `ChildMfeBridge`. See `.ai/targets/MFE.md`. Cross-runtime "events" are FORBIDDEN.
 - Registries follow Open/Closed; adding items must not modify registry root files.
 - App-level deps limited to: @cyberfabric/react, react, react-dom. Standalone projects must also declare peer deps explicitly: @cyberfabric/framework, @cyberfabric/api, @cyberfabric/i18n, @cyberfabric/screensets, @cyberfabric/state.
 - MFE UI autonomy: MFEs own their UI components locally (e.g., components/ui/). No shared UI kit required.
-- Cross-domain communication only via events.
+- Cross-domain (intra-MFE) communication only via events; cross-runtime (inter-MFE / host<->MFE) only via actions chains and shared properties.
 - Public system contracts must not carry tooling metadata; keep tooling and runtime handoff state internal; do not export internal-only Flux event names used for L2/L3 wiring (narrow subscribe helpers are OK).
 - No string literal identifiers; use constants or enums.
 - No any, no unknown in type definitions, no "as unknown as" casts.
 - REQUIRED: Use lodash for non-trivial object and array operations.
+
+## DESIGN INVARIANTS
+- Class-based design: extensible runtime contracts use the abstract base + concrete implementation pattern (see `RuntimeCoordinator`, `ScreensetsRegistry`, `MountManager`, `ExtensionManager`, `LifecycleManager`, `MfeBridgeFactory`, `ActionHandler`). Public consumers depend on the abstract; concrete classes are internal.
+- SOLID:
+  - SRP: each class owns one runtime concern (mount, lifecycle, mediator, bridge, factory).
+  - OCP: registries grow by `register()`, never by editing root files.
+  - LSP: handlers and lifecycles substitute their abstract bases without runtime checks.
+  - ISP: bridges expose narrow interfaces (`ChildMfeBridge` for MFEs, factories for hosts); never widen for convenience.
+  - DIP: registries depend on abstractions (`TypeSystemPlugin`, `RuntimeCoordinator`); concrete classes are wired via factories.
+- No public API for testing: do NOT add test-only getters, config injection, or compatibility shims. Cover behavior through public contracts; if tests need a hook, redesign the boundary.
+- No capability duplication: actions chains have built-in error handling and fallback branches; do not add config-level `onError` callbacks duplicating that. Justify any new capability that overlaps an existing one in a code comment + ADR.
 
 ## IMPORT RULES
 - Inside same package: relative paths.
@@ -63,13 +78,15 @@
 - No hardcoded string IDs.
 - Resolve type errors at boundaries using proper generics.
 - Class member order: properties -> constructor -> methods.
+- Module augmentation for Flux types lives on `@cyberfabric/react`: extend `RootState` from each MFE slice file and `EventPayloadMap` from each domain events file (NOT `@cyberfabric/state`).
 
 ## STOP CONDITIONS
 - Editing /core/runtime or /sdk.
 - Modifying registry root files.
 - Adding new top-level dependencies.
-- Bypassing rules in EVENTS.md.
-- Killing MCP server processes (see MCP_TROUBLESHOOTING.md).
+- Bypassing rules in `.ai/targets/EVENTS.md` (intra-MFE Flux) or `.ai/targets/MFE.md` (cross-runtime actions chains, lifecycle, bridge).
+- Adding test-only getters, config injection, or compatibility shims (see DESIGN INVARIANTS).
+- Killing MCP server processes (see `.ai/MCP_TROUBLESHOOTING.md`).
 
 ## PRE-DIFF CHECKLIST
 - Routed to correct target file.
@@ -92,6 +109,7 @@
 - Barrel exports that hide real imports.
 - Manual state sync or prop drilling (see EVENTS.md).
 - Native helpers where lodash equivalents exist.
+- Test-only public APIs (getters, config knobs, "for testing" exports) and capability duplication (e.g., config-level `onError` over an actions chain that already has fallback branches).
 
 ## DOC STYLE
 - Short, technical, ASCII only.

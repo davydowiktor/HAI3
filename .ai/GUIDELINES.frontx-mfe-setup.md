@@ -107,46 +107,85 @@ This starts:
 
 ### ✅ DO
 
-- **Use mock data** with `useState` for UI-only MFEs
+- **Bootstrap via shared `init.ts`** with `createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build()` (see `src/mfe_packages/_blank-mfe/src/init.ts`)
+- **Register slices via `registerSlice`** from `@cyberfabric/react`, augmenting `RootState` per slice file
+- **Augment `EventPayloadMap`** in each MFE domain events file (on `@cyberfabric/react`, not `@cyberfabric/state`)
+- **Subscribe to host state via the bridge** (`bridge.subscribeToProperty`, `bridge.getProperty`) — never reach into host slices
+- **Cross-runtime coordination via actions chains** (`bridge.executeActionsChain`), not events
 - **Isolate MFE logic** - keep it simple and focused
 - **Own UI components locally** in `components/ui/` — no shared UI kit required
 - **Test with Chrome DevTools MCP** before submission
-- **Use local state** for temporary UI state
-- **Document component APIs** clearly
 
 ### ❌ DON'T
 
-- **Import Redux hooks** - MFEs don't have Redux Provider
-- **Use useAppSelector/useDispatch** directly
-- **Add complex state management** in MFEs
+- **Import Redux directly** from `react-redux`, `redux`, or `@reduxjs/toolkit` (use `@cyberfabric/react` slice + hooks)
+- **Add `queryCache()`, `createHAI3App()`, or `QueryClientProvider`** inside an MFE — the host owns the shared QueryClient; MFEs join via `queryCacheShared()`
+- **Use `useScreenTranslations` from `@cyberfabric/react`** in MFEs — it depends on the host i18n registry. Use the bridge-based `useScreenTranslations` from the MFE's own `shared/` directory.
+- **Add complex coordinator effects** — split events/effects per domain, no barrel exports
 - **Hardcode configuration** - use environment variables
-- **Use vite build && preview** in dev script
+- **Use `vite build && preview`** in dev script
 - **Ignore TypeScript errors** - run type-check regularly
 
 ## State Management in MFEs
 
-### Wrong Pattern (Redux hooks in MFE)
-```tsx
-// ❌ FAILS - Redux context not available
-import { useAppSelector } from '@cyberfabric/react';
+MFEs run their **own** FrontX app instance with its own Redux store. The host app's store is unreachable from MFE code by design — communication crosses the runtime boundary via the bridge.
 
-export const MyComponent = () => {
-  const data = useAppSelector(state => state.myData); // ❌ Error!
-  return <div>{data}</div>;
-};
+### Bootstrap (per-MFE `src/init.ts`)
+
+Canonical template lives in `.ai/commands/user/frontx-new-mfe.md` § INIT TEMPLATE. Required shape:
+
+```typescript
+// register API services BEFORE build (mock plugin syncs during build())
+apiRegistry.register(MyApiService);
+apiRegistry.initialize();
+
+const mfeApp = createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build();
+
+// register slices AFTER build (registerSlice needs the store)
+registerSlice(homeSlice, initHomeEffects);
 ```
 
-### Correct Pattern (Mock data + useState)
-```tsx
-// ✅ WORKS - Using mock data
-const MOCK_DATA = [
-  { id: 1, name: 'Item 1' },
-  { id: 2, name: 'Item 2' },
-];
+Order is load-bearing: API registry before `.build()`, `registerSlice` after.
 
-export const MyComponent = () => {
-  const [data] = useState(MOCK_DATA);
-  return <div>{data.map(item => <div key={item.id}>{item.name}</div>)}</div>;
+### Slice + RootState augmentation
+```typescript
+// src/slices/homeSlice.ts
+import { createSlice } from '@cyberfabric/react';
+
+const { slice } = createSlice({
+  name: '_blank/home',
+  initialState: { items: [] as Item[] },
+  reducers: {
+    setItems(state, { payload }: { payload: Item[] }) { state.items = payload; },
+  },
+});
+
+export const homeSlice = slice;
+
+declare module '@cyberfabric/react' {
+  interface RootState {
+    '_blank/home': { items: Item[] };
+  }
+}
+```
+
+### Events + EventPayloadMap augmentation
+```typescript
+// src/events/homeEvents.ts
+declare module '@cyberfabric/react' {
+  interface EventPayloadMap {
+    'mfe/home/data-fetched': { items: Item[] };
+  }
+}
+```
+
+### Component (typed selectors via `@cyberfabric/react`)
+```tsx
+import { useAppSelector } from '@cyberfabric/react';
+
+export const ItemList = () => {
+  const items = useAppSelector(s => s['_blank/home'].items);
+  return <ul>{items.map(i => <li key={i.id}>{i.name}</li>)}</ul>;
 };
 ```
 
@@ -176,9 +215,10 @@ npm run lint
 4. Ensure `remoteEntry.js` is accessible at configured URL
 
 ### Redux context errors
-1. Remove Redux hook imports from MFE
-2. Convert to mock data + `useState`
-3. See State Management section above
+1. Confirm `init.ts` calls `createHAI3().…build()` and `<HAI3Provider app={mfeApp}>` wraps the React tree
+2. Confirm `registerSlice(slice, initEffects)` runs after `.build()`
+3. Confirm `RootState` is augmented on `@cyberfabric/react` (not `@cyberfabric/state`)
+4. Use `useAppSelector` / `useAppDispatch` from `@cyberfabric/react`
 
 ### Hot reload not working
 1. Verify dev script: `vite --port {{port}}` (not `vite build && preview`)
@@ -204,9 +244,11 @@ When creating a new MFE:
 - [ ] Create package from template
 - [ ] Update all `{{variable}}` placeholders
 - [ ] Install dependencies
-- [ ] Create `src/lifecycle.tsx` with proper lifecycle methods
+- [ ] Create `src/init.ts` with `createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build()`
+- [ ] Create `src/lifecycle.tsx` extending `ThemeAwareReactLifecycle` and exporting a singleton instance
 - [ ] Add screens in `src/screens/`
-- [ ] Use mock data (no Redux)
+- [ ] Per-domain `slices/`, `events/`, `effects/`, `actions/` folders (no barrels); augment `RootState` and `EventPayloadMap` on `@cyberfabric/react`
+- [ ] Subscribe to host state via `bridge.subscribeToProperty(...)`; cross-runtime calls via `bridge.executeActionsChain(...)`
 - [ ] Add `dev:mfe:{name}` script to root package.json
 - [ ] Update `dev:all` command
 - [ ] Run `npm run type-check`

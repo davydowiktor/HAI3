@@ -14,7 +14,7 @@
 - Domain slices are read-only (modifications require proposal).
 - Use selectors for state access (never access state directly).
 - Actions dispatch through domain actions (e.g., `headerActions.setVisible()`).
-- Screenset definitions follow `ScreensetDefinition` type.
+- Screen content is mounted via MFE extensions (see `.ai/targets/MFE.md`).
 
 ## LAYOUT DOMAINS
 
@@ -28,20 +28,10 @@
 | popup | Modal dialogs | `selectActivePopup`, `selectHasPopup` |
 | overlay | Full-screen overlays | `selectActiveOverlay`, `selectHasOverlay` |
 
-## SCREENSET DEFINITION
-```typescript
-// REQUIRED: Follow ScreensetDefinition type
-const myScreenset: ScreensetDefinition = {
-  id: SCREENSET_ID,
-  name: 'My Screenset',
-  category: ScreensetCategory.Drafts,
-  defaultScreen: 'home',
-  localization: translationLoader,
-  menu: [
-    { menuItem: { id: 'home', icon: 'lucide:home', ... }, screen: () => import('./Home') }
-  ]
-};
-```
+## SCREEN MOUNTING
+- Screens are MFE extensions registered via `screensetsRegistry` and mounted with the `mount_ext` actions chain (see `.ai/targets/MFE.md`).
+- Layout slices (`headerSlice`, `menuSlice`, …) react to lifecycle stages and shared properties; they do not own routing.
+- The legacy `ScreensetDefinition` type was removed; app code no longer authors screensets directly.
 
 ## MENU ICON RULES
 - REQUIRED: MenuItem.icon is Iconify string ID (e.g., "lucide:home", "lucide:palette").
@@ -67,5 +57,5 @@ const isCollapsed = state.layout.menu.collapsed; // FORBIDDEN
 ## PRE-DIFF CHECKLIST
 - [ ] Using domain selectors (not direct state access).
 - [ ] Using domain actions (not direct dispatch).
-- [ ] Screenset follows ScreensetDefinition type.
+- [ ] Screen content registered as MFE extensions per `.ai/targets/MFE.md`.
 - [ ] No modifications to layout domain slices.

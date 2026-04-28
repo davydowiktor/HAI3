@@ -49,6 +49,57 @@ Reserve ports for MFE packages:
 - **3010+**: (next available: 3010, 3020, 3030, ...)
 - **5173**: Main app
 
+## INIT TEMPLATE
+
+Create `src/init.ts` — bootstraps the MFE app once on first import (idempotent module-level side effect). Replace `homeSlice`, `initHomeEffects`, and `MyApiService` with your MFE's actual modules:
+
+```typescript
+// @cpt-flow:cpt-frontx-flow-mfe-isolation-mfe-bootstrap:p1
+import {
+  createHAI3,
+  registerSlice,
+  apiRegistry,
+  effects,
+  mock,
+  queryCacheShared,
+} from '@cyberfabric/react';
+import { homeSlice } from './slices/homeSlice';
+import { initHomeEffects } from './effects/homeEffects';
+import { MyApiService } from './api/MyApiService';
+
+// Register API services BEFORE build — mock plugin syncs during build()
+apiRegistry.register(MyApiService);
+apiRegistry.initialize();
+
+// Minimal MFE app (queryCacheShared joins the host QueryClient)
+const mfeApp = createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build();
+
+// Register slices AFTER build (registerSlice needs the store)
+registerSlice(homeSlice, initHomeEffects);
+
+export { mfeApp };
+```
+
+## MODULE AUGMENTATION
+
+Augment FrontX types from each MFE file (always on `@cyberfabric/react`):
+
+```typescript
+// src/slices/homeSlice.ts — extend RootState per slice
+declare module '@cyberfabric/react' {
+  interface RootState {
+    'mymfe/home': { items: Item[] };
+  }
+}
+
+// src/events/homeEvents.ts — extend EventPayloadMap per domain
+declare module '@cyberfabric/react' {
+  interface EventPayloadMap {
+    'mfe/home/data-fetched': { items: Item[] };
+  }
+}
+```
+
 ## LIFECYCLE TEMPLATE
 
 Create `src/lifecycle.tsx`:
@@ -70,8 +121,28 @@ class Lifecycle extends ThemeAwareReactLifecycle {
   }
 }
 
+// Export a singleton — Module Federation expects a default export
+// with mount/unmount methods.
 export default new Lifecycle();
 ```
+
+## GTS PACKAGE SELECTOR (host UI)
+
+If your host UI lists or filters MFE-provided extensions by GTS package, use the React hooks (host-side):
+
+```tsx
+import { useRegisteredPackages, useActivePackage } from '@cyberfabric/react';
+import { extractGtsPackage } from '@cyberfabric/screensets';
+
+const packages = useRegisteredPackages();   // string[]
+const active = useActivePackage();          // string | undefined
+const pkg = extractGtsPackage(extensionId);
+```
+
+Rules:
+- These hooks are host-only. MFE code subscribes through the bridge instead.
+- Package registration is implicit — registering an extension tracks its package automatically.
+- See `.ai/targets/MFE.md` for the full registry / bridge / actions chain contract.
 
 ## CACHE SETUP
 
@@ -128,9 +199,11 @@ npm run dev:all
 - Restart dev server
 
 ### Issue: Redux/useSelector errors
-- MFE must use mock data (no Redux Provider in isolation)
-- Use `useState` for local state management
-- Do not import Redux hooks (@cyberfabric/react)
+- Confirm `init.ts` builds the MFE app and `<HAI3Provider app={mfeApp}>` wraps the React tree
+- Confirm `registerSlice(slice, initEffects)` runs after `.build()`
+- Confirm `RootState` is augmented on `@cyberfabric/react` (not `@cyberfabric/state`)
+- Use `useAppSelector` / `useAppDispatch` from `@cyberfabric/react`
+- Do NOT import directly from `react-redux`, `redux`, or `@reduxjs/toolkit`
 
 ## API SERVICE & DATA FETCHING
 

@@ -15,7 +15,7 @@
 - Use provided hooks for state access (not raw react-redux).
 - Use `QueryCache` access via `useQueryCache()` or `useApiMutation()` callback context; do not expose raw `QueryClient` to app or MFE code.
 - `useApiQuery` and `useApiMutation` accept endpoint descriptors from services, NOT TanStack-specific options.
-- Screen translations via `useScreenTranslations()` hook.
+- Host screen translations via `useScreenTranslations()` (host-only — depends on `i18nRegistry`). MFEs use the bridge-based hook in their own `shared/`; see `.ai/targets/MFE.md` and `.ai/targets/SCREENSETS.md`.
 - Wrap translated content with `<TextLoader>` to prevent FOUC.
 - NO layout components here (use the configured UI kit or app code).
 
@@ -72,11 +72,13 @@ registerSlice(mySlice, initMyEffects);
 | `useAppDispatch()` | Typed dispatch | AppDispatch |
 | `useAppSelector()` | Typed selector | Selected state |
 | `useTranslation()` | Translation utilities | `{ t, language, setLanguage, isRTL }` |
-| `useScreenTranslations()` | Load screen translations | `{ isLoaded, error }` |
+| `useScreenTranslations()` | **Host-only** — load screen translations (uses `i18nRegistry`). FORBIDDEN in MFE code. | `{ isLoaded, error }` |
 | `useTheme()` | Theme utilities | `{ currentTheme, themes, setTheme }` |
 | `useApiQuery()` | Declarative data fetch from endpoint descriptor | `ApiQueryResult<TData>` |
 | `useApiMutation()` | Declarative mutation with optimistic update support | `ApiMutationResult<TData>` |
 | `useQueryCache()` | Restricted query cache access | `QueryCache` |
+| `useRegisteredPackages()` | Registered GTS packages (host UI only) | `string[]` |
+| `useActivePackage()` | Active GTS package (host UI only) | `string \| undefined` |
 
 ## SCREEN TRANSLATIONS
 ```tsx
