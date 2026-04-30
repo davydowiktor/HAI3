@@ -8,7 +8,6 @@ import { i18n } from '../src/plugins/i18n';
 import { layout } from '../src/plugins/layout';
 import { mock } from '../src/plugins/mock';
 import { queryCache } from '../src/plugins/queryCache';
-import { screensets } from '../src/plugins/screensets';
 import { themes } from '../src/plugins/themes';
 import { resetSharedQueryClient } from '../src/testing';
 import type { HAI3Actions, HAI3App, HAI3Plugin } from '../src/types';
@@ -19,10 +18,6 @@ type ActionsView = Partial<HAI3Actions>;
 
 function getActionsView(app: HAI3App): ActionsView {
   return app.actions as ActionsView;
-}
-
-function getStateSliceNames(app: HAI3App): string[] {
-  return Object.keys(app.store.getState() as Record<string, unknown>);
 }
 
 function assertHasAction(actions: ActionsView, name: ActionName): void {
@@ -56,26 +51,7 @@ describe('plugin system contract', () => {
   }
 
   describe('preset surfaces', () => {
-    it('headless preset keeps the unit-testable screensets-only surface', () => {
-      const app = track(
-        createHAI3()
-          .use(presets.headless())
-          .build()
-      );
-      const actions = getActionsView(app);
-      const sliceNames = getStateSliceNames(app);
-
-      expect(sliceNames).toContain('layout/screen');
-      assertHasAction(actions, 'setActiveScreen');
-      assertHasAction(actions, 'setScreenLoading');
-      expect(app.themeRegistry).toBeUndefined();
-      expect(app.i18nRegistry).toBeUndefined();
-      assertMissingAction(actions, 'changeTheme');
-      assertMissingAction(actions, 'showPopup');
-      assertMissingAction(actions, 'toggleMockMode');
-    });
-
-    it('minimal preset exposes screensets plus themes only', () => {
+    it('minimal preset exposes themes only', () => {
       const app = track(
         createHAI3()
           .use(presets.minimal())
@@ -84,7 +60,6 @@ describe('plugin system contract', () => {
       const actions = getActionsView(app);
 
       expect(app.themeRegistry).toBeDefined();
-      assertHasAction(actions, 'setActiveScreen');
       assertHasAction(actions, 'changeTheme');
       assertMissingAction(actions, 'showPopup');
       assertMissingAction(actions, 'setLanguage');
@@ -106,7 +81,6 @@ describe('plugin system contract', () => {
 
   describe('plugin factories', () => {
     it('expose stable names for supported composition pieces', () => {
-      expect(screensets().name).toBe('screensets');
       expect(themes().name).toBe('themes');
       expect(layout().name).toBe('layout');
       expect(i18n().name).toBe('i18n');
@@ -118,124 +92,73 @@ describe('plugin system contract', () => {
 
   describe('dependency resolution', () => {
     it('composition order does not matter when declared dependencies are present', () => {
-      const app1 = track(
-        createHAI3()
-          .use(screensets())
-          .use(themes())
-          .use(layout())
-          .build()
-      );
-      const app2 = track(
-        createHAI3()
-          .use(layout())
-          .use(themes())
-          .use(screensets())
-          .build()
-      );
+      const providerPlugin: HAI3Plugin = { name: 'provider', dependencies: [], provides: {} };
+      const consumerPlugin: HAI3Plugin = { name: 'consumer', dependencies: ['provider'], provides: {} };
 
-      assertHasAction(getActionsView(app1), 'showPopup');
-      assertHasAction(getActionsView(app2), 'showPopup');
-      expect(app1.themeRegistry).toBeDefined();
-      expect(app2.themeRegistry).toBeDefined();
+      expect(() => track(createHAI3().use(providerPlugin).use(consumerPlugin).build())).not.toThrow();
+      expect(() => track(createHAI3().use(consumerPlugin).use(providerPlugin).build())).not.toThrow();
     });
 
     it('succeeds when plugins are registered out of dependency order', () => {
-      const app = track(
-        createHAI3()
-          .use(mock({ enabledByDefault: false }))
-          .use(effects())
-          .build()
-      );
+      const providerPlugin: HAI3Plugin = { name: 'provider', dependencies: [], provides: {} };
+      const consumerPlugin: HAI3Plugin = { name: 'consumer', dependencies: ['provider'], provides: {} };
 
-      assertHasAction(getActionsView(app), 'toggleMockMode');
+      expect(() => track(createHAI3().use(consumerPlugin).use(providerPlugin).build())).not.toThrow();
     });
   });
 
   describe('negative paths', () => {
     it('strictMode throws when a plugin dependency is missing', () => {
-      // layout declares a dependency on screensets; without it, strictMode
-      // should fail loudly rather than silently degrade.
+      const plugin: HAI3Plugin = { name: 'test', dependencies: ['missing'], provides: {} };
+
       expect(() => {
-        createHAI3({ strictMode: true })
-          .use(layout())
-          .build();
-      }).toThrowError(/requires "screensets"/);
+        createHAI3({ strictMode: true }).use(plugin).build();
+      }).toThrowError(/requires "missing"/);
     });
 
     it('non-strict mode warns and still builds when a dependency is missing', () => {
+      const plugin: HAI3Plugin = { name: 'test', dependencies: ['missing'], provides: {} };
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       try {
-        const app = track(
-          createHAI3()
-            .use(layout())
-            .build()
-        );
+        track(createHAI3().use(plugin).build());
 
         expect(warnSpy).toHaveBeenCalledWith(
-          expect.stringMatching(/requires "screensets"/)
+          expect.stringMatching(/requires "missing"/)
         );
-        // Layout still registered its actions even though screensets was absent,
-        // so the application remains navigable (if feature-limited).
-        assertHasAction(getActionsView(app), 'showPopup');
       } finally {
         warnSpy.mockRestore();
       }
     });
 
     it('detects circular dependencies between plugins', () => {
-      const pluginA: HAI3Plugin = {
-        name: 'test-cycle-a',
-        dependencies: ['test-cycle-b'],
-        provides: {},
-      };
-      const pluginB: HAI3Plugin = {
-        name: 'test-cycle-b',
-        dependencies: ['test-cycle-a'],
-        provides: {},
-      };
+      const providerPlugin: HAI3Plugin = { name: 'provider', dependencies: ['consumer'], provides: {} };
+      const consumerPlugin: HAI3Plugin = { name: 'consumer', dependencies: ['provider'], provides: {} };
 
       expect(() => {
         createHAI3()
-          .use(pluginA)
-          .use(pluginB)
+          .use(providerPlugin)
+          .use(consumerPlugin)
           .build();
       }).toThrowError(/Circular dependency/);
     });
 
     it('skips duplicate plugin registrations silently', () => {
-      // Registering the same plugin factory twice should not throw and should
-      // not double-register its actions.
-      const app = track(
-        createHAI3()
-          .use(screensets())
-          .use(screensets())
-          .build()
-      );
-
-      const actions = getActionsView(app);
-      assertHasAction(actions, 'setActiveScreen');
-      // layout/screen slice should appear exactly once.
-      const sliceNames = getStateSliceNames(app);
-      const screenSliceCount = sliceNames.filter(
-        (name) => name === 'layout/screen'
-      ).length;
-      expect(screenSliceCount).toBe(1);
+      const plugin: HAI3Plugin = { name: 'test', dependencies: [], provides: {} };
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        track(createHAI3().use(plugin).use(plugin).build());
+        expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
 
     it('emits a duplicate-registration warning in devMode', () => {
+      const plugin: HAI3Plugin = { name: 'test', dependencies: [], provides: {} };
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       try {
-        const app = track(
-          createHAI3({ devMode: true })
-            .use(screensets())
-            .use(screensets())
-            .build()
-        );
-
-        expect(warnSpy).toHaveBeenCalledWith(
-          expect.stringMatching(/already registered/)
-        );
-        expect(getStateSliceNames(app)).toContain('layout/screen');
+        track(createHAI3({ devMode: true }).use(plugin).use(plugin).build());
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/already registered/));
       } finally {
         warnSpy.mockRestore();
       }

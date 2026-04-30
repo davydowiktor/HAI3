@@ -77,7 +77,7 @@ function createProviderOwnedApp(
  * </FrontXProvider>
  *
  * // With pre-built app
- * const app = createFrontX().use(queryCache()).use(screensets()).build();
+ * const app = createFrontX().use(queryCache()).build();
  * <FrontXProvider app={app}>
  *   <App />
  * </FrontXProvider>

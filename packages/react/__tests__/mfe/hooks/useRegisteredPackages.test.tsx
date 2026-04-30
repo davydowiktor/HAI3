@@ -15,7 +15,6 @@ import {
   gtsPlugin,
   microfrontends,
   queryCache,
-  screensets,
   TestContainerProvider,
   type ContainerProvider,
   type Extension,
@@ -75,7 +74,6 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
    */
   function buildApp(): HAI3App {
     const app = createHAI3()
-      .use(screensets())
       .use(effects())
       .use(queryCache())
       .use(microfrontends({ typeSystem: gtsPlugin }))

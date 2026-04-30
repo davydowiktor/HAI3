@@ -96,7 +96,6 @@ function setHeaderVisible(_visible: boolean): void {
  * @example
  * ```typescript
  * const app = createHAI3()
- *   .use(screensets())
  *   .use(layout())
  *   .build();
  * ```
@@ -106,7 +105,7 @@ export function layout(): HAI3Plugin {
 
   return {
     name: 'layout',
-    dependencies: ['screensets'],
+    dependencies: [],
 
     provides: {
       slices: [

@@ -8,7 +8,6 @@ import type { FooterState } from '../layoutTypes';
 const SLICE_KEY = 'layout/footer' as const;
 
 const initialState: FooterState = {
-  screensetOptions: [],
   visible: true,
 };
 

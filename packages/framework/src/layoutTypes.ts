@@ -48,10 +48,6 @@ export interface HeaderConfig {
 
 /** Footer state */
 export interface FooterState {
-  screensetOptions: Array<{
-    category: string;
-    screensets: Array<{ id: string; name: string }>;
-  }>;
   visible: boolean;
 }
 
@@ -90,12 +86,6 @@ export interface SidebarState {
   width: number;
 }
 
-/** Screen state */
-export interface ScreenState {
-  activeScreen: string | null;
-  loading: boolean;
-}
-
 /** Single popup state */
 export interface PopupState {
   id: string;
@@ -130,8 +120,6 @@ export interface OverlayConfig {
 /** Combined layout state (legacy) */
 export interface LayoutState {
   theme: string;
-  currentScreenset: string;
-  selectedScreen: string | null;
 }
 
 /** Layout domain state union */
@@ -140,7 +128,6 @@ export type LayoutDomainState =
   | FooterState
   | MenuState
   | SidebarState
-  | ScreenState
   | PopupState
   | OverlayState;
 
@@ -151,7 +138,6 @@ export interface RootStateWithLayout {
     footer: FooterState;
     menu: MenuState;
     sidebar: SidebarState;
-    screen: ScreenState;
     popup: { stack: PopupState[] };
     overlay: OverlayState;
   };

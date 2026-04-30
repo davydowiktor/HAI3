@@ -15,7 +15,6 @@ import {
   gtsPlugin,
   microfrontends,
   queryCache,
-  screensets,
   TestContainerProvider,
   type ContainerProvider,
   type Extension,
@@ -89,7 +88,6 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
    */
   function buildApp(): HAI3App {
     const app = createHAI3()
-      .use(screensets())
       .use(effects())
       .use(queryCache())
       .use(microfrontends({ typeSystem: gtsPlugin }))

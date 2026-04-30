@@ -15,7 +15,6 @@ import type {
   FooterState,
   MenuState,
   SidebarState,
-  ScreenState,
   OverlayState,
 } from '../layoutTypes';
 
@@ -43,14 +42,6 @@ import sidebarReducer, {
   setSidebarWidth,
   setSidebarConfig,
 } from './sidebarSlice';
-import screenReducer, {
-  screenSlice,
-  screenActions,
-  setActiveScreen,
-  setScreenLoading,
-  navigateTo,
-  clearActiveScreen,
-} from './screenSlice';
 import popupReducer, {
   popupSlice,
   popupActions,
@@ -97,7 +88,6 @@ export interface LayoutDomainReducersType {
   footer: Reducer<FooterState>;
   menu: Reducer<MenuState>;
   sidebar: Reducer<SidebarState>;
-  screen: Reducer<ScreenState>;
   popup: Reducer<PopupSliceState>;
   overlay: Reducer<OverlayState>;
 }
@@ -108,7 +98,6 @@ export const layoutDomainReducers: LayoutDomainReducersType = {
   footer: footerReducer,
   menu: menuReducer,
   sidebar: sidebarReducer,
-  screen: screenReducer,
   popup: popupReducer,
   overlay: overlayReducer,
 };
@@ -126,7 +115,6 @@ export {
   footerSlice,
   menuSlice,
   sidebarSlice,
-  screenSlice,
   popupSlice,
   overlaySlice,
   // Action groups
@@ -138,7 +126,6 @@ export {
   footerActions,
   menuActions,
   sidebarActions,
-  screenActions,
   popupActions,
   overlayActions,
   // Individual actions - footer
@@ -159,11 +146,6 @@ export {
   setSidebarVisible,
   setSidebarWidth,
   setSidebarConfig,
-  // Individual actions - screen
-  setActiveScreen,
-  setScreenLoading,
-  navigateTo,
-  clearActiveScreen,
   // Individual actions - popup
   openPopup,
   closePopup,

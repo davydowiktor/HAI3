@@ -24,7 +24,6 @@ export { createHAI3App, type HAI3AppConfig } from './createHAI3App';
 // ============================================================================
 
 export {
-  screensets,
   themes,
   layout,
   i18n,
@@ -174,7 +173,7 @@ export type {
 // Preset Exports
 // ============================================================================
 
-export { presets, full, minimal, headless, type FullPresetConfig } from './presets';
+export { presets, full, minimal, type FullPresetConfig } from './presets';
 
 // ============================================================================
 // Registry Exports
@@ -201,7 +200,6 @@ export type {
   RouterMode,
   Preset,
   Presets,
-  ScreensetsConfig,
   ThemesConfig,
   ShowPopupPayload,
   ChangeThemePayload,
@@ -256,7 +254,6 @@ export {
   footerSlice,
   menuSlice,
   sidebarSlice,
-  screenSlice,
   popupSlice,
   overlaySlice,
   // Domain actions
@@ -264,7 +261,6 @@ export {
   footerActions,
   menuActions,
   sidebarActions,
-  screenActions,
   popupActions,
   overlayActions,
   // Individual reducer functions - header
@@ -287,10 +283,6 @@ export {
   setSidebarVisible,
   setSidebarWidth,
   setSidebarConfig,
-  setActiveScreen,
-  setScreenLoading,
-  navigateTo,
-  clearActiveScreen,
   openPopup,
   closePopup,
   closeTopPopup,
@@ -318,7 +310,6 @@ export type {
   MenuState,
   SidebarPosition,
   SidebarState,
-  ScreenState,
   PopupState,
   PopupConfig,
   OverlayState,

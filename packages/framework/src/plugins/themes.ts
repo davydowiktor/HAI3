@@ -40,7 +40,6 @@ function changeTheme(payload: ChangeThemePayload): void {
  * @example
  * ```typescript
  * const app = createFrontX()
- *   .use(screensets())
  *   .use(themes())
  *   .build();
  *

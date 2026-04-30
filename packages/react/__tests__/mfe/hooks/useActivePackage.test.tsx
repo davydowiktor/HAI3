@@ -11,7 +11,6 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { HAI3Provider, useActivePackage } from '@cyberfabric/react';
 import {
   createHAI3,
-  screensets,
   effects,
   microfrontends,
   HAI3_SCREEN_DOMAIN,
@@ -66,7 +65,6 @@ describe('useActivePackage hook - Phase 39.6', () => {
    */
   function buildApp(): HAI3App {
     const app = createHAI3()
-      .use(screensets())
       .use(effects())
       .use(microfrontends({ typeSystem: gtsPlugin }))
       .build();

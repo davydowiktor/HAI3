@@ -133,7 +133,7 @@ type TranslationParams = Record<string, string | number | boolean>;
  * </FrontXProvider>
  *
  * // With pre-built app
- * const app = createFrontX().use(screensets()).use(microfrontends()).build();
+ * const app = createFrontX().use(microfrontends()).build();
  * <FrontXProvider app={app}>
  *   <App />
  * </FrontXProvider>

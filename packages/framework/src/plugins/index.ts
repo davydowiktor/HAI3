@@ -2,7 +2,6 @@
  * Plugin exports
  */
 
-export { screensets } from './screensets';
 export { themes } from './themes';
 export { layout } from './layout';
 export { i18n } from './i18n';

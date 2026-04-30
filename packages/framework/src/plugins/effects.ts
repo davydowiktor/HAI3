@@ -20,7 +20,6 @@ import type { HAI3Plugin } from '../types';
  * ```typescript
  * const app = createHAI3()
  *   .use(effects())
- *   .use(screensets())
  *   .build();
  * ```
  */

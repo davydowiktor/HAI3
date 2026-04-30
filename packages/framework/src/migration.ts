@@ -94,15 +94,12 @@ export const STATE_PATH_MAPPING = {
 
   // Layout state (split into domains)
   'uicore.layout.theme': 'app.theme',
-  'uicore.layout.currentScreenset': 'app.currentScreenset',
-  'uicore.layout.selectedScreen': 'layout.screen.activeScreen',
 
   // Domain states (moved to layout.*)
   'uicore.header': 'layout.header',
   'uicore.footer': 'layout.footer',
   'uicore.menu': 'layout.menu',
   'uicore.sidebar': 'layout.sidebar',
-  'uicore.screen': 'layout.screen',
   'uicore.popup': 'layout.popup',
   'uicore.overlay': 'layout.overlay',
 } as const;

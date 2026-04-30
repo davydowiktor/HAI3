@@ -14,7 +14,6 @@ import {
 } from '@cyberfabric/react';
 import {
   createHAI3,
-  screensets,
   effects,
   microfrontends,
   queryCache,
@@ -38,7 +37,6 @@ describe('ExtensionDomainSlot', () => {
 
   function buildAppWithoutQueryCache(): HAI3App {
     const app = createHAI3()
-      .use(screensets())
       .use(effects())
       .use(microfrontends({ typeSystem: gtsPlugin }))
       .build();
@@ -90,7 +88,6 @@ describe('ExtensionDomainSlot', () => {
 
   it('does not register mount context when queryCache plugin provides an app QueryClient', async () => {
     const app = createHAI3()
-      .use(screensets())
       .use(effects())
       .use(queryCache())
       .use(microfrontends({ typeSystem: gtsPlugin }))

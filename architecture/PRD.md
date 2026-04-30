@@ -258,8 +258,8 @@ src/                -- Demo host application + MFE packages
 - MFE runtime — MfeRegistry, extension lifecycle, actions chain mediation, domain management, GTS validation
 - API communication — REST and SSE protocols, plugin chain, mock mode, retry with exponential backoff
 - Internationalization — 36 languages, RTL support, namespace-based translations, lazy loading, locale-aware formatters
-- Plugin architecture — Composable plugins, presets (full, minimal, headless)
-- Layout state — 7 domain slices (header, footer, menu, sidebar, screen, popup, overlay), tenant, mock
+- Plugin architecture — Composable plugins, presets (full, minimal)
+- Layout state — 6 domain slices (header, footer, menu, sidebar, popup, overlay), tenant, mock
 - React integration — HAI3Provider, typed hooks, MFE hooks
 - UI component library — shadcn/ui + Radix UI primitives, variant system, theming
 - Developer studio — Runtime overlay with MFE package selector, theme/language/API mode toggles
@@ -365,7 +365,7 @@ Actions MUST be handwritten pure functions that emit events via `eventBus.emit()
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-sdk-plugin-arch`
 
-`@cyberfabric/framework` MUST provide a plugin-based architecture via `createHAI3()` builder with `.use()` and `.build()`. Plugins MUST declare name, optional dependencies, and optional provides. Presets MUST include `full()`, `minimal()`, `headless()`.
+`@cyberfabric/framework` MUST provide a plugin-based architecture via `createHAI3()` builder with `.use()` and `.build()`. Plugins MUST declare name, optional dependencies, and optional provides. Presets MUST include `full()`, `minimal()`.
 
 **Rationale**: Composable feature set; applications only pay for what they use.
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-framework-plugin`

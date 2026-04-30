@@ -17,7 +17,6 @@ import { eventBus, resetStore } from '@cyberfabric/state';
 import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 import type { TypeSystemPlugin } from '@cyberfabric/screensets';
 import { createHAI3 } from '../../src/createHAI3';
-import { screensets } from '../../src/plugins/screensets';
 import { microfrontends } from '../../src/plugins/microfrontends';
 import { loadLayoutDomains } from '../../src/plugins/microfrontends/gts/loader';
 import { themeSchema, languageSchema, extensionScreenSchema } from '../../src/gts';
@@ -68,7 +67,6 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
   function buildApp(): HAI3App {
     const app = createHAI3()
-      .use(screensets())
       .use(microfrontends({ typeSystem }))
       .build();
     apps.push(app);
@@ -81,7 +79,6 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
       expect(plugin).toHaveProperty('name', 'microfrontends');
       expect(plugin).toHaveProperty('dependencies');
-      expect(plugin.dependencies).toContain('screensets');
       expect(plugin).toHaveProperty('onInit');
       expect(plugin).toHaveProperty('provides');
       expect(plugin.provides).toHaveProperty('registries');

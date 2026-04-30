@@ -140,12 +140,6 @@ export interface HAI3Actions {
   setSidebarCollapsed: (payload: boolean) => void;
 
   // ==========================================================================
-  // Screenset actions (from screensets plugin)
-  // ==========================================================================
-  setActiveScreen: (payload: string) => void;
-  setScreenLoading: (payload: boolean) => void;
-
-  // ==========================================================================
   // Mock actions (from mock plugin)
   // ==========================================================================
   toggleMockMode: (enabled: boolean) => void;
@@ -269,7 +263,6 @@ export type PluginFactory<TConfig = unknown> = (config?: TConfig) => HAI3Plugin<
  * @example
  * ```typescript
  * const app = createFrontX()
- *   .use(screensets())
  *   .use(themes())
  *   .use(layout())
  *   .build();
@@ -280,7 +273,7 @@ export interface HAI3AppBuilder {
    * Add a plugin to the application.
    *
    * Also accepts an array of plugins, which is how preset helpers such as
-   * `presets.headless()` / `presets.minimal()` are consumed.
+   * `presets.minimal()` are consumed.
    *
    * @param plugin - Plugin instance, plugin factory, or an array of plugins (e.g. a preset)
    * @returns Builder for chaining
@@ -457,7 +450,6 @@ export type CreateHAI3App = (config?: HAI3Config) => HAI3App;
  * @example
  * ```typescript
  * const app = createFrontX()
- *   .use(screensets())
  *   .use(themes())
  *   .build();
  * ```
@@ -475,7 +467,6 @@ export type CreateHAI3 = () => HAI3AppBuilder;
  * @example
  * ```typescript
  * const minimal: Preset = () => [
- *   screensets({ autoDiscover: true }),
  *   themes(),
  * ];
  * ```
@@ -489,26 +480,13 @@ export type Preset = () => HAI3Plugin[];
 export interface Presets {
   /** All plugins - default for frontx create */
   full: Preset;
-  /** Screensets + themes only */
+  /** Themes only */
   minimal: Preset;
-  /** Screensets only - for external platform integration */
-  headless: Preset;
 }
 
 // ============================================================================
 // Plugin Configurations
 // ============================================================================
-
-/**
- * Screensets Plugin Configuration
- * Configuration options for the screensets plugin.
- */
-export interface ScreensetsConfig {
-  /** Auto-discover screensets via glob */
-  autoDiscover?: boolean;
-  /** Glob pattern for screenset discovery */
-  globPattern?: string;
-}
 
 /**
  * Themes Plugin Configuration

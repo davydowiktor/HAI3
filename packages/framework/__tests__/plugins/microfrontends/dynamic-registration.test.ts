@@ -9,7 +9,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createHAI3 } from '../../../src/createHAI3';
-import { screensets } from '../../../src/plugins/screensets';
 import { effects } from '../../../src/plugins/effects';
 import {
   microfrontends,
@@ -123,7 +122,7 @@ describe('dynamic registration - Phase 20', () => {
 
   describe('20.5.2 - registerExtension effect calls runtime', () => {
     it('should dispatch setExtensionRegistering and setExtensionRegistered on success', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const app = createHAI3().use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
@@ -149,7 +148,7 @@ describe('dynamic registration - Phase 20', () => {
     });
 
     it('should dispatch setExtensionError on failure', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const app = createHAI3().use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
@@ -196,7 +195,7 @@ describe('dynamic registration - Phase 20', () => {
     });
 
     it('should call runtime.unregisterExtension', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const app = createHAI3().use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
@@ -220,7 +219,7 @@ describe('dynamic registration - Phase 20', () => {
 
   describe('20.5.6 - slice state transitions', () => {
     it('should transition through registration states', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const app = createHAI3().use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
@@ -251,7 +250,7 @@ describe('dynamic registration - Phase 20', () => {
 
   describe('20.5.7 - selectExtensionState selector', () => {
     it('should return unregistered for unknown extension', () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const app = createHAI3().use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       apps.push(app);
       const state = app.store.getState();
 
@@ -259,7 +258,7 @@ describe('dynamic registration - Phase 20', () => {
     });
 
     it('should return correct state for known extension', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const app = createHAI3().use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
@@ -277,7 +276,7 @@ describe('dynamic registration - Phase 20', () => {
 
   describe('20.5.8 - selectRegisteredExtensions selector', () => {
     it('should return empty array when no extensions registered', () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const app = createHAI3().use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       apps.push(app);
       const state = app.store.getState();
 
@@ -285,7 +284,7 @@ describe('dynamic registration - Phase 20', () => {
     });
 
     it('should return array of registered extension IDs', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const app = createHAI3().use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
@@ -313,7 +312,7 @@ describe('dynamic registration - Phase 20', () => {
     });
 
     it('should not include unregistered or error state extensions', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const app = createHAI3().use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 

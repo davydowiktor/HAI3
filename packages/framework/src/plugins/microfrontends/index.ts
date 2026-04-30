@@ -163,7 +163,7 @@ export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
 
   return {
     name: 'microfrontends',
-    dependencies: ['screensets'], // Requires screensets to be initialized
+    dependencies: [],
 
     provides: {
       registries: {

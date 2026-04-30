@@ -8,7 +8,6 @@
 // @cpt-dod:cpt-frontx-dod-framework-composition-presets:p1
 
 import type { HAI3Plugin, Presets } from '../types';
-import { screensets } from '../plugins/screensets';
 import { themes } from '../plugins/themes';
 import { layout } from '../plugins/layout';
 import { i18n } from '../plugins/i18n';
@@ -33,7 +32,6 @@ export interface FullPresetConfig {
  * This is the default for `frontx create` projects.
  *
  * Includes:
- * - screensets (screenset registry, screen slice)
  * - themes (theme registry, changeTheme action)
  * - layout (all layout domain slices and effects)
  * - i18n (i18n registry, setLanguage action)
@@ -60,7 +58,6 @@ export interface FullPresetConfig {
 export function full(config?: FullPresetConfig): HAI3Plugin[] {
   const plugins: HAI3Plugin[] = [
     effects(),
-    screensets({ autoDiscover: true }),
     themes(),
     layout(),
     i18n(),
@@ -78,34 +75,18 @@ export function full(config?: FullPresetConfig): HAI3Plugin[] {
 // @cpt-end:cpt-frontx-flow-framework-composition-full-preset:p1:inst-1
 
 /**
- * Minimal preset - Screensets + themes only.
+ * Minimal preset - Themes only.
  * For users who want basic FrontX patterns without full layout management.
  *
  * Includes:
- * - screensets (screenset registry, screen slice)
  * - themes (theme registry, changeTheme action)
  */
 export function minimal(): HAI3Plugin[] {
   return [
-    screensets({ autoDiscover: true }),
     themes(),
   ];
 }
 // @cpt-end:cpt-frontx-dod-framework-composition-presets:p1:inst-1
-
-/**
- * Headless preset - Screensets only.
- * For external platform integration where you only need screenset orchestration.
- * The external platform provides its own menu, header, navigation, etc.
- *
- * Includes:
- * - screensets (screenset registry, screen slice)
- */
-export function headless(): HAI3Plugin[] {
-  return [
-    screensets(),
-  ];
-}
 
 /**
  * Presets collection
@@ -113,5 +94,4 @@ export function headless(): HAI3Plugin[] {
 export const presets: Presets = {
   full,
   minimal,
-  headless,
 };

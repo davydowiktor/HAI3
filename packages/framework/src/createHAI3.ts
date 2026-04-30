@@ -315,19 +315,9 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
 
   /**
    * Create store with all aggregated slices.
-   *
-   * IMPORTANT: This method supports the screenset self-registration pattern.
-   * Screensets call registerSlice() as module side effects when imported,
-   * which may auto-create a store before createFrontXApp() is called.
-   *
-   * This method:
-   * 1. Uses the existing store if one was auto-created by screensets
-   * 2. Registers framework slices to the existing store
-   * 3. Returns the unified store for FrontXApp
    */
   private createStoreWithSlices(slices: RegisterableSlice[]): HAI3Store {
-    // Get existing store (may have been created by screenset registerSlice calls)
-    // getStore() auto-creates if none exists
+    // Get or create the store
     const store = getStore();
 
     // Register framework slices using registerSlice (merges with dynamic slices)
@@ -366,7 +356,6 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
  * @example
  * ```typescript
  * const app = createFrontX()
- *   .use(screensets())
  *   .use(themes())
  *   .build();
  * ```

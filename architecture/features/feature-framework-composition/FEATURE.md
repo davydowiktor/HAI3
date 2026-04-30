@@ -380,14 +380,13 @@ Host applications can compose a FrontX framework instance by chaining `.use(plug
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-layout`
 
-The `layout()` plugin registers Redux slices for all seven layout domains (header, footer, menu, sidebar, screen, popup, overlay), subscribes to layout events on the event bus, and dispatches corresponding reducer actions to keep state consistent. The `screensets()` plugin registers the screen slice. All layout state types are exported from `@cyberfabric/framework`.
+The `layout()` plugin registers Redux slices for all six layout domains (header, footer, menu, sidebar, popup, overlay), subscribes to layout events on the event bus, and dispatches corresponding reducer actions to keep state consistent. All layout state types are exported from `@cyberfabric/framework`.
 
 **Layout domains and their slices**:
 - `header`: `HeaderState` — user info, loading
-- `footer`: `FooterState` — visible flag, screenset options
+- `footer`: `FooterState` — visible flag
 - `menu`: `MenuState` — collapsed, items, visible
 - `sidebar`: `SidebarState` — collapsed, position, title, content, visible, width
-- `screen`: `ScreenState` — activeScreen, loading
 - `popup`: stack of `PopupState` — id, title, component, props, zIndex
 - `overlay`: `OverlayState` — visible
 
@@ -510,11 +509,10 @@ The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `type
 - [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-presets`
 
 Three presets are provided as functions returning `HAI3Plugin[]`:
-- `full(config?)` — all plugins (`effects`, `screensets`, `themes`, `layout`, `i18n`, `queryCache`, `mock`, `microfrontends`)
-- `minimal()` — `screensets` + `themes` only
-- `headless()` — `screensets` only
+- `full(config?)` — all plugins (`effects`, `themes`, `layout`, `i18n`, `queryCache`, `mock`, `microfrontends`)
+- `minimal()` — `themes` only
 
-All presets are exported from `@cyberfabric/framework`. The `presets` object collects all three under named keys.
+All presets are exported from `@cyberfabric/framework`. The `presets` object collects all under named keys.
 
 **Covers (PRD)**:
 - `cpt-frontx-fr-sdk-plugin-arch`
@@ -576,7 +574,7 @@ The framework does NOT export `createAction` to consumers; actions are handwritt
 - [x] `stripBase('/console/dashboard', '/console')` returns `'/dashboard'`; `stripBase('/admin/x', '/console')` returns `null`; `stripBase('/console-admin', '/console')` returns `null`
 - [x] `createHAI3App()` uses the `full()` preset and returns a valid `HAI3App` without configuration
 - [x] `@cyberfabric/framework` has no React import (enforced by `dependency-cruiser`)
-- [x] All layout domain types (`HeaderState`, `FooterState`, `MenuState`, `SidebarState`, `ScreenState`, `PopupState`, `OverlayState`) are exported from `@cyberfabric/framework`
+- [x] All layout domain types (`HeaderState`, `FooterState`, `MenuState`, `SidebarState`, `PopupState`, `OverlayState`) are exported from `@cyberfabric/framework`
 
 ---
 

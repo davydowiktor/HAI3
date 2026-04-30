@@ -10,7 +10,6 @@
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createHAI3 } from '../../../src/createHAI3';
-import { screensets } from '../../../src/plugins/screensets';
 import { effects } from '../../../src/plugins/effects';
 import {
   microfrontends,
@@ -69,7 +68,6 @@ describe('microfrontends plugin - Phase 13', () => {
       const plugin = microfrontends({ typeSystem: gtsPlugin });
 
       expect(plugin.name).toBe('microfrontends');
-      expect(plugin.dependencies).toContain('screensets');
       expect(plugin.provides).toBeDefined();
       expect(plugin.provides?.registries).toBeDefined();
       expect(plugin.provides?.slices).toBeDefined();
@@ -91,7 +89,6 @@ describe('microfrontends plugin - Phase 13', () => {
 
     it('should make MFE actions available on app.actions', () => {
       const app = createHAI3()
-        .use(screensets())
         .use(effects())
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
@@ -107,7 +104,6 @@ describe('microfrontends plugin - Phase 13', () => {
   describe('13.8.2 - MFE lifecycle actions call executeActionsChain', () => {
     it('should call executeActionsChain for loadExtension', async () => {
       const app = createHAI3()
-        .use(screensets())
         .use(effects())
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
@@ -144,7 +140,6 @@ describe('microfrontends plugin - Phase 13', () => {
 
     it('should throw when unmountExtension resolves a domain that is not registered on the registry', () => {
       const app = createHAI3()
-        .use(screensets())
         .use(effects())
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
@@ -194,7 +189,6 @@ describe('microfrontends plugin - Phase 13', () => {
   describe('13.8.3 - MFE slice (registration only)', () => {
     it('should initialize MFE slice in store', () => {
       const app = createHAI3()
-        .use(screensets())
         .use(effects())
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
@@ -208,7 +202,6 @@ describe('microfrontends plugin - Phase 13', () => {
 
     it('should track registration state via selectors', () => {
       const app = createHAI3()
-        .use(screensets())
         .use(effects())
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
@@ -239,7 +232,6 @@ describe('microfrontends plugin - Phase 13', () => {
       vi.spyOn(mfeRegistryFactory, 'build').mockReturnValue(asMfeRegistry(fakeRegistry));
 
       const app = createHAI3()
-        .use(screensets())
         .use(effects())
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
@@ -277,7 +269,6 @@ describe('microfrontends plugin - Phase 13', () => {
       vi.spyOn(mfeRegistryFactory, 'build').mockReturnValue(asMfeRegistry(fakeRegistry));
 
       const app = createHAI3()
-        .use(screensets())
         .use(effects())
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
@@ -325,7 +316,6 @@ describe('microfrontends plugin - Phase 13', () => {
       vi.spyOn(mfeRegistryFactory, 'build').mockReturnValue(asMfeRegistry(fakeRegistry));
 
       const app = createHAI3()
-        .use(screensets())
         .use(effects())
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
@@ -377,7 +367,6 @@ describe('microfrontends plugin - Phase 13', () => {
       vi.spyOn(mfeRegistryFactory, 'build').mockReturnValue(asMfeRegistry(fakeRegistry));
 
       const app = createHAI3()
-        .use(screensets())
         .use(effects())
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
@@ -418,7 +407,6 @@ describe('microfrontends plugin - Phase 13', () => {
   describe('13.8.8 - plugin lifecycle wiring', () => {
     it('initializes MFE effects on init so bus events invoke the registry', async () => {
       const app = createHAI3()
-        .use(screensets())
         .use(effects())
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
@@ -445,7 +433,6 @@ describe('microfrontends plugin - Phase 13', () => {
     it('tears down MFE effects on destroy so the bus no longer drives the registry', async () => {
       // Fresh app so we control its destroy ordering independently of afterEach.
       const app = createHAI3()
-        .use(screensets())
         .use(effects())
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
