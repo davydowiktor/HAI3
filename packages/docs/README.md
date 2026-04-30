@@ -15,8 +15,8 @@ This package contains the VitePress-based documentation site for FrontX, coverin
 
 ### Prerequisites
 
-- Node.js >= 25.1.0
-- npm >= 11.6.0
+- Node.js >= 24.14.0
+- npm >= 10.0.0
 
 ### Setup
 
@@ -42,26 +42,26 @@ npm run docs:build
 npm run docs:preview
 ```
 
-The built site will be in `packages/docs/dist/`.
+The built site will be in `packages/docs/src/.vitepress/dist/`.
 
 ## Structure
 
-```
+```text
 packages/docs/
-├── .vitepress/           # VitePress configuration
-│   ├── config.ts         # Site config, navigation, theme
-│   └── theme/            # Custom theme
-│       ├── index.ts
-│       └── custom.css    # FrontX branding
-├── src/                  # Documentation content (Markdown)
-│   ├── index.md          # Homepage
-│   ├── getting-started.md
-│   ├── TERMINOLOGY.md
-│   ├── lifecycle/        # AI product lifecycle docs
-│   ├── frontx/             # FrontX framework docs
-│   └── case-studies/     # Case studies
-├── public/               # Static assets (images, diagrams)
-└── dist/                 # Build output (gitignored)
+└── src/                              # VitePress project root (Markdown content)
+    ├── .vitepress/                   # VitePress configuration
+    │   ├── config.ts                 # Site config, navigation, theme
+    │   ├── theme/                    # Custom theme
+    │   │   ├── index.ts
+    │   │   └── custom.css            # FrontX branding
+    │   └── dist/                     # Build output (gitignored)
+    ├── index.md                      # Homepage
+    ├── getting-started.md
+    ├── TERMINOLOGY.md
+    ├── lifecycle/                    # AI product lifecycle docs
+    ├── frontx/                       # FrontX framework docs
+    ├── case-studies/                 # Case studies
+    └── public/                       # Static assets (images, diagrams)
 ```
 
 ## Writing Documentation
@@ -120,7 +120,7 @@ The documentation site is a static site that can be deployed to:
 - Vercel
 - Any static hosting service
 
-Build with `npm run docs:build` and deploy the `dist/` directory.
+Build with `npm run docs:build` and deploy the `packages/docs/src/.vitepress/dist/` directory.
 
 ### GitHub Pages Setup
 
@@ -140,13 +140,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '25.1.0'
+          node-version: '24.x'
       - run: npm ci
       - run: npm run docs:build
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./packages/docs/dist
+          publish_dir: ./packages/docs/src/.vitepress/dist
 ```
 
 ## Contributing
