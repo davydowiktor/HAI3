@@ -22,11 +22,12 @@ import {
 } from '../../../src/plugins/microfrontends';
 import { eventBus, resetStore } from '@cyberfabric/state';
 import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
+import type { MfeRegistry } from '@cyberfabric/screensets';
 import type { Extension, ExtensionDomain } from '@cyberfabric/framework';
 import { TestContainerProvider } from '../../../src/testing/TestContainerProvider';
-import type { HAI3App, MfeMfeRegistry } from '../../../src/types';
+import type { HAI3App } from '../../../src/types';
 
-function getMfeRegistry(app: HAI3App): MfeMfeRegistry {
+function getMfeRegistry(app: HAI3App): MfeRegistry {
   if (!app.mfeRegistry) {
     throw new Error('Expected microfrontends plugin to provide mfeRegistry');
   }

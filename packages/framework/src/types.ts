@@ -352,11 +352,6 @@ export interface ThemeRegistry {
 }
 
 /**
- * MFE-enabled MfeRegistry (optional)
- * When the microfrontends plugin is used, this registry is available.
- * It provides MFE capabilities: registerDomain(), registerExtension(), etc.
- */
-export type MfeMfeRegistry = import('@cyberfabric/screensets').MfeRegistry;
 
 /**
  * FrontX App Runtime Extensions
@@ -410,7 +405,7 @@ export interface HAI3App extends HAI3AppRuntimeExtensions {
   i18nRegistry: I18nRegistry;
 
   /** MFE-enabled MfeRegistry (optional, provided by microfrontends plugin) */
-  mfeRegistry?: MfeMfeRegistry;
+  mfeRegistry?: import('@cyberfabric/screensets').MfeRegistry;
 
   /** All registered actions (type-safe via FrontXActions interface) */
   actions: HAI3Actions;
