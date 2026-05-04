@@ -46,7 +46,7 @@ The built site will be in `packages/docs/src/.vitepress/dist/`.
 
 ## Structure
 
-```
+```text
 packages/docs/
 └── src/                              # VitePress project root (Markdown content)
     ├── .vitepress/                   # VitePress configuration
@@ -140,7 +140,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '25.1.0'
+          node-version: '24.x'
       - run: npm ci
       - run: npm run docs:build
       - uses: peaceiris/actions-gh-pages@v3
