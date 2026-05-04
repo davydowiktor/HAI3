@@ -146,7 +146,7 @@ jobs:
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./packages/docs/dist
+          publish_dir: ./packages/docs/src/.vitepress/dist
 ```
 
 ## Contributing

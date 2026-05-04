@@ -8,9 +8,6 @@ export default defineConfig({
   // For GitHub Pages project site, set to '/FrontX/' or '/repo-name/'
   base: process.env.VITE_BASE || '/',
 
-  // Emit at packages/docs/dist (relative to srcDir=packages/docs/src)
-  outDir: '../dist',
-
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
