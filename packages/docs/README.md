@@ -42,26 +42,26 @@ npm run docs:build
 npm run docs:preview
 ```
 
-The built site will be in `packages/docs/dist/`.
+The built site will be in `packages/docs/src/.vitepress/dist/`.
 
 ## Structure
 
 ```
 packages/docs/
-├── .vitepress/           # VitePress configuration
-│   ├── config.ts         # Site config, navigation, theme
-│   └── theme/            # Custom theme
-│       ├── index.ts
-│       └── custom.css    # FrontX branding
-├── src/                  # Documentation content (Markdown)
-│   ├── index.md          # Homepage
-│   ├── getting-started.md
-│   ├── TERMINOLOGY.md
-│   ├── lifecycle/        # AI product lifecycle docs
-│   ├── frontx/             # FrontX framework docs
-│   └── case-studies/     # Case studies
-├── public/               # Static assets (images, diagrams)
-└── dist/                 # Build output (gitignored)
+└── src/                              # VitePress project root (Markdown content)
+    ├── .vitepress/                   # VitePress configuration
+    │   ├── config.ts                 # Site config, navigation, theme
+    │   ├── theme/                    # Custom theme
+    │   │   ├── index.ts
+    │   │   └── custom.css            # FrontX branding
+    │   └── dist/                     # Build output (gitignored)
+    ├── index.md                      # Homepage
+    ├── getting-started.md
+    ├── TERMINOLOGY.md
+    ├── lifecycle/                    # AI product lifecycle docs
+    ├── frontx/                       # FrontX framework docs
+    ├── case-studies/                 # Case studies
+    └── public/                       # Static assets (images, diagrams)
 ```
 
 ## Writing Documentation
@@ -120,7 +120,7 @@ The documentation site is a static site that can be deployed to:
 - Vercel
 - Any static hosting service
 
-Build with `npm run docs:build` and deploy the `dist/` directory.
+Build with `npm run docs:build` and deploy the `packages/docs/src/.vitepress/dist/` directory.
 
 ### GitHub Pages Setup
 
